@@ -1,0 +1,115 @@
+{
+  "name": "@kaspacom/kcc20-tx-builder",
+  "version": "0.1.0",
+  "description": "Runtime-independent KCC20 covenant transaction and PSKT construction primitives.",
+  "license": "Apache-2.0",
+  "author": "KaspaCom",
+  "homepage": "https://github.com/KASPACOM/kcc20-tx-builder#readme",
+  "bugs": {
+    "url": "https://github.com/KASPACOM/kcc20-tx-builder/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KASPACOM/kcc20-tx-builder.git"
+  },
+  "keywords": [
+    "kaspa",
+    "kcc20",
+    "covenants",
+    "pskt",
+    "transactions"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./builder": {
+      "types": "./dist/builder.d.ts",
+      "import": "./dist/builder.js"
+    },
+    "./action-source-resolver": {
+      "types": "./dist/action-source-resolver.d.ts",
+      "import": "./dist/action-source-resolver.js"
+    },
+    "./deploy-operation": {
+      "types": "./dist/deploy-operation.d.ts",
+      "import": "./dist/deploy-operation.js"
+    },
+    "./fee-ticket-operation": {
+      "types": "./dist/fee-ticket-operation.d.ts",
+      "import": "./dist/fee-ticket-operation.js"
+    },
+    "./mint-availability-operation": {
+      "types": "./dist/mint-availability-operation.d.ts",
+      "import": "./dist/mint-availability-operation.js"
+    },
+    "./models": {
+      "types": "./dist/models.d.ts",
+      "import": "./dist/models.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    },
+    "./paid-mint-amount": {
+      "types": "./dist/paid-mint-amount.d.ts",
+      "import": "./dist/paid-mint-amount.js"
+    },
+    "./token-amount": {
+      "types": "./dist/token-amount.d.ts",
+      "import": "./dist/token-amount.js"
+    },
+    "./token-operation": {
+      "types": "./dist/token-operation.d.ts",
+      "import": "./dist/token-operation.js"
+    },
+    "./trade-fee": {
+      "types": "./dist/trade-fee.d.ts",
+      "import": "./dist/trade-fee.js"
+    },
+    "./trading-operation": {
+      "types": "./dist/trading-operation.d.ts",
+      "import": "./dist/trading-operation.js"
+    },
+    "./verify-operation": {
+      "types": "./dist/verify-operation.d.ts",
+      "import": "./dist/verify-operation.js"
+    },
+    "./wrapper-operation": {
+      "types": "./dist/wrapper-operation.d.ts",
+      "import": "./dist/wrapper-operation.js"
+    },
+    "./artifacts/*": "./artifacts/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "artifacts",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run typecheck && npm run build && node test/smoke.mjs",
+    "prepack": "npm test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.8.0"
+  }
+}
