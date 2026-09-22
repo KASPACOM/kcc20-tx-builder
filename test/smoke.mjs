@@ -45,6 +45,14 @@ import {
   resolveKcc20MintAvailabilitySources,
 } from "../dist/index.js";
 
+const builtEngine = await readFile(
+  new URL("../dist/engine.js", import.meta.url),
+  "utf8",
+);
+if (/\bprocess\.env\b/.test(builtEngine)) {
+  throw new Error("runtime bundle references real process.env");
+}
+
 for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
   if (!isKcc20ArtifactKey(key)) {
     throw new Error(`published KCC20 artifact key was not recognized: ${key}`);
