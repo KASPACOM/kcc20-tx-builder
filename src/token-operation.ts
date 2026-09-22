@@ -13,6 +13,10 @@ import {
   parseKcc20DisplayAmountToBaseUnits,
 } from "./token-amount.js";
 import { kcc20ValidatePaidMintAmount } from "./paid-mint-amount.js";
+import {
+  KCC20_PUBLIC_MINT_MAX_DISPLAY_TOKENS,
+  KCC20_PUBLIC_MINT_MAX_DISPLAY_TOKENS_LABEL,
+} from "./protocol.js";
 import { buildKcc20WalletOperationFromPlan } from "./wallet-operation.js";
 
 export interface Kcc20ActionWalletInfo {
@@ -76,9 +80,12 @@ export function buildKcc20MintTokenOperation(
     decimals,
     "tokenAmount",
   );
-  if (policy === "public" && BigInt(tokenAmount) > 100_000n * priceScale) {
+  if (
+    policy === "public" &&
+    BigInt(tokenAmount) > KCC20_PUBLIC_MINT_MAX_DISPLAY_TOKENS * priceScale
+  ) {
     throw new Error(
-      "Public mint amount exceeds the maximum per mint transaction of 100,000 tokens",
+      `Public mint amount exceeds the maximum per mint transaction of ${KCC20_PUBLIC_MINT_MAX_DISPLAY_TOKENS_LABEL} tokens`,
     );
   }
   const mintPrice = input.token.mintPolicy.mintPricePerTokenSompi;

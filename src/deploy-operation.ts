@@ -2,11 +2,18 @@ import {
   DEFAULT_KCC20_FEE_BPS,
   DEFAULT_KCC20_MIN_PROTOCOL_FEE_SOMPI,
   DEFAULT_KCC20_TOKEN_DECIMALS,
+  KCC20_TICKER_MAX_LENGTH,
+  KCC20_TOKEN_NAME_MAX_LENGTH,
   KCC20_PLATFORM_PROTOCOL_FEE_RECIPIENT,
 } from "./protocol.js";
+import {
+  KCC20_U64_MAX,
+  kcc20DisplayScaleForDecimals,
+  parseKcc20DisplayAmountToBaseUnits,
+} from "./token-amount.js";
+import { kcc20PaidMintCapacityMeetsMinimumGross } from "./paid-mint-amount.js";
 import { buildKcc20WalletOperationFromPlan } from "./wallet-operation.js";
 
-const KCC20_U64_MAX = (1n << 64n) - 1n;
 const HEX_64_RE = /^[a-fA-F0-9]{64}$/;
 const KASPA_ADDRESS_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 const KASPA_ADDRESS_GENERATORS = [
@@ -43,19 +50,48 @@ export interface Kcc20DeployOperationOptions {
   requestId?: string;
 }
 
+export interface Kcc20ValidatedDeployToken {
+  ticker: string;
+  tokenName: string;
+  maxSupply: bigint;
+  premintSupply: bigint;
+  decimals: number;
+  premintRecipient: string;
+  mintPricePerTokenSompi: bigint;
+  mintPolicy: number;
+  treasuryRecipient: string;
+  protocolFeeRecipient: string;
+  protocolFeeBps: number;
+  mintLaneCount?: number;
+}
+
 export function buildKcc20DeployTokenOperation(
   walletInfo: Kcc20DeployWalletInfo,
   draft: Kcc20DeployTokenDraft,
   options: Kcc20DeployOperationOptions = {},
 ) {
-  const validated = validateDeployToken(walletInfo, draft, options);
+  const validated = validateKcc20DeployToken(walletInfo, draft, options);
+  return buildKcc20DeployTokenOperationFromValidated(
+    walletInfo,
+    draft,
+    validated,
+    options,
+  );
+}
+
+export function buildKcc20DeployTokenOperationFromValidated(
+  walletInfo: Kcc20DeployWalletInfo,
+  draft: Kcc20DeployTokenDraft,
+  validated: Kcc20ValidatedDeployToken,
+  options: Kcc20DeployOperationOptions = {},
+) {
   const requestId =
     options.requestId ?? `kcc20-deploy-token-${randomOperationId()}`;
   const network = options.network ?? "testnet-10";
   const builderKey = "kcc20.deploy-token";
   const params = {
-    ticker: draft.ticker,
-    tokenName: draft.tokenName,
+    ticker: validated.ticker,
+    tokenName: validated.tokenName,
     maxSupply: validated.maxSupply.toString(),
     premintSupply: validated.premintSupply.toString(),
     decimals: validated.decimals,
@@ -73,7 +109,7 @@ export function buildKcc20DeployTokenOperation(
     ...(validated.mintLaneCount == null
       ? {}
       : { mintLaneCount: validated.mintLaneCount }),
-    deployTemplate: deployTemplate(walletInfo, draft, validated),
+    deployTemplate: deployTemplate(walletInfo, validated),
   };
   const sourceRequirements = [
     {
@@ -110,17 +146,20 @@ export function buildKcc20DeployTokenOperation(
   );
 }
 
-function validateDeployToken(
+export function validateKcc20DeployToken(
   walletInfo: Kcc20DeployWalletInfo,
   draft: Kcc20DeployTokenDraft,
-  options: Kcc20DeployOperationOptions,
-) {
-  const decimals = DEFAULT_KCC20_TOKEN_DECIMALS;
+  options: Kcc20DeployOperationOptions = {},
+): Kcc20ValidatedDeployToken {
+  const decimals = draft.decimals ?? DEFAULT_KCC20_TOKEN_DECIMALS;
+  const displayScale = kcc20DisplayScaleForDecimals(decimals);
+  const ticker = normalizeKcc20Ticker(draft.ticker);
+  const tokenName = normalizeKcc20TokenName(draft.tokenName);
   const maxSupply = BigInt(
-    parseDisplayAmountToBaseUnits(draft.maxSupply, decimals, "maxSupply"),
+    parseKcc20DisplayAmountToBaseUnits(draft.maxSupply, decimals, "maxSupply"),
   );
   const premintSupply = BigInt(
-    parseDisplayAmountToBaseUnits(
+    parseKcc20DisplayAmountToBaseUnits(
       draft.premintSupply,
       decimals,
       "premintSupply",
@@ -129,7 +168,7 @@ function validateDeployToken(
       },
     ),
   );
-  const mintPricePerTokenSompi = parseU64(
+  const mintPricePerTokenSompi = parseKcc20U64(
     draft.mintPricePerTokenSompi,
     "mintPricePerTokenSompi",
   );
@@ -168,8 +207,12 @@ function validateDeployToken(
   if (
     mintPolicy === 2 &&
     mintPricePerTokenSompi > 0n &&
-    (maxSupply - premintSupply) * mintPricePerTokenSompi <
-      DEFAULT_KCC20_MIN_PROTOCOL_FEE_SOMPI
+    !kcc20PaidMintCapacityMeetsMinimumGross({
+      remainingTokenAmount: maxSupply - premintSupply,
+      unitPriceSompi: mintPricePerTokenSompi,
+      priceScale: displayScale,
+      minimumGrossSompi: DEFAULT_KCC20_MIN_PROTOCOL_FEE_SOMPI,
+    })
   ) {
     throw new Error(
       "public deploys with a mint price must leave enough mintable supply to satisfy the minimum protocol fee",
@@ -185,7 +228,25 @@ function validateDeployToken(
     );
   }
 
+  const protocolFeeRecipient =
+    normalizeOptionalOwner(
+      options.protocolFeeRecipient,
+      "protocolFeeRecipient",
+    ) ?? KCC20_PLATFORM_PROTOCOL_FEE_RECIPIENT;
+  const protocolFeeBps = Number(
+    options.protocolFeeBps ?? DEFAULT_KCC20_FEE_BPS,
+  );
+  if (
+    !Number.isSafeInteger(protocolFeeBps) ||
+    protocolFeeBps < 0 ||
+    protocolFeeBps > 10_000
+  ) {
+    throw new Error("protocolFeeBps must be an integer between 0 and 10000");
+  }
+
   return {
+    ticker,
+    tokenName,
     maxSupply,
     premintSupply,
     decimals,
@@ -197,17 +258,15 @@ function validateDeployToken(
     treasuryRecipient:
       normalizeOptionalOwner(draft.treasuryRecipient, "treasuryRecipient") ??
       walletInfo.kcc20Owner,
-    protocolFeeRecipient:
-      options.protocolFeeRecipient ?? KCC20_PLATFORM_PROTOCOL_FEE_RECIPIENT,
-    protocolFeeBps: Number(options.protocolFeeBps ?? DEFAULT_KCC20_FEE_BPS),
+    protocolFeeRecipient,
+    protocolFeeBps,
     mintLaneCount: mintPolicy === 0 ? 1 : mintLaneCount,
   };
 }
 
 function deployTemplate(
   walletInfo: Kcc20DeployWalletInfo,
-  draft: Kcc20DeployTokenDraft,
-  validated: ReturnType<typeof validateDeployToken>,
+  validated: Kcc20ValidatedDeployToken,
 ) {
   return {
     tmpl: "KCC20",
@@ -239,7 +298,7 @@ function deployTemplate(
       {
         name: "displayScale",
         type: "u64",
-        value: displayScaleForDecimals(validated.decimals).toString(),
+        value: kcc20DisplayScaleForDecimals(validated.decimals).toString(),
       },
       {
         name: "mintPriceSompi",
@@ -261,47 +320,44 @@ function deployTemplate(
         type: "u64",
         value: String(validated.protocolFeeBps),
       },
-      { name: "ticker", type: "string", value: draft.ticker ?? "" },
-      { name: "name", type: "string", value: draft.tokenName ?? "" },
+      { name: "ticker", type: "string", value: validated.ticker },
+      { name: "name", type: "string", value: validated.tokenName },
     ],
   };
 }
 
-function parseDisplayAmountToBaseUnits(
-  value: string,
-  decimals: number,
-  field: string,
-  options: { allowZero?: boolean } = {},
-): string {
-  const raw = String(value ?? "").trim();
-  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(raw)) {
-    throw new Error(`${field} must be a non-negative decimal token amount`);
+export function normalizeKcc20Ticker(value: string | undefined): string {
+  const normalized = String(value ?? "")
+    .trim()
+    .toUpperCase();
+  if (!normalized) return "";
+  if (
+    !new RegExp(`^[A-Z0-9]{1,${KCC20_TICKER_MAX_LENGTH}}$`).test(normalized)
+  ) {
+    throw new Error(
+      `ticker must be 1-${KCC20_TICKER_MAX_LENGTH} uppercase alphanumeric characters`,
+    );
   }
-  const [whole, fraction = ""] = raw.split(".");
-  if (fraction.length > decimals) {
-    throw new Error(`${field} supports at most ${decimals} decimal places`);
-  }
-  const scale = 10n ** BigInt(decimals);
-  const base =
-    BigInt(whole) * scale +
-    BigInt((fraction + "0".repeat(decimals)).slice(0, decimals) || "0");
-  if (!options.allowZero && base <= 0n) {
-    throw new Error(`${field} must be greater than zero`);
-  }
-  if (base > KCC20_U64_MAX) {
-    throw new Error(`${field} exceeds u64 max`);
-  }
-  return base.toString();
+  return normalized;
 }
 
-function displayScaleForDecimals(decimals: number): bigint {
-  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 8) {
-    throw new Error(`unsupported KCC20 decimals ${decimals}`);
+export function normalizeKcc20TokenName(value: string | undefined): string {
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!normalized) return "";
+  if (normalized.length > KCC20_TOKEN_NAME_MAX_LENGTH) {
+    throw new Error(
+      `tokenName must be ${KCC20_TOKEN_NAME_MAX_LENGTH} characters or fewer`,
+    );
   }
-  return 10n ** BigInt(decimals);
+  if (!/^[\x20-\x7E]+$/.test(normalized)) {
+    throw new Error("tokenName must be printable ASCII");
+  }
+  return normalized;
 }
 
-function parseU64(value: string, field: string): bigint {
+export function parseKcc20U64(value: string, field: string): bigint {
   if (!/^\d+$/.test(value)) {
     throw new Error(`${field} must be an unsigned integer`);
   }

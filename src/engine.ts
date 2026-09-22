@@ -61,6 +61,11 @@ import {
   normalizeSilverScriptArtifact,
   ownerAuthorizationWitness,
 } from "./abi.js";
+import { KCC20_BUILDER_KEYS } from "./operations.js";
+import {
+  KCC20_ARTIFACT_SCRIPT_SHA256,
+  assertKcc20ArtifactScriptHash,
+} from "./artifacts.js";
 
 export interface Kcc20PsktBuilderEngineOptions {
   wasm: KaspaWasmRuntime;
@@ -74,9 +79,37 @@ export interface Kcc20PsktBuilderEngineOptions {
   allowBackendOnly?: boolean;
 }
 
+export interface FeeTicketBatchCreateCapability {
+  recognizedArtifact: boolean;
+  batchCreateSupported: boolean;
+  maxTicketBatchQuantity: number;
+}
+
+/**
+ * Low-level protocol helpers used by backend projections, operator adapters,
+ * and the package conformance suite. They live on the configured engine
+ * because several helpers require the host-supplied WASM runtime or artifacts.
+ */
+export interface Kcc20PsktProtocolApi {
+  readonly [name: string]: any;
+}
+
+export interface Kcc20PsktBuilderEngine {
+  build(input: unknown): Promise<Record<string, unknown>>;
+  buildInProcessPskt(input: unknown): Promise<Record<string, unknown>>;
+  resolveFeeTicketBatchCreateCapability(input: {
+    rootOwner: string;
+    utilityTokenId: string;
+    utilityTokenAmount: string;
+    rootAddress: string;
+    network?: string;
+  }): Promise<FeeTicketBatchCreateCapability>;
+  protocol: Kcc20PsktProtocolApi;
+}
+
 export function createKcc20PsktBuilderEngine(
   options: Kcc20PsktBuilderEngineOptions,
-) {
+): Kcc20PsktBuilderEngine {
   const config = options.config ?? {};
   const process = { env: config };
   class InjectedRpcClient {
@@ -108,8 +141,11 @@ export function createKcc20PsktBuilderEngine(
       );
     }
   }
-  const kaspaWasm = Object.assign({}, options.wasm, {
-    RpcClient: InjectedRpcClient,
+  const kaspaWasm = new Proxy(options.wasm, {
+    get(target, property, receiver) {
+      if (property === "RpcClient") return InjectedRpcClient;
+      return Reflect.get(target, property, receiver);
+    },
   });
 
   const INPUT_SCHEMA = "kcc20-in-process-pskt-builder-input/v1";
@@ -155,17 +191,17 @@ export function createKcc20PsktBuilderEngine(
     funding: 30,
   });
   const SWEEP_BID_CALIBRATED_WRAPPED_ARTIFACT_HASHES = new Set([
-    "ef9fe81ff7aa2dc2df118d8d7cc126aca6f2f9c181b9c2d15727a538b23c6f71",
+    KCC20_ARTIFACT_SCRIPT_SHA256["KCC20Orderbook.placeholder.json"],
   ]);
   const SWEEP_BID_CALIBRATED_FEE_TICKET_ARTIFACT_HASHES = new Set([
-    "ed81365466ee4c44db1210b3360783af8145f74e49e847848195e09c71ad6930",
+    KCC20_ARTIFACT_SCRIPT_SHA256["KCC20FeeTicket.placeholder.json"],
   ]);
   const SWEEP_ASK_CALIBRATED_WRAPPED_ARTIFACT_HASHES = new Set([
-    "ef9fe81ff7aa2dc2df118d8d7cc126aca6f2f9c181b9c2d15727a538b23c6f71",
+    KCC20_ARTIFACT_SCRIPT_SHA256["KCC20Orderbook.placeholder.json"],
   ]);
   const SWEEP_ASK_FEE_TICKET_ARTIFACT_BUDGETS = new Map([
     [
-      "ed81365466ee4c44db1210b3360783af8145f74e49e847848195e09c71ad6930",
+      KCC20_ARTIFACT_SCRIPT_SHA256["KCC20FeeTicket.placeholder.json"],
       KCC20_ORDERBOOK_SWEEP_ASK_COMPUTE_BUDGET_PROFILE.feeTicket,
     ],
   ]);
@@ -183,7 +219,9 @@ export function createKcc20PsktBuilderEngine(
         .then((artifact) => {
           if (!artifact)
             throw new Error(`Missing supplied KCC20 artifact: ${path}`);
-          return normalizeSilverScriptArtifact(artifact);
+          const normalized = normalizeSilverScriptArtifact(artifact);
+          assertKcc20ArtifactScriptHash(path, normalized);
+          return normalized;
         })
         .catch((error) => {
           staticArtifactCache.delete(path);
@@ -236,6 +274,10 @@ export function createKcc20PsktBuilderEngine(
     return [
       {
         supportsBatchCreate: true,
+        updateDenominationDispatchTag: artifactEntrypointDispatchTag(
+          artifact,
+          "updateDenominationByOwnerSig",
+        ),
         transferDispatchTag: artifactEntrypointDispatchTag(
           artifact,
           "transferByOwnerSig",
@@ -374,12 +416,6 @@ export function createKcc20PsktBuilderEngine(
     );
   }
 
-  export interface FeeTicketBatchCreateCapability {
-    recognizedArtifact: boolean;
-    batchCreateSupported: boolean;
-    maxTicketBatchQuantity: number;
-  }
-
   async function resolveFeeTicketBatchCreateCapability(input: {
     rootOwner: string;
     utilityTokenId: string;
@@ -449,6 +485,41 @@ export function createKcc20PsktBuilderEngine(
     return new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
   }
 
+  const psktBuilderByKey = Object.freeze({
+    "kcc20.deploy-token": buildKcc20DeployPskt,
+    "kcc20.mint": buildKcc20MintPskt,
+    "kcc20.set-public-mint-active": buildKcc20SetPublicMintActivePskt,
+    "kcc20.transfer": buildKcc20TransferPskt,
+    "kcc20.consolidate-holders": buildKcc20ConsolidatePskt,
+    "kcc20.reveal-token": buildKcc20RevealPskt,
+    "fee-ticket.deploy-root": buildFeeTicketRootDeployPskt,
+    "fee-ticket.update-denomination": buildFeeTicketRootUpdatePskt,
+    "fee-ticket.create-from-utility-burn": buildFeeTicketCreatePskt,
+    "fee-ticket.burn": buildFeeTicketBurnPskt,
+    "fee-ticket.transfer": buildFeeTicketTransferPskt,
+    "kcc20wrapper.deploy-market": buildWrapperMarketDeployPskt,
+    "kcc20wrapper.wrap": buildWrapperWrapPskt,
+    "kcc20wrapper.unwrap": buildWrapperUnwrapPskt,
+    "kcc20orderbook.create-bid": buildWrappedOrderPskt,
+    "kcc20orderbook.create-ask": buildWrappedOrderPskt,
+    "kcc20orderbook.fill-ask": buildWrappedFillAskPskt,
+    "kcc20orderbook.fill-bid": buildWrappedFillBidPskt,
+    "kcc20orderbook.sweep-asks": buildWrappedSweepAsksPskt,
+    "kcc20orderbook.sweep-bids": buildWrappedSweepBidsPskt,
+    "kcc20orderbook.consolidate-holders": buildWrappedConsolidatePskt,
+    "kcc20orderbook.cancel-ask": buildWrappedCancelPskt,
+    "kcc20orderbook.cancel-bid": buildWrappedCancelPskt,
+    "kcc20orderbook.matcher-settle-crossed": buildWrappedCrossMatchPskt,
+  });
+  const missingBuilderKeys = KCC20_BUILDER_KEYS.filter(
+    (builderKey) => !psktBuilderByKey[builderKey],
+  );
+  if (missingBuilderKeys.length) {
+    throw new Error(
+      `shared KCC20 PSKT engine is missing declared builders: ${missingBuilderKeys.join(", ")}`,
+    );
+  }
+
   async function buildInProcessPskt(input) {
     if (input.schema !== INPUT_SCHEMA) {
       throw new Error(
@@ -459,8 +530,7 @@ export function createKcc20PsktBuilderEngine(
     const builderKey = input.request?.builderKey;
 
     if (
-      (builderKey === "kcc20orderbook.matcher-settle-crossed" ||
-        builderKey === "kcc20wrapper.deploy-market") &&
+      builderKey === "kcc20orderbook.matcher-settle-crossed" &&
       !options.allowBackendOnly
     ) {
       throw new Error(
@@ -468,55 +538,216 @@ export function createKcc20PsktBuilderEngine(
       );
     }
 
-    switch (builderKey) {
-      case "kcc20.deploy-token":
-        return buildKcc20DeployPskt(input);
-      case "kcc20.mint":
-        return buildKcc20MintPskt(input);
-      case "kcc20.set-public-mint-active":
-        return buildKcc20SetPublicMintActivePskt(input);
-      case "kcc20.transfer":
-        return buildKcc20TransferPskt(input);
-      case "kcc20.consolidate-holders":
-        return buildKcc20ConsolidatePskt(input);
-      case "kcc20.reveal-token":
-        return buildKcc20RevealPskt(input);
-      case "fee-ticket.deploy-root":
-        return buildFeeTicketRootDeployPskt(input);
-      case "fee-ticket.create-from-utility-burn":
-        return buildFeeTicketCreatePskt(input);
-      case "fee-ticket.burn":
-        return buildFeeTicketBurnPskt(input);
-      case "fee-ticket.transfer":
-        return buildFeeTicketTransferPskt(input);
-      case "kcc20wrapper.deploy-market":
-        return buildWrapperMarketDeployPskt(input);
-      case "kcc20wrapper.wrap":
-        return buildWrapperWrapPskt(input);
-      case "kcc20wrapper.unwrap":
-        return buildWrapperUnwrapPskt(input);
-      case "kcc20orderbook.create-bid":
-      case "kcc20orderbook.create-ask":
-        return buildWrappedOrderPskt(input);
-      case "kcc20orderbook.fill-ask":
-        return buildWrappedFillAskPskt(input);
-      case "kcc20orderbook.fill-bid":
-        return buildWrappedFillBidPskt(input);
-      case "kcc20orderbook.sweep-asks":
-        return buildWrappedSweepAsksPskt(input);
-      case "kcc20orderbook.sweep-bids":
-        return buildWrappedSweepBidsPskt(input);
-      case "kcc20orderbook.consolidate-holders":
-        return buildWrappedConsolidatePskt(input);
-      case "kcc20orderbook.matcher-settle-crossed":
-        return buildWrappedCrossMatchPskt(input);
-      case "kcc20orderbook.cancel-ask":
-      case "kcc20orderbook.cancel-bid":
-        return buildWrappedCancelPskt(input);
-      default:
+    const builder = psktBuilderByKey[builderKey];
+    if (!builder) {
+      throw new Error(
+        `unsupported builderKey: ${input.request?.builderKey || "missing"}`,
+      );
+    }
+    return builder(input);
+  }
+
+  async function buildFeeTicketRootUpdatePskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const rootUtxo = params.activeRootUtxo;
+    if (!rootUtxo) {
+      throw new Error("active FeeTicket root UTXO is required");
+    }
+
+    const rootId = requireHex32(params.rootId, "FeeTicket root id");
+    const rootOwner = requireHex32(
+      params.rootOwner || request.owner?.kcc20Owner,
+      "FeeTicket root owner",
+    );
+    const utilityTokenId = requireHex32(
+      params.utilityTokenId,
+      "FeeTicket utility token id",
+    );
+    const newDenomination = parsePositiveU64(
+      params.utilityTokenAmount,
+      "utilityTokenAmount",
+    );
+    const network =
+      request.network || process.env.KASPA_NETWORK || "testnet-10";
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const rootAddress = requireKaspaAddress(rootUtxo.address);
+    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const priorityFee = parseU64(
+      process.env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
+        DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee",
+    );
+    const computeBudget = parsePositiveNumber(
+      process.env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      "computeBudget",
+    );
+
+    const currentState = kcc20FeeTicketStateFromUtxo(rootUtxo, request.owner);
+    if (currentState.mode !== 1) {
+      throw new Error("FeeTicket denomination update requires a root UTXO");
+    }
+    if (bytesToHex(currentState.ownerIdentifier) !== rootOwner) {
+      throw new Error("FeeTicket root is not owned by the connected wallet");
+    }
+    if (bytesToHex(currentState.utilityTokenId) !== utilityTokenId) {
+      throw new Error("FeeTicket root uses a different utility token");
+    }
+
+    const artifacts = await readFeeTicketArtifacts();
+    const artifactInfo = selectFeeTicketArtifactForState(
+      artifacts,
+      currentState,
+      rootAddress,
+      network,
+      "active FeeTicket root UTXO address",
+    );
+    const updatedState = {
+      ...currentState,
+      denomination: newDenomination,
+    };
+    const txid = requireHex32(rootUtxo.txidHex, "FeeTicket root txid");
+    const vout = parseVout(rootUtxo.vout, "FeeTicket root vout");
+
+    const kw = kaspaWasm;
+    const {
+      CovenantBinding,
+      Encoding,
+      Hash,
+      RpcClient,
+      Transaction,
+      TransactionOutput,
+      payToAddressScript,
+      payToScriptHashScript,
+    } = kw;
+    const rpc = new RpcClient({
+      url: rpcUrl,
+      encoding: Encoding.Borsh,
+      networkId: network,
+    });
+    await rpc.connect();
+    try {
+      const [chainRootUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [rootAddress]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const rootEntry = findUtxoEntry(chainRootUtxos.entries, txid, vout);
+      if (!rootEntry) {
+        throw new Error(`active FeeTicket root UTXO ${txid}:${vout} not found`);
+      }
+      requireMatchingCovenantId(
+        rootEntry,
+        rootId,
+        "active FeeTicket root UTXO",
+      );
+
+      const rootOutputIndex = 0;
+      const fundingEntry = selectFundingEntry(
+        walletUtxos.entries,
+        priorityFee + 10_000n,
+      );
+      const fundingInputIndex = 1;
+      const fundingChangeOutputIndex = 1;
+      const fundingChange = utxoAmountSompi(fundingEntry) - priorityFee;
+      if (fundingChange <= 10_000n) {
+        throw new Error("FeeTicket root update funding change is too small");
+      }
+
+      const unsignedTx = new Transaction({
+        version: 1,
+        lockTime: 0n,
+        inputs: [
+          {
+            previousOutpoint: rootEntry.outpoint,
+            utxo: rootEntry,
+            sequence: 0n,
+            sigOpCount: 0,
+            computeBudget,
+          },
+          {
+            previousOutpoint: fundingEntry.outpoint,
+            utxo: fundingEntry,
+            sequence: 0n,
+            sigOpCount: 0,
+            computeBudget: 30,
+          },
+        ],
+        outputs: [
+          new TransactionOutput(
+            utxoAmountSompi(rootEntry),
+            payToScriptHashScript(
+              buildKcc20FeeTicketScriptForState(
+                artifactInfo.artifact.script,
+                updatedState,
+              ),
+            ),
+            new CovenantBinding(0, new Hash(rootId)),
+          ),
+          new TransactionOutput(
+            fundingChange,
+            payToAddressScript(walletAddress),
+          ),
+        ],
+        subnetworkId: SUBNETWORK_ID_NATIVE,
+        gas: 0n,
+        payload: buildFeeTicketRootUpdatePayload({
+          rootId,
+          owner: rootOwner,
+          utilityTokenId,
+          previousDenomination: currentState.denomination,
+          newDenomination,
+        }),
+      });
+      setVersionOneInputMassFields(unsignedTx, computeBudget);
+      unsignedTx.inputs[fundingInputIndex].computeBudget = 30;
+
+      const scripts = [
+        feeTicketRootUpdateScriptHint(
+          0,
+          artifactInfo.script,
+          newDenomination,
+          rootOutputIndex,
+          artifactInfo.updateDenominationDispatchTag,
+        ),
+      ];
+      const feeAdjustedTx = transactionWithCalculatedFeeChange(
+        kw,
+        unsignedTx,
+        fundingChangeOutputIndex,
+        network,
+        input.request?.builderKey || "PSKT",
+        scripts,
+      );
+      const psktTransactionJson = feeAdjustedTx.serializeToSafeJSON();
+      if (typeof psktTransactionJson !== "string") {
         throw new Error(
-          `unsupported builderKey: ${input.request?.builderKey || "missing"}`,
+          "FeeTicket root update PSKT serialization did not return JSON text",
         );
+      }
+
+      return {
+        schema: OUTPUT_SCHEMA,
+        psktTransactionJson,
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }],
+        scripts,
+        submitTransactionSupported: true,
+        metadata: {
+          builderKey: "fee-ticket.update-denomination",
+          operation: "update-fee-ticket-denomination",
+          action: "updateDenomination",
+          contract: "KCC20FeeTicket",
+          network,
+          walletAddress,
+          rootId,
+          rootOwner,
+          utilityTokenId,
+          rootOutputIndex,
+          previousDenomination: currentState.denomination.toString(),
+          denomination: newDenomination.toString(),
+        },
+      };
+    } finally {
+      await rpc.disconnect();
     }
   }
 
@@ -10359,6 +10590,37 @@ export function createKcc20PsktBuilderEngine(
     );
   }
 
+  function buildFeeTicketRootUpdatePayload(fields) {
+    return new TextEncoder().encode(
+      JSON.stringify({
+        tn10: {
+          v: 1,
+          tmpl: "KCC20FeeTicket",
+          op: "updateDenominationByOwnerSig",
+          args: [
+            { name: "rootId", type: "byte[32]", value: fields.rootId },
+            { name: "owner", type: "byte[32]", value: fields.owner },
+            {
+              name: "utilityTokenId",
+              type: "byte[32]",
+              value: fields.utilityTokenId,
+            },
+            {
+              name: "previousDenomination",
+              type: "u64",
+              value: fields.previousDenomination.toString(),
+            },
+            {
+              name: "newDenomination",
+              type: "u64",
+              value: fields.newDenomination.toString(),
+            },
+          ],
+        },
+      }),
+    );
+  }
+
   function buildFeeTicketBurnPayload(fields) {
     return new TextEncoder().encode(
       JSON.stringify({
@@ -11133,6 +11395,28 @@ export function createKcc20PsktBuilderEngine(
     };
   }
 
+  function feeTicketRootUpdateScriptHint(
+    inputIndex,
+    rootScript,
+    newDenomination,
+    rootOutputIndex,
+    updateDispatchTag,
+  ) {
+    return {
+      inputIndex,
+      scriptHex: bytesToHex(rootScript),
+      signType: 1,
+      signatureScript: {
+        mode: "signature-first-args",
+        args: [
+          { type: "i64", value: String(newDenomination) },
+          { type: "i64", value: String(rootOutputIndex) },
+          { type: "data", hex: bytesToHex(updateDispatchTag) },
+        ],
+      },
+    };
+  }
+
   function appendFeeTicketRefundOutput(kw, outputs, ticketState, ticketEntry) {
     if (!ticketState || !ticketEntry) {
       return { outputIndex: -1, sompi: 0n };
@@ -11495,11 +11779,11 @@ export function createKcc20PsktBuilderEngine(
       "FeeTicket owner",
     );
     const utilityTokenId = requireHex32(
-      state.utilityTokenId || ZERO_HASH,
+      state.utilityTokenId,
       "FeeTicket utility token id",
     );
     const denomination = parsePositiveU64(
-      state.denomination || state.utilityTokenAmount || state.amount || "1",
+      state.denomination ?? state.utilityTokenAmount ?? state.amount,
       "FeeTicket denomination",
     );
     const ownerScheme = parseOwnerScheme(
@@ -12876,5 +13160,67 @@ export function createKcc20PsktBuilderEngine(
     return address;
   }
 
-  return { build: buildInProcessPskt, buildInProcessPskt };
+  return {
+    build: buildInProcessPskt,
+    buildInProcessPskt,
+    resolveFeeTicketBatchCreateCapability,
+    protocol: Object.freeze({
+      KCC20_ORDERBOOK_SWEEP_ASK_COMPUTE_BUDGET_PROFILE,
+      KCC20_ORDERBOOK_SWEEP_BID_COMPUTE_BUDGET_PROFILE,
+      artifactEntrypointDispatchTag,
+      readWrappedArtifacts,
+      readWrapperArtifacts,
+      selectWrappedArtifactForUtxo,
+      selectWrapperArtifactForUtxo,
+      encodeCovenantP2shSignatureScript,
+      feeTicketOutputSompiForQuantity,
+      configuredFeeTicketOutputSompiForQuantity,
+      assertKcc20TokenOutputSompi,
+      singleHolderSweepTokenOutputSompi,
+      sellerSettlementOutputIndex,
+      refundableBidDepositSompi,
+      sellerFundedHolderTopUpSompi,
+      calculateTemporaryKasLockedSompi,
+      assertPartialBuyerHolderOutputSompi,
+      assertPartialSweepLegIsFinal,
+      assertSweepBidPricePriority,
+      singleHolderSweepScriptLegCapacity,
+      singleHolderSweepCoversTotal,
+      sweepBidComputeBudgetLayout,
+      sweepAskComputeBudgetLayout,
+      sweepBidReservedComputeMass,
+      sweepAskReservedComputeMass,
+      assertSweepBidReservedComputeMassStandard,
+      assertSweepAskReservedComputeMassStandard,
+      assertSweepBidComputeBudgetArtifactCompatibility,
+      assertSweepAskComputeBudgetArtifactCompatibility,
+      assertUniqueSweepBidOutpoints,
+      assertSweepAskLegIdentity,
+      applySweepBidComputeBudgetProfile,
+      applySweepAskComputeBudgetProfile,
+      assertTransactionComputeMassStandard,
+      calculateToccataV1NonContextualMass,
+      wrapperDeployPriorityFee,
+      resolveWrapperMarketDeployTokenIds,
+      assertWrapperArtifactPriceScale,
+      resolveExpectedHolderSpendCovenantId,
+      buildKcc20DeployPayload,
+      feeTicketBurnScriptHint,
+      buildFeeTicketBurnPrefix,
+      feeTicketTransferScriptHint,
+      kcc20StateFromUtxo,
+      assertKcc20HolderStateForWrap,
+      selectFeeTicketArtifactForState,
+      requireMatchingCovenantId,
+      selectKcc20V3CrossFillAmount,
+      transactionWithCalculatedFeeChange,
+      transactionWithMinimumCalculatedFeeChange,
+      assertUniqueTransactionInputOutpoints,
+      transactionWithPredictedSignedFeeChange,
+      assertPaidMintPaymentStorageMassStandard,
+      assertTransactionStorageMassStandard,
+      calculateToccataStorageMass,
+      parseQuotedProtocolFeeSompi,
+    }),
+  };
 }

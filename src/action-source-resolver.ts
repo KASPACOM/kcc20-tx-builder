@@ -31,6 +31,11 @@ export interface Kcc20WrapperSourceInfo {
   feeTicketId?: string | null;
   feeTicketSupported?: boolean;
   enabled?: boolean;
+  claimedCanonicalTokenId?: string | null;
+  pendingReveal?: boolean;
+  activeUtxos?: number | null;
+  buildable?: boolean;
+  buildableReason?: string | null;
 }
 
 export interface Kcc20ActiveWrapperResolution {
@@ -38,6 +43,20 @@ export interface Kcc20ActiveWrapperResolution {
   candidates: Kcc20IndexedCovenantUtxo[];
   ambiguous: boolean;
   activeCovenantId?: string | null;
+}
+
+export interface Kcc20FeeTicketOutpointLike {
+  outpoint: string;
+  amountSompi: string;
+}
+
+export const KCC20_MIN_CONSOLIDATION_INPUTS = 2;
+export const KCC20_MAX_CONSOLIDATION_INPUTS = 8;
+
+export function kcc20IndexedUtxoOutpoint(
+  utxo: Pick<Kcc20IndexedCovenantUtxo, "txidHex" | "vout" | "outpoint">,
+): string {
+  return (utxo.outpoint ?? `${utxo.txidHex}:${utxo.vout}`).toLowerCase();
 }
 
 export function normalizeKcc20IndexedUtxos(
@@ -73,13 +92,13 @@ export function normalizeKcc20IndexedUtxos(
       state,
       ...(covenantId ? { covenantId } : {}),
     };
-    const key = normalized.outpoint!;
+    const key = kcc20IndexedUtxoOutpoint(normalized);
     const existing = byOutpoint.get(key);
     if (!existing || (!existing.state && normalized.state))
       byOutpoint.set(key, normalized);
   }
   return [...byOutpoint.values()].sort((a, b) =>
-    a.outpoint!.localeCompare(b.outpoint!),
+    kcc20IndexedUtxoOutpoint(a).localeCompare(kcc20IndexedUtxoOutpoint(b)),
   );
 }
 
@@ -132,7 +151,9 @@ export function selectOwnerNativeHolderUtxo(
   return (
     ownerNativeHolderUtxos(utxos, owner)
       .filter(
-        (utxo) => !requestedOutpoint || utxo.outpoint === requestedOutpoint,
+        (utxo) =>
+          !requestedOutpoint ||
+          kcc20IndexedUtxoOutpoint(utxo) === requestedOutpoint,
       )
       .filter((utxo) => amount(utxo.state?.["amount"])! >= requested)
       .sort(compareStateAmount)[0] ?? null
@@ -178,6 +199,36 @@ export function selectOwnerWrappedHolderUtxo(
   return (largest ? candidates.at(-1) : candidates[0]) ?? null;
 }
 
+export function selectOwnerWrappedHolderUtxosForSweep(
+  utxos: readonly Kcc20IndexedCovenantUtxo[],
+  owner: string,
+  requestedAmounts: readonly string[],
+  canonicalTokenId: string,
+): Kcc20IndexedCovenantUtxo[] {
+  const candidates = ownerWrappedHolderUtxos(
+    utxos,
+    owner,
+    canonicalTokenId,
+  ).sort(compareStateAmount);
+  const selected: Kcc20IndexedCovenantUtxo[] = [];
+  const used = new Set<string>();
+
+  for (const requestedText of requestedAmounts) {
+    const requested = amount(requestedText);
+    if (requested === null) return selected;
+    const match = candidates.find(
+      (utxo) =>
+        !used.has(kcc20IndexedUtxoOutpoint(utxo)) &&
+        amount(utxo.state?.["amount"])! >= requested,
+    );
+    if (!match) return selected;
+    used.add(kcc20IndexedUtxoOutpoint(match));
+    selected.push(match);
+  }
+
+  return selected;
+}
+
 export function selectWrappedRootUtxo(
   utxos: readonly Kcc20IndexedCovenantUtxo[],
   canonicalTokenId: string,
@@ -215,7 +266,7 @@ export function selectWrappedOrderUtxo(
       const state = utxo.state;
       const value = amount(state?.["amount"]);
       return (
-        utxo.outpoint === input.orderId.toLowerCase() &&
+        kcc20IndexedUtxoOutpoint(utxo) === input.orderId.toLowerCase() &&
         numberValue(state?.["mode"] ?? state?.["stateMode"]) === input.mode &&
         stringValue(
           state?.["canonicalTokenId"] ?? state?.["tokenId"],
@@ -304,12 +355,46 @@ export function resolveActiveWrapperUtxo(
   };
 }
 
+export function kcc20WrapperBelongsToToken(
+  wrapper: Kcc20WrapperSourceInfo,
+  canonicalTokenId: string,
+): boolean {
+  const expected = canonicalTokenId.toLowerCase();
+  const appCanonicalIds = [
+    wrapper.canonicalTokenId,
+    wrapper.claimedCanonicalTokenId,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.toLowerCase());
+  return !appCanonicalIds.length || appCanonicalIds.includes(expected);
+}
+
+export function isKcc20WrapperReadyToBuild(
+  wrapper: Kcc20WrapperSourceInfo | null | undefined,
+): boolean {
+  if (!wrapper?.enabled) return false;
+  if (wrapper.pendingReveal === true)
+    return wrapper.buildable === true && (wrapper.activeUtxos ?? 0) > 0;
+  return wrapper.buildable !== false && Boolean(wrapper.activeCovenantId);
+}
+
+export function kcc20WrapperNotReadyReason(
+  wrapper: Kcc20WrapperSourceInfo | null | undefined,
+): string {
+  if (!wrapper) return "No wrapper is ready to wrap.";
+  if (!wrapper.enabled) return "Wrapped trading is disabled for this market.";
+  if (wrapper.buildable === false)
+    return wrapper.buildableReason?.trim() || "Wrapper is not buildable yet.";
+  return "No wrapper is ready to wrap.";
+}
+
 export function selectOwnerFeeTicketUtxos(
   utxos: readonly Kcc20IndexedCovenantUtxo[],
   owner: string,
   outpoints?: readonly string[],
 ): Kcc20IndexedCovenantUtxo[] {
-  const normalizedOwner = owner.toLowerCase();
+  const normalizedOwner = hex32(owner);
+  if (!normalizedOwner) return [];
   const requested = outpoints
     ? new Set(outpoints.map((item) => item.toLowerCase()))
     : null;
@@ -318,13 +403,13 @@ export function selectOwnerFeeTicketUtxos(
       const state = utxo.state;
       return (
         numberValue(state?.["mode"] ?? state?.["stateMode"]) === 2 &&
-        stringValue(
-          state?.["ownerIdentifier"] ?? state?.["owner"],
-        )?.toLowerCase() === normalizedOwner &&
-        (!requested || requested.has(utxo.outpoint!))
+        feeTicketStateOwner(state) === normalizedOwner &&
+        (!requested || requested.has(kcc20IndexedUtxoOutpoint(utxo)))
       );
     })
-    .sort((a, b) => a.outpoint!.localeCompare(b.outpoint!));
+    .sort((a, b) =>
+      kcc20IndexedUtxoOutpoint(a).localeCompare(kcc20IndexedUtxoOutpoint(b)),
+    );
   if (requested && selected.length !== requested.size) {
     throw new Error(
       "One or more selected FeeTicket UTXOs are not active for this wallet",
@@ -333,19 +418,102 @@ export function selectOwnerFeeTicketUtxos(
   return selected;
 }
 
+function feeTicketStateOwner(
+  state: Record<string, unknown> | null,
+): string | null {
+  if (!state) return null;
+  for (const key of [
+    "ownerIdentifier",
+    "stateOwner",
+    "ticketOwner",
+    "owner",
+    "recipientOwner",
+    "holderOwner",
+  ]) {
+    const owner = hex32(state[key]);
+    if (owner) return owner;
+  }
+  return null;
+}
+
+export function selectFeeTicketOutpoints(
+  tickets: readonly Kcc20FeeTicketOutpointLike[],
+  quantity: number,
+  options: {
+    maxQuantity?: number;
+    shortageAction?: string;
+  } = {},
+): string[] {
+  const maxQuantity = options.maxQuantity ?? 10;
+  const shortageAction = options.shortageAction ?? "use";
+  if (
+    !Number.isInteger(maxQuantity) ||
+    maxQuantity < 1 ||
+    !Number.isInteger(quantity) ||
+    quantity < 1 ||
+    quantity > maxQuantity
+  ) {
+    throw new Error(`Coupon quantity must be between 1 and ${maxQuantity}.`);
+  }
+
+  const normalized = tickets.map((ticket) => {
+    const outpoint = ticket.outpoint.trim().toLowerCase();
+    if (
+      !/^[0-9a-f]{64}:\d+$/.test(outpoint) ||
+      unsigned(ticket.amountSompi) === null
+    ) {
+      throw new Error("Coupon availability is invalid. Refresh and try again.");
+    }
+    return { outpoint, collateral: BigInt(ticket.amountSompi) };
+  });
+  const unique = new Set(normalized.map((ticket) => ticket.outpoint));
+  if (unique.size !== normalized.length)
+    throw new Error("Coupon availability contains duplicate outpoints.");
+  if (normalized.length < quantity) {
+    throw new Error(
+      `Not enough active coupons are available to ${shortageAction}.`,
+    );
+  }
+
+  return normalized
+    .sort((left, right) =>
+      left.collateral < right.collateral
+        ? -1
+        : left.collateral > right.collateral
+          ? 1
+          : left.outpoint.localeCompare(right.outpoint),
+    )
+    .slice(0, quantity)
+    .map((ticket) => ticket.outpoint);
+}
+
 export function selectConsolidationBatch(
   candidates: readonly Kcc20IndexedCovenantUtxo[],
   sourceOutpoints?: readonly string[],
-  maximum = 8,
+  maximum = KCC20_MAX_CONSOLIDATION_INPUTS,
+  order: "smallest" | "largest" = "smallest",
+  minimum = 1,
 ): Kcc20IndexedCovenantUtxo[] {
-  const sorted = [...candidates].sort(compareStateAmount);
+  const sorted = [...candidates].sort((left, right) =>
+    order === "largest"
+      ? compareStateAmount(right, left)
+      : compareStateAmount(left, right),
+  );
   if (!sourceOutpoints?.length) return sorted.slice(0, maximum);
   const requested = new Set(
     sourceOutpoints.map((value) => value.toLowerCase()),
   );
+  if (sourceOutpoints.length < minimum)
+    throw new Error(`at least ${minimum} holder UTXOs must be selected`);
   if (requested.size !== sourceOutpoints.length)
     throw new Error("distinct source outpoints are required");
-  const selected = sorted.filter((utxo) => requested.has(utxo.outpoint!));
+  const byOutpoint = new Map(
+    candidates.map((utxo) => [kcc20IndexedUtxoOutpoint(utxo), utxo]),
+  );
+  const selected = sourceOutpoints.flatMap((outpoint) => {
+    const match = byOutpoint.get(outpoint.toLowerCase());
+    return match ? [match] : [];
+  });
   if (selected.length !== requested.size)
     throw new Error("selected holder UTXOs are not available");
   if (selected.length > maximum)
@@ -378,7 +546,9 @@ export function summarizeHolderUtxos(
     utxoCount: candidates.length,
     fragmented,
     ...(maxIndex >= 0
-      ? { maxSingleUtxoOutpoint: candidates[maxIndex].outpoint }
+      ? {
+          maxSingleUtxoOutpoint: kcc20IndexedUtxoOutpoint(candidates[maxIndex]),
+        }
       : {}),
     ...(fragmented ? { recommendedAction: "consolidate" } : {}),
   };
@@ -437,7 +607,13 @@ function compareStateAmount(
 ): number {
   const a = amount(left.state?.["amount"]) ?? 0n;
   const b = amount(right.state?.["amount"]) ?? 0n;
-  return a < b ? -1 : a > b ? 1 : left.outpoint!.localeCompare(right.outpoint!);
+  return a < b
+    ? -1
+    : a > b
+      ? 1
+      : kcc20IndexedUtxoOutpoint(left).localeCompare(
+          kcc20IndexedUtxoOutpoint(right),
+        );
 }
 
 function amount(value: unknown): bigint | null {

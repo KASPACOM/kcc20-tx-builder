@@ -1,15 +1,24 @@
-export const KCC20_MAX_DECIMALS = 8;
+export const KCC20_FIXED_DECIMALS = 8;
+export const KCC20_MAX_DECIMALS = KCC20_FIXED_DECIMALS;
+export const KCC20_LEGACY_DECIMALS = 0;
 export const KCC20_U64_MAX = (1n << 64n) - 1n;
+export const KCC20_DISPLAY_AMOUNT_RE = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
+export const KCC20_POSITIVE_DISPLAY_AMOUNT_RE =
+  /^(?:(?:[1-9]\d*)(?:\.\d+)?|0\.\d*[1-9]\d*)$/;
+
+export function parseKcc20Decimals(value: unknown): number | null {
+  const normalized =
+    typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return typeof normalized === "number" &&
+    Number.isInteger(normalized) &&
+    normalized >= 0 &&
+    normalized <= KCC20_MAX_DECIMALS
+    ? normalized
+    : null;
+}
 
 export function normalizeKcc20Decimals(value: unknown): number {
-  const parsed =
-    typeof value === "string" && value.trim() !== "" ? Number(value) : value;
-  return typeof parsed === "number" &&
-    Number.isInteger(parsed) &&
-    parsed >= 0 &&
-    parsed <= KCC20_MAX_DECIMALS
-    ? parsed
-    : 0;
+  return parseKcc20Decimals(value) ?? KCC20_LEGACY_DECIMALS;
 }
 
 export function kcc20DisplayScaleForDecimals(decimals: number): bigint {
@@ -23,6 +32,31 @@ export function kcc20DisplayScaleForDecimals(decimals: number): bigint {
   return 10n ** BigInt(decimals);
 }
 
+export function kcc20SupportedDisplayScales(): bigint[] {
+  return Array.from({ length: KCC20_MAX_DECIMALS + 1 }, (_, decimals) =>
+    kcc20DisplayScaleForDecimals(decimals),
+  );
+}
+
+export function kcc20DecimalsFromDisplayScale(value: unknown): number | null {
+  const raw =
+    typeof value === "bigint" ||
+    typeof value === "number" ||
+    typeof value === "string"
+      ? String(value).trim()
+      : "";
+  if (!/^(0|[1-9]\d*)$/.test(raw)) return null;
+  const scale = BigInt(raw);
+  for (let decimals = 0; decimals <= KCC20_MAX_DECIMALS; decimals += 1) {
+    if (scale === 10n ** BigInt(decimals)) return decimals;
+  }
+  return null;
+}
+
+export function isSupportedKcc20DisplayScale(value: unknown): boolean {
+  return kcc20DecimalsFromDisplayScale(value) !== null;
+}
+
 export function parseKcc20DisplayAmountToBaseUnits(
   value: string,
   decimals: number,
@@ -30,7 +64,7 @@ export function parseKcc20DisplayAmountToBaseUnits(
   options: { allowZero?: boolean } = {},
 ): string {
   const raw = String(value ?? "").trim();
-  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(raw)) {
+  if (!KCC20_DISPLAY_AMOUNT_RE.test(raw)) {
     throw new Error(`${field} must be a non-negative decimal token amount`);
   }
   if (
@@ -62,6 +96,84 @@ export function parseKcc20DisplayAmountToBaseUnits(
     throw new Error(`${field} exceeds u64 max`);
   }
   return base.toString();
+}
+
+export function formatKcc20BaseUnitsForDisplay(
+  value: string,
+  decimals: number,
+): string {
+  const raw = String(value ?? "").trim();
+  if (!/^\d+$/.test(raw)) return value;
+  if (decimals <= 0) return raw;
+  const scale = 10n ** BigInt(decimals);
+  const amount = BigInt(raw);
+  const whole = amount / scale;
+  const fraction = (amount % scale)
+    .toString()
+    .padStart(decimals, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+export interface Kcc20OrderTotalSompi {
+  tokenAmountBaseUnits: string;
+  roundedTokenAmountBaseUnits: string;
+  totalSompi: string;
+  roundedDown: boolean;
+}
+
+/** Gross KAS value for an indexed fill amount expressed in token base units. */
+export function calculateKcc20FillTotalSompi(
+  tokenAmountBaseUnits: unknown,
+  unitPriceSompi: unknown,
+  decimals: number = KCC20_FIXED_DECIMALS,
+): string | undefined {
+  const amount = parseUnsigned(tokenAmountBaseUnits);
+  const price = parseUnsigned(unitPriceSompi);
+  if (amount === undefined || amount <= 0n || price === undefined) {
+    return undefined;
+  }
+  const scale = kcc20DisplayScaleForDecimals(normalizeKcc20Decimals(decimals));
+  return ((amount * price) / scale).toString();
+}
+
+/**
+ * Exact-sompi order calculation. Amount is rounded down to the nearest token
+ * base-unit step whose product with unit price is divisible by price scale.
+ */
+export function calculateKcc20OrderTotalSompi(
+  tokenAmount: string,
+  unitPriceSompi: string,
+  decimals: number,
+): Kcc20OrderTotalSompi | undefined {
+  let baseUnits: bigint;
+  try {
+    baseUnits = BigInt(
+      parseKcc20DisplayAmountToBaseUnits(
+        tokenAmount,
+        normalizeKcc20Decimals(decimals),
+        "tokenAmount",
+      ),
+    );
+  } catch {
+    return undefined;
+  }
+  const price = parseUnsigned(unitPriceSompi);
+  if (price === undefined || price <= 0n) return undefined;
+
+  const priceScale = kcc20DisplayScaleForDecimals(
+    normalizeKcc20Decimals(decimals),
+  );
+  const step = priceScale / gcd(priceScale, price);
+  const roundedBaseUnits = baseUnits - (baseUnits % step);
+  if (roundedBaseUnits <= 0n) return undefined;
+
+  return {
+    tokenAmountBaseUnits: baseUnits.toString(),
+    roundedTokenAmountBaseUnits: roundedBaseUnits.toString(),
+    totalSompi: ((roundedBaseUnits * price) / priceScale).toString(),
+    roundedDown: roundedBaseUnits !== baseUnits,
+  };
 }
 
 export function requirePositiveU64(value: unknown, field: string): string {
@@ -171,4 +283,20 @@ function convertBits(
     return undefined;
   }
   return result;
+}
+
+function parseUnsigned(value: unknown): bigint | undefined {
+  const raw = String(value ?? "").trim();
+  return /^\d+$/.test(raw) ? BigInt(raw) : undefined;
+}
+
+function gcd(left: bigint, right: bigint): bigint {
+  let a = left < 0n ? -left : left;
+  let b = right < 0n ? -right : right;
+  while (b !== 0n) {
+    const remainder = a % b;
+    a = b;
+    b = remainder;
+  }
+  return a;
 }

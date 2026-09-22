@@ -32,7 +32,15 @@ export function isKcc20BuilderKey(value: string): value is Kcc20BuilderKey {
 
 export const BACKEND_ONLY_BUILDER_KEYS = [
   "kcc20orderbook.matcher-settle-crossed",
-  "kcc20wrapper.deploy-market",
 ] as const;
 
 export type BackendOnlyBuilderKey = (typeof BACKEND_ONLY_BUILDER_KEYS)[number];
+
+export function isBackendOnlyBuilderKey(
+  value: unknown,
+): value is BackendOnlyBuilderKey {
+  return (
+    typeof value === "string" &&
+    (BACKEND_ONLY_BUILDER_KEYS as readonly string[]).includes(value)
+  );
+}

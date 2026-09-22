@@ -10,7 +10,8 @@ frontend and the Node backend.
 npm install @kaspacom/kcc20-tx-builder
 ```
 
-The package is ESM-only and requires Node.js 20 or newer for Node consumers.
+The package provides ESM and CommonJS entry points and requires Node.js 20 or
+newer for Node consumers.
 Browser consumers must provide their already-loaded browser Kaspa WASM runtime;
 Node consumers provide their Node Kaspa WASM runtime. Kaspa WASM is deliberately
 not bundled or initialized by this package.
@@ -31,8 +32,10 @@ The shared package contains the extracted user-operation engine, deterministic
 amount/fee calculations, and action-specific UTXO selection. It supports
 deploy, verify, mint, mint availability, transfer, native/wrapped
 consolidation, wrap, unwrap, wrapper-market deploy, create/fill/sweep/cancel
-orders, and FeeTicket root/create/burn/transfer/update operations. Matcher
-settlement and operator-only flows remain backend-only.
+orders, FeeTicket root/create/burn/transfer/update operations, and the
+deterministic matcher/operator transaction builders. Matcher/operator
+invocation, authorization, scheduling, and key custody remain backend-only;
+hosts must explicitly enable those builders with `allowBackendOnly`.
 
 The package ships the KCC20 contract artifacts under `artifacts/`, but the
 engine still accepts supplied artifacts and UTXO/RPC access and never reads
@@ -52,8 +55,9 @@ clientBuilder.configure({
 });
 ```
 
-The artifact and source providers are host policies. Private operator keys and
-matcher settlement logic must not enter this package.
+The artifact and source providers are host policies. Private operator keys
+must never be embedded in this package; a trusted backend may inject one at
+runtime for an explicitly authorized operator build.
 
 When `sourceProvider` is present, its connection lifecycle belongs entirely to
 the host: the builder does not construct, connect, or disconnect an RPC client.
@@ -77,9 +81,12 @@ The placeholder contract artifacts are exported as package subpaths. For
 example:
 
 ```ts
-import kcc20Artifact from
-  "@kaspacom/kcc20-tx-builder/artifacts/KCC20.placeholder.json";
+import kcc20Artifact from "@kaspacom/kcc20-tx-builder/artifacts/KCC20.placeholder.json";
 ```
+
+The published, hash-pinned set contains `KCC20`, `KCC20Wrapper`,
+`KCC20Orderbook`, `KCC20FeeTicket`, and `KCC20Vesting`. Consumers should not
+vendor separate copies of these files.
 
 How JSON modules are loaded depends on the consuming runtime and bundler. A
 host may instead copy the artifacts to its public assets and supply an

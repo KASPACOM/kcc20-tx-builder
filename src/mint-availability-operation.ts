@@ -1,4 +1,5 @@
 import { buildKcc20WalletOperationFromPlan } from "./wallet-operation.js";
+import type { Kcc20IndexedCovenantUtxo } from "./action-source-resolver.js";
 
 const HEX_64_RE = /^[a-f0-9]{64}$/;
 
@@ -18,6 +19,50 @@ export interface Kcc20MintAvailabilityOperationOptions {
   network?: string;
   createdAt?: string;
   requestId?: string;
+}
+
+export function resolveKcc20MintAvailabilitySources(input: {
+  publicMintControlSupported: boolean;
+  activeUtxos: readonly Kcc20IndexedCovenantUtxo[];
+  owner: string;
+  active: boolean;
+}): {
+  activeMinterUtxo: Kcc20IndexedCovenantUtxo;
+  activeMinterUtxos: Kcc20IndexedCovenantUtxo[];
+} {
+  if (!input.publicMintControlSupported) {
+    throw new Error(
+      "This KCC20 token does not support public mint availability updates",
+    );
+  }
+  const activeMinterUtxos = input.activeUtxos.filter(
+    (utxo) =>
+      utxo.state?.["isMintAuthority"] === true &&
+      Number(utxo.state?.["mintPolicy"]) === 2,
+  );
+  const activeMinterUtxo = activeMinterUtxos[0];
+  if (!activeMinterUtxo?.state)
+    throw new Error("Active public minter UTXO not found");
+
+  const state = activeMinterUtxo.state;
+  const owner = String(
+    state["owner"] ?? state["ownerIdentifier"] ?? "",
+  ).toLowerCase();
+  const ownerScheme = Number(state["ownerScheme"] ?? state["identifierType"]);
+  if (ownerScheme !== 0 || owner !== input.owner.toLowerCase()) {
+    throw new Error(
+      "Public mint availability updates require the active minter owner",
+    );
+  }
+  const currentActive = state["publicMintActive"] === true;
+  if (currentActive === input.active) {
+    throw new Error(
+      input.active
+        ? "Public mint is already active"
+        : "Public mint is already paused",
+    );
+  }
+  return { activeMinterUtxo, activeMinterUtxos };
 }
 
 export function buildKcc20MintAvailabilityOperation(
