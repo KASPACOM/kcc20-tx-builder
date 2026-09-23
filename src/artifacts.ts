@@ -2,13 +2,13 @@ import { Kcc20BuilderError } from "./errors.js";
 import type { ArtifactDescriptor, BuildContext } from "./models.js";
 import { sha256 } from "@noble/hashes/sha256";
 
+/** The only native KCC20 artifact used to build new transactions. */
+export const KCC20_CURRENT_NATIVE_ARTIFACT_KEY =
+  "KCC20.placeholder.json" as const;
+
 export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
-  "KCC20.placeholder.json":
+  [KCC20_CURRENT_NATIVE_ARTIFACT_KEY]:
     "4633b082f26adbf14600b767d6e2146e36ce67d63d8202c0281857922c05ac41",
-  "KCC20.legacy-standards-native.json":
-    "1b774c7f6e8a050dfbf9a890ad296a239f799854fe5495e1103c11367ce50064",
-  "KCC20.legacy-silverscript-v1-preview.json":
-    "af438eb30a5186e31c835e4812626fd9af5ad64d7092c1c115ed3c2adc8033c0",
   "KCC20FeeTicket.placeholder.json":
     "ed81365466ee4c44db1210b3360783af8145f74e49e847848195e09c71ad6930",
   "KCC20Orderbook.placeholder.json":
