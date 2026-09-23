@@ -43,6 +43,7 @@ import {
   selectFeeTicketOutpoints,
   selectOwnerFeeTicketUtxos,
   resolveKcc20MintAvailabilitySources,
+  splitKcc20MintSupply,
 } from "../dist/index.js";
 
 for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
@@ -69,6 +70,19 @@ if (
 
 if (bytesToHex(hexToBytes("0x00ff")) !== "00ff") {
   throw new Error("hex roundtrip failed");
+}
+
+if (
+  splitKcc20MintSupply(10n, 3n).join(",") !== "4,3,3" ||
+  splitKcc20MintSupply(10n, 10n).some((value) => value !== 1n)
+) {
+  throw new Error("mint lane supply partition drifted");
+}
+try {
+  splitKcc20MintSupply(2n, 3n);
+  throw new Error("mint lane supply underflow was accepted");
+} catch (error) {
+  if (!String(error).includes("cover every mint lane")) throw error;
 }
 
 const exactOrder = calculateKcc20OrderTotalSompi(

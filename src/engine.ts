@@ -62,6 +62,7 @@ import {
   ownerAuthorizationWitness,
 } from "./abi.js";
 import { KCC20_BUILDER_KEYS } from "./operations.js";
+import { splitKcc20MintSupply } from "./protocol.js";
 import {
   KCC20_ARTIFACT_SCRIPT_SHA256,
   assertKcc20ArtifactScriptHash,
@@ -8971,8 +8972,14 @@ export function createKcc20PsktBuilderEngine(
   async function buildKcc20SetPublicMintActivePskt(input) {
     const request = input.request || {};
     const params = request.params || {};
-    const activeMinterUtxo = params.activeMinterUtxo;
-    if (!activeMinterUtxo) {
+    const requestedMinterUtxos =
+      Array.isArray(params.activeMinterUtxos) &&
+      params.activeMinterUtxos.length > 0
+        ? params.activeMinterUtxos
+        : params.activeMinterUtxo
+          ? [params.activeMinterUtxo]
+          : [];
+    if (requestedMinterUtxos.length === 0) {
       throw new Error("active KCC20 mint-authority UTXO is required");
     }
     if (typeof params.active !== "boolean") {
@@ -8987,76 +8994,119 @@ export function createKcc20PsktBuilderEngine(
       request.owner?.kcc20Owner,
       "authenticated wallet owner",
     );
-    const minterAddress = requireKaspaAddress(activeMinterUtxo.address);
-    const minterOwner = requireHex32(
-      activeMinterUtxo.state?.owner ?? activeMinterUtxo.state?.ownerIdentifier,
-      "active mint-authority owner",
-    );
-    const minterOwnerScheme = parseOwnerScheme(
-      activeMinterUtxo.state?.ownerScheme ??
-        activeMinterUtxo.state?.identifierType ??
-        0,
-      "active mint-authority owner scheme",
-    );
-    if (minterOwnerScheme !== 0) {
-      throw new Error(
-        "public mint availability requires a pubkey-owned minter",
-      );
-    }
-    if (minterOwner !== walletOwner) {
-      throw new Error(
-        "public mint availability requires authenticated wallet to own the active minter UTXO",
-      );
-    }
     const mintPolicy = params.mintPolicy || {};
-    const remainingSupply = parsePositiveU64(
-      activeMinterUtxo.state?.remainingSupply ?? mintPolicy.remainingSupply,
-      "active mint-authority remaining supply",
-    );
     const displayScale = parsePositiveU64(
       params.priceScale ??
         params.tokenDisplayScale ??
         DEFAULT_KCC20_PRICE_SCALE,
       "displayScale",
     );
-    const extension = kcc20MintExtensionFromSources(
-      activeMinterUtxo,
-      params,
-      mintPolicy,
-      2,
-      remainingSupply,
-      displayScale,
-    );
-    if (extension.publicMintActive === params.active) {
+    const seenOutpoints = new Set();
+    const laneContexts = (
+      await Promise.all(
+        requestedMinterUtxos.map(async (activeMinterUtxo, laneIndex) => {
+          if (
+            activeMinterUtxo.state?.isMintAuthority !== true ||
+            parseMintPolicy(activeMinterUtxo.state?.mintPolicy) !== 2
+          ) {
+            throw new Error(
+              "public mint availability requires public mint-authority lanes",
+            );
+          }
+          const minterAddress = requireKaspaAddress(activeMinterUtxo.address);
+          const minterOwner = requireHex32(
+            activeMinterUtxo.state?.owner ??
+              activeMinterUtxo.state?.ownerIdentifier,
+            "active mint-authority owner",
+          );
+          const minterOwnerScheme = parseOwnerScheme(
+            activeMinterUtxo.state?.ownerScheme ??
+              activeMinterUtxo.state?.identifierType ??
+              0,
+            "active mint-authority owner scheme",
+          );
+          if (minterOwnerScheme !== 0) {
+            throw new Error(
+              "public mint availability requires a pubkey-owned minter",
+            );
+          }
+          if (minterOwner !== walletOwner) {
+            throw new Error(
+              "public mint availability requires authenticated wallet to own every active minter UTXO",
+            );
+          }
+          const remainingSupply = parsePositiveU64(
+            activeMinterUtxo.state?.remainingSupply ??
+              mintPolicy.remainingSupply,
+            "active mint-authority remaining supply",
+          );
+          const extension = kcc20MintExtensionFromSources(
+            activeMinterUtxo,
+            params,
+            mintPolicy,
+            2,
+            remainingSupply,
+            displayScale,
+          );
+          if (extension.publicMintActive === params.active) {
+            return null;
+          }
+          const inputState = {
+            amount: 0n,
+            owner: hexToBytes(minterOwner),
+            ownerScheme: minterOwnerScheme,
+            borrowScheme: 0,
+            borrowGuard: hexToBytes(ZERO_HASH),
+            extensionCommitment: mintExtensionCommitment(extension),
+          };
+          const nextExtension = {
+            ...extension,
+            publicMintActive: params.active,
+          };
+          const outputState = {
+            ...inputState,
+            extensionCommitment: mintExtensionCommitment(nextExtension),
+          };
+          const resolvedArtifact = await resolveKcc20ArtifactForState(
+            inputState,
+            minterAddress,
+            network,
+          );
+          dispatchTagFor(resolvedArtifact.artifact, "set_public_mint_active");
+          const minterTxid = requireHex32(
+            activeMinterUtxo.txidHex,
+            "minter txid",
+          );
+          const minterVout = parseVout(activeMinterUtxo.vout, "minter vout");
+          const outpoint = `${minterTxid}:${minterVout}`;
+          if (seenOutpoints.has(outpoint)) {
+            throw new Error(`duplicate active minter outpoint ${outpoint}`);
+          }
+          seenOutpoints.add(outpoint);
+          return {
+            activeMinterUtxo,
+            laneIndex,
+            minterAddress,
+            minterTxid,
+            minterVout,
+            outpoint,
+            remainingSupply,
+            extension,
+            nextExtension,
+            inputState,
+            outputState,
+            resolvedArtifact,
+          };
+        }),
+      )
+    ).filter(Boolean);
+    if (laneContexts.length === 0) {
       throw new Error(
         params.active
           ? "public mint is not paused"
           : "public mint is not active",
       );
     }
-    const inputState = {
-      amount: 0n,
-      owner: hexToBytes(minterOwner),
-      ownerScheme: minterOwnerScheme,
-      borrowScheme: 0,
-      borrowGuard: hexToBytes(ZERO_HASH),
-      extensionCommitment: mintExtensionCommitment(extension),
-    };
-    const nextExtension = { ...extension, publicMintActive: params.active };
-    const outputState = {
-      ...inputState,
-      extensionCommitment: mintExtensionCommitment(nextExtension),
-    };
-    const resolvedArtifact = await resolveKcc20ArtifactForState(
-      inputState,
-      minterAddress,
-      network,
-    );
-    const artifact = resolvedArtifact.artifact;
-    dispatchTagFor(artifact, "set_public_mint_active");
-
-    const minterTxid = requireHex32(activeMinterUtxo.txidHex, "minter txid");
-    const minterVout = parseVout(activeMinterUtxo.vout, "minter vout");
     const priorityFee = parseU64(
       process.env.KCC20_MINT_AVAILABILITY_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
@@ -9075,38 +9125,49 @@ export function createKcc20PsktBuilderEngine(
     await rpc.connect();
     try {
       const [minterUtxos, walletUtxos] = await Promise.all([
-        getUtxosByAddresses(rpc, [minterAddress]),
+        getUtxosByAddresses(rpc, [
+          ...new Set(laneContexts.map((lane) => lane.minterAddress)),
+        ]),
         getUtxosByAddresses(rpc, [walletAddress]),
       ]);
-      const minterEntry = findUtxoEntry(
-        minterUtxos.entries,
-        minterTxid,
-        minterVout,
-      );
-      if (!minterEntry) {
-        throw new Error(
-          `active minter UTXO ${minterTxid}:${minterVout} not found`,
+      const resolvedLanes = laneContexts.map((lane, laneIndex) => {
+        const minterEntry = findUtxoEntry(
+          minterUtxos.entries,
+          lane.minterTxid,
+          lane.minterVout,
         );
-      }
-      const spendCovenantId =
-        covenantIdFromUtxoEntry(minterEntry) ?? covenantId;
-      const minterInputSompi = BigInt(minterEntry.amount);
+        if (!minterEntry) {
+          throw new Error(`active minter UTXO ${lane.outpoint} not found`);
+        }
+        const spendCovenantId = requireMatchingCovenantId(
+          minterEntry,
+          covenantId,
+          `active minter lane ${laneIndex}`,
+        );
+        return {
+          ...lane,
+          laneIndex,
+          minterEntry,
+          spendCovenantId,
+          minterInputSompi: BigInt(minterEntry.amount),
+        };
+      });
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         priorityFee + 10_000n,
       );
-      const fundingInputIndex = 1;
+      const fundingInputIndex = resolvedLanes.length;
       const fundingChange = BigInt(fundingEntry.amount) - priorityFee;
-      const outputs = [
+      const outputs = resolvedLanes.map((lane, laneIndex) =>
         tokenOutput(
           kaspaWasm,
-          artifact,
-          outputState,
-          minterInputSompi,
-          spendCovenantId,
-          0,
+          lane.resolvedArtifact.artifact,
+          lane.outputState,
+          lane.minterInputSompi,
+          lane.spendCovenantId,
+          laneIndex,
         ),
-      ];
+      );
       let fundingChangeOutputIndex = -1;
       if (fundingChange > 10_000n) {
         fundingChangeOutputIndex = outputs.length;
@@ -9121,13 +9182,13 @@ export function createKcc20PsktBuilderEngine(
         version: 1,
         lockTime: 0n,
         inputs: [
-          {
-            previousOutpoint: minterEntry.outpoint,
-            utxo: minterEntry,
+          ...resolvedLanes.map((lane) => ({
+            previousOutpoint: lane.minterEntry.outpoint,
+            utxo: lane.minterEntry,
             sequence: 0n,
             sigOpCount: 0,
             computeBudget,
-          },
+          })),
           {
             previousOutpoint: fundingEntry.outpoint,
             utxo: fundingEntry,
@@ -9142,20 +9203,21 @@ export function createKcc20PsktBuilderEngine(
         payload: new Uint8Array(),
       });
       setVersionOneInputMassFields(unsignedTx, computeBudget);
-      const scriptDescriptor = {
-        inputIndex: 0,
-        scriptHex: bytesToHex(resolvedArtifact.script),
+      unsignedTx.inputs[fundingInputIndex].computeBudget = 30;
+      const scripts = resolvedLanes.map((lane, laneIndex) => ({
+        inputIndex: laneIndex,
+        scriptHex: bytesToHex(lane.resolvedArtifact.script),
         signType: 1,
         signatureScript: {
           mode: "ordered-args",
           args: kcc20SetPublicMintActiveOrderedArgs(
-            artifact,
-            extension,
+            lane.resolvedArtifact.artifact,
+            lane.extension,
             params.active,
-            0,
+            laneIndex,
           ),
         },
-      };
+      }));
       const predictSignedTransaction = (transaction) => {
         const predicted = cloneTransactionForMassPreflight(
           kaspaWasm,
@@ -9163,20 +9225,23 @@ export function createKcc20PsktBuilderEngine(
           "KCC20 public mint availability",
         );
         const dummySignature = dummySignatureBytes();
-        const prefix = buildKcc20SetPublicMintActiveSigScript(
-          kaspaWasm,
-          artifact,
-          {
-            extension,
-            authoritySignature: dummySignature,
-            active: params.active,
-            minterOutputIndex: 0,
-          },
-        );
-        predicted.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(
-          prefix,
-          resolvedArtifact.script,
-        );
+        resolvedLanes.forEach((lane, laneIndex) => {
+          const prefix = buildKcc20SetPublicMintActiveSigScript(
+            kaspaWasm,
+            lane.resolvedArtifact.artifact,
+            {
+              extension: lane.extension,
+              authoritySignature: dummySignature,
+              active: params.active,
+              minterOutputIndex: laneIndex,
+            },
+          );
+          predicted.inputs[laneIndex].signatureScript =
+            encodeCovenantP2shSignatureScript(
+              prefix,
+              lane.resolvedArtifact.script,
+            );
+        });
         predicted.inputs[fundingInputIndex].signatureScript =
           encodeP2pkSignatureScript(bytesToHex(dummySignature));
         return predicted;
@@ -9199,21 +9264,34 @@ export function createKcc20PsktBuilderEngine(
         schema: OUTPUT_SCHEMA,
         psktTransactionJson,
         signInputs: [{ index: fundingInputIndex, sighashType: 1 }],
-        scripts: [scriptDescriptor],
+        scripts,
         submitTransactionSupported: true,
         metadata: {
           builderKey: "kcc20.set-public-mint-active",
           contract: "KCC20",
           network,
           walletAddress,
-          covenantId: spendCovenantId,
-          minterOutpoint: `${minterTxid}:${minterVout}`,
+          covenantId,
+          minterOutpoint: resolvedLanes[0].outpoint,
+          minterOutpoints: resolvedLanes.map((lane) => lane.outpoint),
           minterOutputIndex: 0,
+          minterOutputIndexes: resolvedLanes.map((_, index) => index),
+          mintLaneCount: Number(resolvedLanes[0].extension.mintLaneCount),
+          updatedMintLaneCount: resolvedLanes.length,
           publicMintActive: params.active,
           mintPolicy: 2,
-          remainingSupply: remainingSupply.toString(),
-          extension: jsonKcc20MintExtension(nextExtension),
-          artifactVersion: resolvedArtifact.version,
+          remainingSupply: resolvedLanes[0].remainingSupply.toString(),
+          remainingSupplies: resolvedLanes.map((lane) =>
+            lane.remainingSupply.toString(),
+          ),
+          extension: jsonKcc20MintExtension(resolvedLanes[0].nextExtension),
+          extensions: resolvedLanes.map((lane) =>
+            jsonKcc20MintExtension(lane.nextExtension),
+          ),
+          artifactVersion: resolvedLanes[0].resolvedArtifact.version,
+          artifactVersions: resolvedLanes.map(
+            (lane) => lane.resolvedArtifact.version,
+          ),
         },
       };
     } finally {
@@ -10031,7 +10109,7 @@ export function createKcc20PsktBuilderEngine(
     );
     const feeBps = parseFeeBps(
       params.protocolFeeBps ??
-        config.KCC20_PROTOCOL_FEE_BPS ??
+        process.env.KCC20_PROTOCOL_FEE_BPS ??
         DEFAULT_KCC20_FEE_BPS,
     );
     const decimals = parseU64(params.decimals ?? "0", "decimals");
@@ -10067,6 +10145,14 @@ export function createKcc20PsktBuilderEngine(
     const artifact = await readStaticArtifact(KCC20_ARTIFACT_PATH);
     const displayScale = priceScale;
     const remainingSupply = maxSupply - premintSupply;
+    const mintLaneCount =
+      mintPolicy === 0
+        ? 1n
+        : parseMintLaneCount(params.mintLaneCount ?? 1, "mintLaneCount");
+    const mintLaneSupplies =
+      mintPolicy === 0
+        ? []
+        : splitKcc20MintSupply(remainingSupply, mintLaneCount);
     const immutableExtension = {
       kind: 1,
       creator: hexToBytes(owner),
@@ -10074,8 +10160,7 @@ export function createKcc20PsktBuilderEngine(
       name: asciiToBytes32(metadata.name, "token name"),
       displayScale,
       maxSupply,
-      // The backend currently creates one mint authority output.
-      mintLaneCount: 1n,
+      mintLaneCount,
       mintPolicy,
       mintPriceSompi,
       treasury: hexToBytes(treasury),
@@ -10083,24 +10168,33 @@ export function createKcc20PsktBuilderEngine(
       protocolFeeBps: BigInt(feeBps),
     };
     const holderCommitment = holderExtensionCommitment(immutableExtension);
-    const extension =
+    const baseExtension =
       mintPolicy === 0
         ? null
         : {
             ...immutableExtension,
-            remainingSupply,
             publicMintActive: false,
             holderExtensionCommitment: holderCommitment,
           };
+    const minterStates = baseExtension
+      ? mintLaneSupplies.map((laneSupply) => {
+          const extension = { ...baseExtension, remainingSupply: laneSupply };
+          return {
+            extension,
+            state: {
+              amount: 0n,
+              owner: hexToBytes(owner),
+              ownerScheme: 0,
+              borrowScheme: 0,
+              borrowGuard: hexToBytes(ZERO_HASH),
+              extensionCommitment: mintExtensionCommitment(extension),
+            },
+          };
+        })
+      : [];
+    const extension = minterStates[0]?.extension ?? null;
     const state = extension
-      ? {
-          amount: 0n,
-          owner: hexToBytes(owner),
-          ownerScheme: 0,
-          borrowScheme: 0,
-          borrowGuard: hexToBytes(ZERO_HASH),
-          extensionCommitment: mintExtensionCommitment(extension),
-        }
+      ? minterStates[0].state
       : {
           amount: maxSupply,
           owner: hexToBytes(premintRecipient),
@@ -10120,6 +10214,10 @@ export function createKcc20PsktBuilderEngine(
             extensionCommitment: holderCommitment,
           }
         : null;
+    const covenantStates = extension
+      ? minterStates.map(({ state }) => state)
+      : [state];
+    if (premintState) covenantStates.push(premintState);
 
     const kw = kaspaWasm;
     const {
@@ -10133,23 +10231,25 @@ export function createKcc20PsktBuilderEngine(
       payToScriptHashScript,
     } = kw;
 
-    const contractScript = buildKcc20ScriptForState(artifact, state);
-    const contractScriptPubKey = payToScriptHashScript(contractScript);
-    const canonicalCovenantId = p2shScriptHashHex(kw, contractScript);
-    const contractAddress = addressFromScriptPublicKey(
-      contractScriptPubKey,
-      network,
-    ).toString();
+    const covenantOutputs = covenantStates.map((covenantState) => {
+      const script = buildKcc20ScriptForState(artifact, covenantState);
+      const scriptPublicKey = payToScriptHashScript(script);
+      return {
+        script,
+        scriptPublicKey,
+        address: addressFromScriptPublicKey(
+          scriptPublicKey,
+          network,
+        ).toString(),
+      };
+    });
+    const contractAddress = covenantOutputs[0].address;
+    const canonicalCovenantId = p2shScriptHashHex(
+      kw,
+      covenantOutputs[0].script,
+    );
     const deploySompi = BigInt(Math.round(amountTkas * Number(SOMPI_PER_TKAS)));
-    const deployOutputs = [{ address: contractAddress, amount: deploySompi }];
-    let premintAddress = null;
-    if (premintState) {
-      premintAddress = addressFromScriptPublicKey(
-        payToScriptHashScript(buildKcc20ScriptForState(artifact, premintState)),
-        network,
-      ).toString();
-      deployOutputs.push({ address: premintAddress, amount: deploySompi });
-    }
+    const premintOutputIndex = premintState ? covenantOutputs.length - 1 : null;
 
     const rpc = new RpcClient({
       url: rpcUrl,
@@ -10159,12 +10259,12 @@ export function createKcc20PsktBuilderEngine(
     await rpc.connect();
     try {
       const utxos = await getUtxosByAddresses(rpc, [walletAddress]);
-      const outputSompi = deploySompi * BigInt(deployOutputs.length);
+      const outputSompi = deploySompi * BigInt(covenantOutputs.length);
       const fundingEntry = selectFundingEntry(
         utxos.entries,
         outputSompi + priorityFee + 10_000_000n,
       );
-      const fundingChangeOutputIndex = 1;
+      const fundingChangeOutputIndex = covenantOutputs.length;
       const change = utxoAmountSompi(fundingEntry) - outputSompi - priorityFee;
       if (change <= 10_000n) {
         throw kcc20PsktBuilderError(
@@ -10174,19 +10274,12 @@ export function createKcc20PsktBuilderEngine(
       }
 
       const outputs = [
-        new TransactionOutput(deploySompi, contractScriptPubKey),
+        ...covenantOutputs.map(
+          ({ scriptPublicKey }) =>
+            new TransactionOutput(deploySompi, scriptPublicKey),
+        ),
         new TransactionOutput(change, payToAddressScript(walletAddress)),
       ];
-      if (premintState) {
-        outputs.push(
-          new TransactionOutput(
-            deploySompi,
-            payToScriptHashScript(
-              buildKcc20ScriptForState(artifact, premintState),
-            ),
-          ),
-        );
-      }
 
       const unsignedTx = new Transaction({
         version: 1,
@@ -10223,29 +10316,8 @@ export function createKcc20PsktBuilderEngine(
       unsignedTx.version = 1;
       setVersionOneInputMassFields(unsignedTx);
 
-      const covenantOutputIndex = findOutputIndex(
-        unsignedTx,
-        contractAddress,
-        network,
-        addressFromScriptPublicKey,
-      );
-      if (covenantOutputIndex < 0)
-        throw new Error("final transaction did not contain the KCC20 output");
-      const covenantOutputIndexes = [covenantOutputIndex];
-      let premintOutputIndex = null;
-      if (premintAddress) {
-        premintOutputIndex = findOutputIndex(
-          unsignedTx,
-          premintAddress,
-          network,
-          addressFromScriptPublicKey,
-        );
-        if (premintOutputIndex < 0)
-          throw new Error(
-            "final transaction did not contain the KCC20 premint output",
-          );
-        covenantOutputIndexes.push(premintOutputIndex);
-      }
+      const covenantOutputIndex = 0;
+      const covenantOutputIndexes = covenantOutputs.map((_, index) => index);
       unsignedTx.populateGenesisCovenants([
         new GenesisCovenantGroup(0, covenantOutputIndexes),
       ]);
@@ -10273,6 +10345,9 @@ export function createKcc20PsktBuilderEngine(
           "KCC20 deploy PSKT serialization did not return JSON text",
         );
       }
+      const revealScriptHex = bytesToHex(
+        covenantOutputs[covenantOutputIndex].script,
+      );
 
       return {
         schema: OUTPUT_SCHEMA,
@@ -10289,6 +10364,9 @@ export function createKcc20PsktBuilderEngine(
           walletAddress,
           contractAddress,
           covenantOutputIndex,
+          minterOutputIndexes: extension
+            ? minterStates.map((_, index) => index)
+            : undefined,
           premintOutputIndex,
           covenantId: kip20BindingCovenantId,
           scriptHashHex: canonicalCovenantId,
@@ -10299,6 +10377,37 @@ export function createKcc20PsktBuilderEngine(
           mintPolicy,
           publicMintActive: mintPolicy === 2 ? false : undefined,
           mintLaneCount: immutableExtension.mintLaneCount.toString(),
+          holderExtensionCommitment: bytesToHex(holderCommitment),
+          revealScriptHex,
+          maximumFeeSompi: (
+            [...feeAdjustedTx.inputs].reduce(
+              (sum, input) =>
+                sum + BigInt(input.utxo?.amount ?? input.utxo?.value),
+              0n,
+            ) -
+            [...feeAdjustedTx.outputs].reduce(
+              (sum, output) => sum + BigInt(output.value ?? output.amount),
+              0n,
+            )
+          ).toString(),
+          intentInputs: [{ role: "creator-funding", index: 0 }],
+          intentOutputs: [
+            {
+              role: "fixed-supply-token",
+              index: covenantOutputIndex,
+              covenantId: kip20BindingCovenantId,
+              revealScriptHex,
+              owner: premintRecipient,
+              ownerScheme: premintOwnerScheme,
+              borrowScheme: 0,
+              borrowGuard: ZERO_HASH,
+              extensionCommitment: bytesToHex(holderCommitment),
+              tokenAmount: maxSupply.toString(),
+            },
+          ],
+          mintLaneSupplies: extension
+            ? mintLaneSupplies.map((supply) => supply.toString())
+            : undefined,
           extension: extension ? jsonKcc20MintExtension(extension) : undefined,
           ...stateToReceiptFields(state),
         },
@@ -13221,6 +13330,7 @@ export function createKcc20PsktBuilderEngine(
       assertTransactionStorageMassStandard,
       calculateToccataStorageMass,
       parseQuotedProtocolFeeSompi,
+      splitKcc20MintSupply,
     }),
   };
 }

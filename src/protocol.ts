@@ -26,3 +26,24 @@ export const KCC20_PLATFORM_PROTOCOL_FEE_RECIPIENT =
   "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01" as const;
 export const KCC20_ORDERBOOK_PROTOCOL_FEE_RECIPIENT =
   KCC20_PLATFORM_PROTOCOL_FEE_RECIPIENT;
+
+export function splitKcc20MintSupply(
+  remainingSupply: bigint,
+  laneCount: bigint,
+): bigint[] {
+  if (remainingSupply <= 0n) {
+    throw new Error("remaining mint supply must be greater than zero");
+  }
+  if (laneCount < 1n || laneCount > 10n) {
+    throw new Error("mint lane count must be between 1 and 10");
+  }
+  if (remainingSupply < laneCount) {
+    throw new Error("remaining mint supply must cover every mint lane");
+  }
+  const base = remainingSupply / laneCount;
+  const remainder = remainingSupply % laneCount;
+  return Array.from(
+    { length: Number(laneCount) },
+    (_, index) => base + (BigInt(index) < remainder ? 1n : 0n),
+  );
+}
