@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import {
   KCC20_ARTIFACT_SCRIPT_SHA256,
+  KCC20_CURRENT_NATIVE_ARTIFACT_KEY,
   Kcc20BuilderError,
   assertKcc20ArtifactScriptHash,
   isKcc20ArtifactKey,
@@ -13,6 +14,7 @@ import {
   buildFeeTicketTransferOperation,
   buildKcc20CancelOperation,
   buildKcc20DeployTokenOperation,
+  buildKcc20DeployIntentOutputs,
   buildKcc20FillOperation,
   buildKcc20MintAvailabilityOperation,
   buildKcc20MintTokenOperation,
@@ -45,6 +47,121 @@ import {
   resolveKcc20MintAvailabilitySources,
   splitKcc20MintSupply,
 } from "../dist/index.js";
+
+if (KCC20_CURRENT_NATIVE_ARTIFACT_KEY !== "KCC20.placeholder.json") {
+  throw new Error("the current KCC20 artifact key drifted");
+}
+
+const receiptHash = (digit) => digit.repeat(64);
+const fixedDeployIntents = buildKcc20DeployIntentOutputs({
+  mintPolicy: 0,
+  covenantId: receiptHash("a"),
+  creator: receiptHash("b"),
+  premintRecipient: receiptHash("c"),
+  premintOwnerScheme: 0,
+  maxSupply: "100",
+  premintSupply: "100",
+  borrowGuard: receiptHash("0"),
+  fixedOutput: {
+    index: 0,
+    revealScriptHex: "01",
+    extensionCommitment: receiptHash("d"),
+  },
+});
+if (
+  JSON.stringify(fixedDeployIntents) !==
+  JSON.stringify([
+    {
+      role: "fixed-supply-token",
+      index: 0,
+      covenantId: receiptHash("a"),
+      revealScriptHex: "01",
+      owner: receiptHash("c"),
+      ownerScheme: 0,
+      borrowScheme: 0,
+      borrowGuard: receiptHash("0"),
+      extensionCommitment: receiptHash("d"),
+      tokenAmount: "100",
+    },
+  ])
+) {
+  throw new Error("fixed deploy receipt does not describe its holder output");
+}
+
+const controlledDeployIntents = buildKcc20DeployIntentOutputs({
+  mintPolicy: 1,
+  covenantId: receiptHash("a"),
+  creator: receiptHash("b"),
+  premintRecipient: receiptHash("c"),
+  premintOwnerScheme: 0,
+  maxSupply: "10",
+  premintSupply: "1",
+  borrowGuard: receiptHash("0"),
+  minterOutputs: ["3", "3", "3"].map((remainingSupply, index) => ({
+    index,
+    revealScriptHex: `0${index + 1}`,
+    extensionCommitment: String(index + 1).repeat(64),
+    remainingSupply,
+  })),
+  premintOutput: {
+    index: 3,
+    revealScriptHex: "04",
+    extensionCommitment: receiptHash("d"),
+  },
+});
+if (
+  controlledDeployIntents.length !== 4 ||
+  controlledDeployIntents
+    .slice(0, 3)
+    .some(
+      (intent, index) =>
+        intent.role !== "mint-authority" ||
+        intent.shard !== index ||
+        intent.mintLaneIndex !== index ||
+        intent.index !== index ||
+        intent.owner !== receiptHash("b") ||
+        intent.tokenAmount !== "0" ||
+        intent.remainingSupply !== "3",
+    ) ||
+  controlledDeployIntents[3]?.role !== "premint-holder" ||
+  controlledDeployIntents[3]?.index !== 3 ||
+  controlledDeployIntents[3]?.owner !== receiptHash("c") ||
+  controlledDeployIntents[3]?.tokenAmount !== "1"
+) {
+  throw new Error(
+    "controlled deploy receipt does not describe its mint lanes and premint holder",
+  );
+}
+
+const publicDeployIntents = buildKcc20DeployIntentOutputs({
+  mintPolicy: 2,
+  covenantId: receiptHash("a"),
+  creator: receiptHash("b"),
+  premintRecipient: receiptHash("c"),
+  premintOwnerScheme: 0,
+  maxSupply: "10",
+  premintSupply: "0",
+  borrowGuard: receiptHash("0"),
+  minterOutputs: ["5", "5"].map((remainingSupply, index) => ({
+    index,
+    revealScriptHex: `0${index + 1}`,
+    extensionCommitment: String(index + 1).repeat(64),
+    remainingSupply,
+  })),
+});
+if (
+  publicDeployIntents.length !== 2 ||
+  publicDeployIntents.some(
+    (intent, index) =>
+      intent.role !== "mint-authority" ||
+      intent.shard !== index ||
+      intent.remainingSupply !== "5",
+  )
+) {
+  throw new Error(
+    "public multi-lane deploy receipt contains a phantom holder output",
+  );
+}
 
 for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
   if (!isKcc20ArtifactKey(key)) {

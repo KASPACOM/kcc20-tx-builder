@@ -63,8 +63,10 @@ import {
 } from "./abi.js";
 import { KCC20_BUILDER_KEYS } from "./operations.js";
 import { splitKcc20MintSupply } from "./protocol.js";
+import { buildKcc20DeployIntentOutputs } from "./deploy-receipt.js";
 import {
   KCC20_ARTIFACT_SCRIPT_SHA256,
+  KCC20_CURRENT_NATIVE_ARTIFACT_KEY,
   assertKcc20ArtifactScriptHash,
 } from "./artifacts.js";
 
@@ -206,7 +208,7 @@ export function createKcc20PsktBuilderEngine(
       KCC20_ORDERBOOK_SWEEP_ASK_COMPUTE_BUDGET_PROFILE.feeTicket,
     ],
   ]);
-  const KCC20_ARTIFACT_PATH = "KCC20.placeholder.json";
+  const KCC20_ARTIFACT_PATH = KCC20_CURRENT_NATIVE_ARTIFACT_KEY;
   const WRAPPER_ARTIFACT_PATH = "KCC20Wrapper.placeholder.json";
   const WRAPPED_ARTIFACT_PATH = "KCC20Orderbook.placeholder.json";
   const FEE_TICKET_ARTIFACT_PATH = "KCC20FeeTicket.placeholder.json";
@@ -10391,20 +10393,42 @@ export function createKcc20PsktBuilderEngine(
             )
           ).toString(),
           intentInputs: [{ role: "creator-funding", index: 0 }],
-          intentOutputs: [
-            {
-              role: "fixed-supply-token",
-              index: covenantOutputIndex,
-              covenantId: kip20BindingCovenantId,
-              revealScriptHex,
-              owner: premintRecipient,
-              ownerScheme: premintOwnerScheme,
-              borrowScheme: 0,
-              borrowGuard: ZERO_HASH,
-              extensionCommitment: bytesToHex(holderCommitment),
-              tokenAmount: maxSupply.toString(),
-            },
-          ],
+          intentOutputs: buildKcc20DeployIntentOutputs({
+            mintPolicy,
+            covenantId: kip20BindingCovenantId,
+            creator: owner,
+            premintRecipient,
+            premintOwnerScheme,
+            maxSupply,
+            premintSupply,
+            borrowGuard: ZERO_HASH,
+            fixedOutput:
+              mintPolicy === 0
+                ? {
+                    index: covenantOutputIndex,
+                    revealScriptHex,
+                    extensionCommitment: bytesToHex(holderCommitment),
+                  }
+                : undefined,
+            minterOutputs: minterStates.map(({ state }, index) => ({
+              index,
+              revealScriptHex: bytesToHex(covenantOutputs[index].script),
+              extensionCommitment: bytesToHex(state.extensionCommitment),
+              remainingSupply: mintLaneSupplies[index],
+            })),
+            premintOutput:
+              premintState && premintOutputIndex !== null
+                ? {
+                    index: premintOutputIndex,
+                    revealScriptHex: bytesToHex(
+                      covenantOutputs[premintOutputIndex].script,
+                    ),
+                    extensionCommitment: bytesToHex(
+                      premintState.extensionCommitment,
+                    ),
+                  }
+                : undefined,
+          }),
           mintLaneSupplies: extension
             ? mintLaneSupplies.map((supply) => supply.toString())
             : undefined,

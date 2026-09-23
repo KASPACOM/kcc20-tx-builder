@@ -3,6 +3,7 @@ export * from "./action-source-resolver.js";
 export * from "./abi.js";
 export * from "./builder.js";
 export * from "./deploy-operation.js";
+export * from "./deploy-receipt.js";
 export * from "./errors.js";
 export * from "./encoding.js";
 export * from "./engine.js";

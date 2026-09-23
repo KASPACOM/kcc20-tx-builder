@@ -32,6 +32,3 @@ export interface Kcc20PsktBuilderInput {
   builder: Record<string, unknown>;
   request: Record<string, unknown>;
 }
-
-/** @deprecated Use Kcc20PsktBuilderInput. */
-export type Kcc20LegacyPsktBuilderInput = Kcc20PsktBuilderInput;
