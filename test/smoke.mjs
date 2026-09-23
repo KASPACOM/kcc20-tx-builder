@@ -163,6 +163,14 @@ if (
   );
 }
 
+const builtEngine = await readFile(
+  new URL("../dist/engine.js", import.meta.url),
+  "utf8",
+);
+if (/\bprocess\.env\b/.test(builtEngine)) {
+  throw new Error("runtime bundle references real process.env");
+}
+
 for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
   if (!isKcc20ArtifactKey(key)) {
     throw new Error(`published KCC20 artifact key was not recognized: ${key}`);
@@ -174,6 +182,25 @@ for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
 }
 if (isKcc20ArtifactKey("unknown.placeholder.json")) {
   throw new Error("unknown KCC20 artifact key was accepted");
+}
+
+const tamperedArtifact = JSON.parse(
+  await readFile(
+    new URL("../artifacts/KCC20.placeholder.json", import.meta.url),
+    "utf8",
+  ),
+);
+tamperedArtifact.script = [...tamperedArtifact.script];
+tamperedArtifact.script[0] = tamperedArtifact.script[0] ^ 0xff;
+let tamperedArtifactRejected = false;
+try {
+  assertKcc20ArtifactScriptHash("KCC20.placeholder.json", tamperedArtifact);
+} catch (error) {
+  tamperedArtifactRejected =
+    error instanceof Kcc20BuilderError && error.code === "ARTIFACT_MISMATCH";
+}
+if (!tamperedArtifactRejected) {
+  throw new Error("tampered KCC20 artifact script hash was accepted");
 }
 
 const supportedDisplayScales = kcc20SupportedDisplayScales();
@@ -462,6 +489,34 @@ assertUniqueSources({
     },
   ],
 });
+let duplicateSourceRejected = false;
+try {
+  assertUniqueSources({
+    walletUtxos: [
+      {
+        txidHex: "a".repeat(64),
+        vout: 0,
+        address: "kaspatest:source",
+        amountSompi: "1",
+      },
+    ],
+    covenantUtxos: [
+      {
+        txidHex: "a".repeat(64),
+        vout: 0,
+        address: "kaspatest:source",
+        amountSompi: "1",
+        state: {},
+      },
+    ],
+  });
+} catch (error) {
+  duplicateSourceRejected =
+    error instanceof Kcc20BuilderError && error.code === "INVALID_INPUT";
+}
+if (!duplicateSourceRejected) {
+  throw new Error("duplicate source outpoint was accepted");
+}
 
 assertSnapshotFresh({
   snapshotId: "fresh",
