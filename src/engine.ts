@@ -111,8 +111,7 @@ export interface Kcc20PsktBuilderEngine {
 export function createKcc20PsktBuilderEngine(
   options: Kcc20PsktBuilderEngineOptions,
 ): Kcc20PsktBuilderEngine {
-  const config = options.config ?? {};
-  const process = { env: config };
+  const env = options.config ?? {};
   class InjectedRpcClient {
     private readonly inner: any;
     constructor(rpcConfig: unknown) {
@@ -443,7 +442,7 @@ export function createKcc20PsktBuilderEngine(
         await readFeeTicketArtifacts(),
         rootState,
         requireKaspaAddress(input.rootAddress),
-        input.network || process.env.KASPA_NETWORK || "testnet-10",
+        input.network || env.KASPA_NETWORK || "testnet-10",
         "active FeeTicket root UTXO address",
       );
       return {
@@ -570,17 +569,17 @@ export function createKcc20PsktBuilderEngine(
       "utilityTokenAmount",
     );
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
     const rootAddress = requireKaspaAddress(rootUtxo.address);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const priorityFee = parseU64(
-      process.env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
 
@@ -792,18 +791,18 @@ export function createKcc20PsktBuilderEngine(
       );
     }
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi =
       configuredFeeTicketOutputSompiForQuantity(quantity);
     const priorityFee = parseU64(
-      process.env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
 
@@ -1148,16 +1147,16 @@ export function createKcc20PsktBuilderEngine(
     }
 
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const priorityFee = parseU64(
-      process.env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
     const artifacts = await readFeeTicketArtifacts();
@@ -1376,16 +1375,16 @@ export function createKcc20PsktBuilderEngine(
     }
 
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const priorityFee = parseU64(
-      process.env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      env.KCC20_FEE_TICKET_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
     const artifacts = await readFeeTicketArtifacts();
@@ -1599,7 +1598,7 @@ export function createKcc20PsktBuilderEngine(
 
   function configuredFeeTicketOutputSompiForQuantity(
     quantity,
-    environment = process.env,
+    environment = env,
   ) {
     const configured = parseU64(
       Number(quantity) === 1
@@ -2602,20 +2601,20 @@ export function createKcc20PsktBuilderEngine(
     );
     assertWrapperArtifactPriceScale(priceScale);
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const amountTkas = parseAmountTkas(
-      process.env.KCC20_WRAPPER_DEPLOY_OUTPUT_TKAS ||
-        process.env.KCC20_DEPLOY_OUTPUT_TKAS ||
+      env.KCC20_WRAPPER_DEPLOY_OUTPUT_TKAS ||
+        env.KCC20_DEPLOY_OUTPUT_TKAS ||
         DEFAULT_DEPLOY_TKAS,
       "KCC20_WRAPPER_DEPLOY_OUTPUT_TKAS",
     );
     const priorityFee = wrapperDeployPriorityFee(
-      process.env.KCC20_WRAPPER_DEPLOY_PRIORITY_FEE_SOMPI,
+      env.KCC20_WRAPPER_DEPLOY_PRIORITY_FEE_SOMPI,
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_WRAPPER_DEPLOY_COMPUTE_BUDGET || 600,
+      env.KCC20_WRAPPER_DEPLOY_COMPUTE_BUDGET || 600,
       "computeBudget",
     );
 
@@ -2915,21 +2914,21 @@ export function createKcc20PsktBuilderEngine(
       "fee ticket id",
     );
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_WRAP_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_WRAP_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_WRAP_PRIORITY_FEE_SOMPI ||
+      env.KCC20_WRAP_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_WRAP_COMPUTE_BUDGET || 700,
+      env.KCC20_WRAP_COMPUTE_BUDGET || 700,
       "computeBudget",
     );
 
@@ -3333,21 +3332,21 @@ export function createKcc20PsktBuilderEngine(
     );
     const tokenAmount = parsePositiveU64(params.tokenAmount, "tokenAmount");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_UNWRAP_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_UNWRAP_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_UNWRAP_PRIORITY_FEE_SOMPI ||
+      env.KCC20_UNWRAP_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_UNWRAP_COMPUTE_BUDGET || 700,
+      env.KCC20_UNWRAP_COMPUTE_BUDGET || 700,
       "computeBudget",
     );
 
@@ -3824,21 +3823,21 @@ export function createKcc20PsktBuilderEngine(
       ? requireHex32(params.feeTicketId, "fee ticket id")
       : null;
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_ORDER_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_ORDER_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_ORDER_PRIORITY_FEE_SOMPI ||
+      env.KCC20_ORDER_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_ORDER_COMPUTE_BUDGET || 700,
+      env.KCC20_ORDER_COMPUTE_BUDGET || 700,
       "computeBudget",
     );
 
@@ -4182,21 +4181,21 @@ export function createKcc20PsktBuilderEngine(
       "unitPriceSompi",
     );
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_FILL_COMPUTE_BUDGET || 800,
+      env.KCC20_FILL_COMPUTE_BUDGET || 800,
       "computeBudget",
     );
 
@@ -4605,21 +4604,21 @@ export function createKcc20PsktBuilderEngine(
       "unitPriceSompi",
     );
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_FILL_COMPUTE_BUDGET || 800,
+      env.KCC20_FILL_COMPUTE_BUDGET || 800,
       "computeBudget",
     );
 
@@ -5197,16 +5196,16 @@ export function createKcc20PsktBuilderEngine(
     );
     const buyerOwner = requireHex32(request.owner?.kcc20Owner, "buyer owner");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
@@ -5746,16 +5745,16 @@ export function createKcc20PsktBuilderEngine(
     );
     const sellerOwner = requireHex32(request.owner?.kcc20Owner, "seller owner");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
@@ -6503,16 +6502,16 @@ export function createKcc20PsktBuilderEngine(
     );
     const sellerOwner = requireHex32(request.owner?.kcc20Owner, "seller owner");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const configuredTokenOutputSompi = parseU64(
-      process.env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
@@ -7282,23 +7281,23 @@ export function createKcc20PsktBuilderEngine(
     );
     const owner = requireHex32(request.owner?.kcc20Owner, "token owner");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const priorityFee = parseU64(
-      process.env.KCC20_CONSOLIDATE_PRIORITY_FEE_SOMPI ||
-        process.env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_CONSOLIDATE_PRIORITY_FEE_SOMPI ||
+        env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const configuredPrimaryComputeBudget = parsePositiveNumber(
-      process.env.KCC20_CONSOLIDATE_COMPUTE_BUDGET ||
-        process.env.KCC20_FILL_COMPUTE_BUDGET ||
+      env.KCC20_CONSOLIDATE_COMPUTE_BUDGET ||
+        env.KCC20_FILL_COMPUTE_BUDGET ||
         800,
       "configuredPrimaryComputeBudget",
     );
     const peerComputeBudget = parsePositiveNumber(
-      process.env.KCC20_CONSOLIDATE_PEER_COMPUTE_BUDGET || 200,
+      env.KCC20_CONSOLIDATE_PEER_COMPUTE_BUDGET || 200,
       "peerComputeBudget",
     );
     const computeBudget = Math.max(
@@ -7582,37 +7581,37 @@ export function createKcc20PsktBuilderEngine(
       : null;
     const maxFeeSompi = parseU64(params.maxFeeSompi || "0", "maxFeeSompi");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
     const expectedOwner = request.owner?.kcc20Owner
       ? requireHex32(request.owner.kcc20Owner, "matcher owner")
       : null;
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = parseU64(
-      process.env.KCC20_MATCHER_TOKEN_OUTPUT_SOMPI ||
-        process.env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
+      env.KCC20_MATCHER_TOKEN_OUTPUT_SOMPI ||
+        env.KCC20_FILL_TOKEN_OUTPUT_SOMPI ||
         DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
       "tokenOutputSompi",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_MATCHER_PRIORITY_FEE_SOMPI ||
-        process.env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_MATCHER_PRIORITY_FEE_SOMPI ||
+        env.KCC20_FILL_PRIORITY_FEE_SOMPI ||
         DEFAULT_MATCHER_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const networkFeeReserve = parseU64(
-      process.env.KCC20_MATCHER_NETWORK_FEE_RESERVE_SOMPI || "5000000",
+      env.KCC20_MATCHER_NETWORK_FEE_RESERVE_SOMPI || "5000000",
       "networkFeeReserve",
     );
     const transactionFeeReserve = priorityFee + networkFeeReserve;
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_MATCHER_COMPUTE_BUDGET ||
-        process.env.KCC20_FILL_COMPUTE_BUDGET ||
+      env.KCC20_MATCHER_COMPUTE_BUDGET ||
+        env.KCC20_FILL_COMPUTE_BUDGET ||
         800,
       "computeBudget",
     );
     const privateKeyHex = String(
-      process.env.KCC20_WRAPPER_OPERATOR_PRIVATE_KEY || "",
+      env.KCC20_WRAPPER_OPERATOR_PRIVATE_KEY || "",
     )
       .trim()
       .replace(/^0x/i, "");
@@ -8278,16 +8277,16 @@ export function createKcc20PsktBuilderEngine(
       "target order id",
     );
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const priorityFee = parseU64(
-      process.env.KCC20_CANCEL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_CANCEL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_CANCEL_COMPUTE_BUDGET || 800,
+      env.KCC20_CANCEL_COMPUTE_BUDGET || 800,
       "computeBudget",
     );
 
@@ -8602,24 +8601,24 @@ export function createKcc20PsktBuilderEngine(
     const minterVout = parseVout(activeMinterUtxo.vout, "minter vout");
     const minterAddress = requireKaspaAddress(activeMinterUtxo.address);
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = assertKcc20TokenOutputSompi(
       parseU64(
-        process.env.KCC20_MINT_TOKEN_OUTPUT_SOMPI ||
+        env.KCC20_MINT_TOKEN_OUTPUT_SOMPI ||
           DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
         "tokenOutputSompi",
       ),
       "mint",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_MINT_PRIORITY_FEE_SOMPI ||
+      env.KCC20_MINT_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_MINT_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      env.KCC20_MINT_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
 
@@ -8988,7 +8987,7 @@ export function createKcc20PsktBuilderEngine(
 
     const covenantId = requireHex32(params.covenantId, "canonical covenant id");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
     const walletOwner = requireHex32(
       request.owner?.kcc20Owner,
@@ -9108,17 +9107,17 @@ export function createKcc20PsktBuilderEngine(
       );
     }
     const priorityFee = parseU64(
-      process.env.KCC20_MINT_AVAILABILITY_PRIORITY_FEE_SOMPI ||
+      env.KCC20_MINT_AVAILABILITY_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_MINT_AVAILABILITY_COMPUTE_BUDGET ||
+      env.KCC20_MINT_AVAILABILITY_COMPUTE_BUDGET ||
         DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
     const rpc = new kaspaWasm.RpcClient({
-      url: process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
       encoding: kaspaWasm.Encoding.Borsh,
       networkId: network,
     });
@@ -9360,23 +9359,23 @@ export function createKcc20PsktBuilderEngine(
     );
     const owner = requireHex32(request.owner?.kcc20Owner, "token owner");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const priorityFee = parseU64(
-      process.env.KCC20_CONSOLIDATE_PRIORITY_FEE_SOMPI ||
-        process.env.KCC20_TRANSFER_PRIORITY_FEE_SOMPI ||
+      env.KCC20_CONSOLIDATE_PRIORITY_FEE_SOMPI ||
+        env.KCC20_TRANSFER_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const configuredPrimaryComputeBudget = parsePositiveNumber(
-      process.env.KCC20_CONSOLIDATE_COMPUTE_BUDGET ||
-        process.env.KCC20_TRANSFER_COMPUTE_BUDGET ||
+      env.KCC20_CONSOLIDATE_COMPUTE_BUDGET ||
+        env.KCC20_TRANSFER_COMPUTE_BUDGET ||
         DEFAULT_COMPUTE_BUDGET,
       "configuredPrimaryComputeBudget",
     );
     const peerComputeBudget = parsePositiveNumber(
-      process.env.KCC20_CONSOLIDATE_PEER_COMPUTE_BUDGET || 200,
+      env.KCC20_CONSOLIDATE_PEER_COMPUTE_BUDGET || 200,
       "peerComputeBudget",
     );
     const computeBudget = Math.max(
@@ -9627,16 +9626,16 @@ export function createKcc20PsktBuilderEngine(
     const covenantId = requireHex32(params.covenantId, "canonical covenant id");
     const owner = requireHex32(request.owner?.kcc20Owner, "token owner");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const priorityFee = parseU64(
-      process.env.KCC20_REVEAL_PRIORITY_FEE_SOMPI ||
+      env.KCC20_REVEAL_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_REVEAL_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      env.KCC20_REVEAL_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
 
@@ -9832,24 +9831,24 @@ export function createKcc20PsktBuilderEngine(
     );
     const transferAmount = parsePositiveU64(params.tokenAmount, "tokenAmount");
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const tokenOutputSompi = assertKcc20TokenOutputSompi(
       parseU64(
-        process.env.KCC20_TRANSFER_TOKEN_OUTPUT_SOMPI ||
+        env.KCC20_TRANSFER_TOKEN_OUTPUT_SOMPI ||
           DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
         "tokenOutputSompi",
       ),
       "transfer",
     );
     const priorityFee = parseU64(
-      process.env.KCC20_TRANSFER_PRIORITY_FEE_SOMPI ||
+      env.KCC20_TRANSFER_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
     const computeBudget = parsePositiveNumber(
-      process.env.KCC20_TRANSFER_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
+      env.KCC20_TRANSFER_COMPUTE_BUDGET || DEFAULT_COMPUTE_BUDGET,
       "computeBudget",
     );
 
@@ -10109,20 +10108,20 @@ export function createKcc20PsktBuilderEngine(
     );
     const feeBps = parseFeeBps(
       params.protocolFeeBps ??
-        process.env.KCC20_PROTOCOL_FEE_BPS ??
+        env.KCC20_PROTOCOL_FEE_BPS ??
         DEFAULT_KCC20_FEE_BPS,
     );
     const decimals = parseU64(params.decimals ?? "0", "decimals");
     const priceScale = 10n ** decimals;
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const amountTkas = parseAmountTkas(
-      process.env.KCC20_DEPLOY_OUTPUT_TKAS || DEFAULT_DEPLOY_TKAS,
+      env.KCC20_DEPLOY_OUTPUT_TKAS || DEFAULT_DEPLOY_TKAS,
     );
     const priorityFee = parseU64(
-      process.env.KCC20_DEPLOY_PRIORITY_FEE_SOMPI ||
+      env.KCC20_DEPLOY_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
@@ -10433,14 +10432,14 @@ export function createKcc20PsktBuilderEngine(
       "utilityTokenAmount",
     );
     const network =
-      request.network || process.env.KASPA_NETWORK || "testnet-10";
+      request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
-    const rpcUrl = process.env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
+    const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
     const amountTkas = parseAmountTkas(
-      process.env.KCC20_FEE_TICKET_OUTPUT_TKAS || DEFAULT_DEPLOY_TKAS,
+      env.KCC20_FEE_TICKET_OUTPUT_TKAS || DEFAULT_DEPLOY_TKAS,
     );
     const priorityFee = parseU64(
-      process.env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
+      env.KCC20_FEE_TICKET_PRIORITY_FEE_SOMPI ||
         DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
@@ -11677,11 +11676,11 @@ export function createKcc20PsktBuilderEngine(
 
   async function retryUtxosByAddresses(rpc, addresses, isReady, initial) {
     const attempts = parseRetryInteger(
-      process.env.KCC20_SOURCE_UTXO_RETRY_ATTEMPTS,
+      env.KCC20_SOURCE_UTXO_RETRY_ATTEMPTS,
       3,
     );
     const delayMs = parseRetryInteger(
-      process.env.KCC20_SOURCE_UTXO_RETRY_DELAY_MS,
+      env.KCC20_SOURCE_UTXO_RETRY_DELAY_MS,
       500,
     );
     let latest = initial ?? { entries: [] };
