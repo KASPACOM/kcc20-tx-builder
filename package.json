@@ -1,6 +1,6 @@
 {
   "name": "@kaspacom/kcc20-tx-builder",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Runtime-independent KCC20 covenant transaction and PSKT construction primitives.",
   "license": "Apache-2.0",
   "author": "KaspaCom",
