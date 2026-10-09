@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import { preview } from 'vite';
+import { chromium } from 'playwright';
+import { runtime, loadArtifact } from '../backend/runtime.ts';
+import { createBuilder, deployOperation, transferOperation } from '../shared/build.ts';
+import { fixture, recipient } from '../shared/fixture.ts';
+const server = await preview({ root: 'frontend', preview: { host: '127.0.0.1', port: 4173, strictPort: true } });
+const browser = await chromium.launch({ headless: true });
+try {
+  const page = await browser.newPage();
+  const external: string[] = [];
+  await page.route('**/*', route => {
+    if (new URL(route.request().url()).origin !== 'http://127.0.0.1:4173') {
+      external.push(route.request().url()); return route.abort();
+    }
+    return route.continue();
+  });
+  await page.routeWebSocket(/.*/, socket => { external.push(socket.url()); socket.close(); });
+  await page.goto('http://127.0.0.1:4173');
+  await page.waitForFunction(() => typeof (window as any).runOfflineExample === 'function');
+  const browserResult = await page.evaluate(() => (window as any).runOfflineExample());
+  const wasm = await runtime();
+  const data = fixture(wasm);
+  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const deploy = await build(deployOperation(data.wallet));
+  const transfer = await build(transferOperation(data.wallet, data.addDeploy(deploy), recipient));
+  for (const [key, node] of Object.entries({ deploy, transfer })) {
+    assert.deepEqual(JSON.parse(browserResult[key].psktTransactionJson), JSON.parse(node.psktTransactionJson));
+    assert.deepEqual(browserResult[key].signInputs, node.signInputs);
+    assert.deepEqual(browserResult[key].scripts, node.scripts);
+  }
+  assert.deepEqual(external, []);
+  await page.getByRole('button', { name: 'Build offline deploy and transfer' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent === 'Complete');
+  assert.equal(await page.locator('#sign').isDisabled(), true);
+  assert.equal(await page.locator('#broadcast').isDisabled(), true);
+  await page.screenshot({ path: '/tmp/kcc20-public-examples.png', fullPage: false });
+  console.log('Browser/Node deploy and transfer are identical; no external requests; offline signing disabled.');
+} finally {
+  await browser.close();
+  await new Promise<void>((resolve, reject) => server.httpServer.close(error => error ? reject(error) : resolve()));
+}

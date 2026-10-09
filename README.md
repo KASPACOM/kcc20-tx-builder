@@ -123,3 +123,10 @@ backend secrets into this package in a browser.
 ## License
 
 Apache-2.0
+
+## Runnable transaction examples
+
+Start with the [frontend and backend examples](examples/README.md), then read
+the [transaction construction guide](docs/TRANSACTION_GUIDE.md) and
+[operation recipes](docs/RECIPES.md). Both applications construct transactions
+locally using packaged artifacts and host-supplied chain data.

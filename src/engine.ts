@@ -143,12 +143,9 @@ export function createKcc20PsktBuilderEngine(
       );
     }
   }
-  const kaspaWasm = new Proxy(options.wasm, {
-    get(target, property, receiver) {
-      if (property === "RpcClient") return InjectedRpcClient;
-      return Reflect.get(target, property, receiver);
-    },
-  });
+  // Bundlers can freeze module namespace exports. A Proxy cannot replace a
+  // non-configurable RpcClient property; copy the host exports before adapting it.
+  const kaspaWasm = { ...options.wasm, RpcClient: InjectedRpcClient };
 
   const INPUT_SCHEMA = "kcc20-in-process-pskt-builder-input/v1";
   const OUTPUT_SCHEMA = "kcc20-in-process-pskt-builder-output/v1";
