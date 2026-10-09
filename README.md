@@ -7,7 +7,9 @@ frontend and the Node backend.
 ## Install
 
 ```sh
-npm install @kaspacom/kcc20-tx-builder
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.2.5 \
+  --registry=https://registry.npmjs.org/ \
+  --@kaspacom:registry=https://registry.npmjs.org/
 ```
 
 The package provides ESM and CommonJS entry points and requires Node.js 20 or
@@ -15,6 +17,19 @@ newer for Node consumers.
 Browser consumers must provide their already-loaded browser Kaspa WASM runtime;
 Node consumers provide their Node Kaspa WASM runtime. Kaspa WASM is deliberately
 not bundled or initialized by this package.
+
+## Documentation
+
+- [Integration guide](docs/INTEGRATION.md): amount calculations, engine setup,
+  artifacts, source providers, signing boundaries, and error handling.
+- [API guide](docs/API.md): public entry points and operation families.
+- [Release guide](RELEASING.md): publishing and consumer verification.
+
+Public npm installation does not require a GitHub token. The explicit scoped
+registry flag overrides project settings that route `@kaspacom` to GitHub Packages.
+The current public release is `0.2.5`; this branch prepares `0.2.6` with expanded
+documentation. Pin versions across wallet and server adapters.
+See [the changelog](CHANGELOG.md) for the release candidate.
 
 ## Runtime boundary
 
@@ -40,14 +55,20 @@ hosts must explicitly enable those builders with `allowBackendOnly`.
 The package ships the KCC20 contract artifacts under `artifacts/`, but the
 engine still accepts supplied artifacts and UTXO/RPC access and never reads
 files, environment variables, or WASM assets itself. Browser and backend hosts
-decide how to load package artifacts for their runtime. The frontend host can
-configure the bridge with its already-loaded runtime:
+decide how to load package artifacts for their runtime. The host can
+configure the exported engine with its already-loaded runtime:
 
 ```ts
-clientBuilder.configure({
+import { createKcc20PsktBuilderEngine } from "@kaspacom/kcc20-tx-builder";
+
+createKcc20PsktBuilderEngine({
   wasm: loadedKaspa,
+  artifacts: {},
   artifactProvider: (key) =>
-    fetch(`/kcc20-artifacts/${key}`).then((response) => response.json()),
+    fetch(`/kcc20-artifacts/${encodeURIComponent(key)}`).then((response) => {
+      if (!response.ok) throw new Error(`Cannot load artifact ${key}`);
+      return response.json();
+    }),
   sourceProvider: {
     getUtxosByAddresses: (request) =>
       applicationRpcConnection.getUtxosByAddresses(request),
