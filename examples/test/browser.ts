@@ -3,7 +3,7 @@ import { preview } from 'vite';
 import { chromium } from 'playwright';
 import { runtime, loadArtifact } from '../backend/runtime.ts';
 import { createBuilder, deployOperation, transferOperation } from '../shared/build.ts';
-import { fixture, recipient } from '../shared/fixture.ts';
+import { fixture, recipient, owner } from '../shared/fixture.ts';
 const server = await preview({ root: 'frontend', preview: { host: '127.0.0.1', port: 4173, strictPort: true } });
 const browser = await chromium.launch({ headless: true });
 try {
@@ -34,6 +34,18 @@ try {
   await page.waitForFunction(() => document.querySelector('#status')?.textContent === 'Complete');
   assert.equal(await page.locator('#sign').isDisabled(), true);
   assert.equal(await page.locator('#broadcast').isDisabled(), true);
+  await page.evaluate(`window.kasware = {
+    getNetwork: async () => 'kaspa_testnet_10',
+    requestAccounts: async () => [${JSON.stringify(data.wallet.walletAddress)}],
+    getPublicKey: async () => ${JSON.stringify('02' + owner)},
+    signPskt: async () => { throw new Error('Preparing an operation must not sign'); }
+  }`);
+  await page.getByRole('button', { name: 'Prepare deploy from KasWare account' }).click();
+  await page.waitForFunction(() => (document.querySelector('#operation') as HTMLTextAreaElement).value.length > 0);
+  const prepared = JSON.parse(await page.locator('#operation').inputValue());
+  assert.equal(prepared.payload.owner.kcc20Owner, owner);
+  assert.equal(prepared.payload.signing.builderKey, 'kcc20.deploy-token');
+  assert.equal(await page.locator('#sign').isDisabled(), true);
   await page.screenshot({ path: '/tmp/kcc20-public-examples.png', fullPage: false });
   console.log('Browser/Node deploy and transfer are identical; no external requests; offline signing disabled.');
 } finally {

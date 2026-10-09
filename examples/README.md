@@ -46,8 +46,10 @@ KASPA_WRPC_URL=wss://your-tn10-node npm --prefix examples run backend -- build o
 ```
 
 The CLI writes the full unsigned builder result. It never signs or broadcasts.
-For a frontend build, paste that operation JSON and the same RPC URL into the
-browser form. Inspect the output, then optionally sign with KasWare and broadcast
+For a frontend deploy, click **Prepare deploy from KasWare account** to
+construct the operation locally from your connected TN10 account, then review
+the demo token parameters. For other operations, paste the helper-generated
+operation JSON. Enter your RPC URL in the browser form. Inspect the output, then optionally sign with KasWare and broadcast
 with the separate button. Use a TN10-compatible node and wallet. Your RPC endpoint
 must permit browser WebSocket access; HTTPS pages need a secure `wss://` endpoint.
 

@@ -40,7 +40,10 @@ revision, compiler release, and artifact hashes. The runtime is included under
 `examples/vendor/kaspa` in this repository and package, so neither example
 fetches it from a private repository. The original runtime build's source commit
 is not recorded in the supplied bundle. File integrity is verified; a reproducible
-WASM source build is not claimed.
+WASM source build is not claimed. The manifest also supplies an immutable public
+`downloadBaseUrl`. Download `kaspa.js`, `kaspa_bg.wasm`, `kaspa.d.ts`, and
+`LICENSE` from that base and verify each SHA-256 against `wasm.files` if you
+host the runtime separately. Keep the license with redistributed files.
 
 ## Deploy a fixed-supply token
 
@@ -67,7 +70,10 @@ unspecified server request.
 `engineInput(operation)` takes `operation.payload.signing.builderKey`, `params`,
 `owner`, `network`, and source/signer requirements and assembles
 `kcc20-in-process-pskt-builder-input/v1`. The separate shared-model input schema
-is not interchangeable with this engine schema.
+is not interchangeable with this engine schema. The helper's
+`missing-funded-pskt` status means construction is still required; historical
+`backend-funded-pskt-builder` labels do not require a KaspaCom backend.
+The local engine performs that construction.
 
 The fixed-supply example creates 1,000 tokens with two decimals: 100,000 base
 units. It locks KAS into the token output and returns KAS change to the funding

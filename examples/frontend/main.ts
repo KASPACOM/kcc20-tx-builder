@@ -46,6 +46,21 @@ document.querySelector('#offline')!.addEventListener('click', () => action(async
   const result = await offline();
   output.textContent = JSON.stringify({ deploy: inspect(result.deploy), transfer: inspect(result.transfer) }, null, 2);
 }));
+document.querySelector('#prepare')!.addEventListener('click', () => action(async () => {
+  await clear();
+  const wallet = (window as any).kasware;
+  if (!wallet?.getPublicKey) throw new Error('Install KasWare to prepare a live deploy');
+  if (await wallet.getNetwork() !== 'kaspa_testnet_10') throw new Error('Select TN10 in KasWare');
+  const [walletAddress] = await wallet.requestAccounts();
+  if (!walletAddress) throw new Error('Wallet did not return an account');
+  const wasm = await runtime();
+  const publicKey = await wallet.getPublicKey();
+  const owner = publicKey.length === 64 ? publicKey : new wasm.PublicKey(publicKey).toXOnlyPublicKey().toString();
+  if (new wasm.XOnlyPublicKey(owner).toAddress(network).toString() !== walletAddress) throw new Error('Wallet address and public key do not match');
+  const operation = deployOperation({ walletAddress, kcc20Owner: owner });
+  document.querySelector<HTMLTextAreaElement>('#operation')!.value = JSON.stringify(operation, null, 2);
+  output.textContent = 'Deploy operation prepared locally. Review the token parameters, choose your RPC, then build.';
+}));
 document.querySelector('#build')!.addEventListener('click', () => action(async () => {
   await clear();
   const wasm = await runtime();

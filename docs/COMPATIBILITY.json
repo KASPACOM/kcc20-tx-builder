@@ -33,7 +33,8 @@
       "kaspa.d.ts": "c139985146cf3897c55e181dbdd17f47afa9d218a34b43b3f15e9b86d95d9bbd",
       "kaspa_bg.wasm": "a38cbba3cf498f25dff227586986031660c2d0f1637c35649d933c08a0c14632",
       "package.json": "3cebfe4d10de04de468aad13e919e4680926d7786f1d667362fa51dae2848c81"
-    }
+    },
+    "downloadBaseUrl": "https://raw.githubusercontent.com/KASPACOM/kcc20-tx-builder/e17a1aa13dd1e55961fc3289871e4b938bb0de84/examples/vendor/kaspa/"
   },
   "artifacts": {
     "KCC20Orderbook.placeholder.json": {
