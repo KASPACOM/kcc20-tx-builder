@@ -39,7 +39,8 @@ do not fund them.
 ## Build against your TN10 node
 
 Construct an operation with the helpers in `shared/build.ts` or use the
-[operation recipes](../docs/RECIPES.md). Save the result to `operation.json`.
+[operation recipes](../docs/RECIPES.md). Save the result to `examples/operation.json` when running the command below
+from the repository root. npm runs this CLI with `examples` as its working directory.
 
 ```sh
 KASPA_WRPC_URL=wss://your-tn10-node npm --prefix examples run backend -- build operation.json
