@@ -72,8 +72,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs",
-    "prepack": "npm test"
+    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs",
+    "prepack": "npm test",
+    "test:snapshot:transactions": "npm run build && node test/snapshot-transactions.mjs && node test/snapshot-claims.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
