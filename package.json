@@ -60,8 +60,22 @@
     "index.d.ts",
     "src",
     "artifacts",
+    "docs",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "RELEASING.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "examples/shared",
+    "examples/backend",
+    "examples/frontend/*.ts",
+    "examples/frontend/index.html",
+    "examples/vendor",
+    "examples/package.json",
+    "examples/package-lock.json",
+    "examples/tsconfig.json",
+    "examples/README.md",
+    "examples/test"
   ],
   "engines": {
     "node": ">=20"
@@ -74,6 +88,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs",
     "prepack": "npm test",
+    "test:examples": "npm run verify:compatibility && node scripts/test-examples.mjs --browser",
+    "verify:compatibility": "node scripts/verify-compatibility.mjs",
     "test:snapshot:transactions": "npm run build && node test/snapshot-transactions.mjs && node test/snapshot-claims.mjs"
   },
   "devDependencies": {

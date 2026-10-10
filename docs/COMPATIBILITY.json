@@ -1,0 +1,84 @@
+{
+  "schema": "kcc20-example-compatibility/v1",
+  "packageVersion": "0.3.0-snapshot.0",
+  "contractsRepository": "https://github.com/KASPACOM/kaspa-covenants",
+  "contractsCommit": "acd14ce0862d7dc87f5c15c93de07df844120303",
+  "compiler": {
+    "repository": "https://github.com/kaspanet/silverscript",
+    "tag": "v1.0.0",
+    "commit": "3ed973335b59269293564805cc2c58a14595ec03",
+    "tree": "2a30f522768d9b4cae6fe30014326c689a25bd41",
+    "releaseAsset": "silverc-linux-x86_64.tar.gz",
+    "releaseAssetSha256": "058ffa17a390526f27280752f864b1bd680217cded14dfc5b7fd168d7e943fb5",
+    "releaseAssets": {
+      "linux-x64": {
+        "name": "silverc-linux-x86_64.tar.gz",
+        "sha256": "058ffa17a390526f27280752f864b1bd680217cded14dfc5b7fd168d7e943fb5"
+      },
+      "win32-x64": {
+        "name": "silverc-windows-x86_64.zip",
+        "sha256": "3e0d660c15a9e7ac90f3960da24d348b076b1891481bfe758db18accc8a102e1"
+      }
+    }
+  },
+  "wasm": {
+    "version": "1.1.1-toc.1",
+    "license": "ISC",
+    "originPath": "wallet-lab/vendor/kaspa-wasm-toc",
+    "upstream": "https://github.com/kaspanet/rusty-kaspa",
+    "sourceBuildCommit": null,
+    "files": {
+      "kaspa.js": "d92ff3aa242b49c891efd0b11a8fd56dc224d471856ec4967dea28970cd96989",
+      "LICENSE": "fb06b99a835c4cdade7f2f180fd87c0198d552cf1e0cd14c34716411b009a92f",
+      "kaspa.d.ts": "c139985146cf3897c55e181dbdd17f47afa9d218a34b43b3f15e9b86d95d9bbd",
+      "kaspa_bg.wasm": "a38cbba3cf498f25dff227586986031660c2d0f1637c35649d933c08a0c14632",
+      "package.json": "3cebfe4d10de04de468aad13e919e4680926d7786f1d667362fa51dae2848c81"
+    },
+    "downloadBaseUrl": "https://raw.githubusercontent.com/KASPACOM/kcc20-tx-builder/e17a1aa13dd1e55961fc3289871e4b938bb0de84/examples/vendor/kaspa/"
+  },
+  "artifacts": {
+    "KCC20Orderbook.placeholder.json": {
+      "fileSha256": "e55b7ced557dae056b039379f1dd6005ee4678ed9af09ef1ad854a2ff7fe553c",
+      "scriptSha256": "ef9fe81ff7aa2dc2df118d8d7cc126aca6f2f9c181b9c2d15727a538b23c6f71",
+      "sourceSha256": "b4216aa3db10f486b2032fa52eb93ec1768c65ea841415bd2fffb85bdc652bbb",
+      "constructorArgsSha256": "a3f32dc91fee760df98d0238d60f65a6d1324bce5ab0740e31f035144a90cc61",
+      "abiSha256": "bc5c24dc0e7ccfdd734981bfa81c806672ae90059fd075e93c9254671b25f155"
+    },
+    "KCC20Wrapper.placeholder.json": {
+      "fileSha256": "bbb4def6653b639475ad0f4c88a5a3c871270fc5c2bd298bf052a19c5dc50305",
+      "scriptSha256": "f3bdf09be9aa258708a306283a4278a93cfb64f35fc50ed7d316b9b189ef9030",
+      "sourceSha256": "030708f5b9c9e5cf7d1c4c9b9d699a681d11fa197635c3225f321dadb92ae37a",
+      "constructorArgsSha256": "f90b34d0b73fefdb0a4911ba2f04498d35e56edcc21145e2f559db0e51b4b300",
+      "abiSha256": "d4f2fdfd16cd0cd6b42e863de90a8bae90e5b44d9495b85a32f287f88750df2c"
+    },
+    "KCC20.placeholder.json": {
+      "fileSha256": "9b63d3de4e51e4f841751683334c873c7210ee3c452c76e59aa0dded2090f2c3",
+      "scriptSha256": "4633b082f26adbf14600b767d6e2146e36ce67d63d8202c0281857922c05ac41",
+      "sourceSha256": "338ab9d21681ae59c2facd59c366e6b48390a00753907e5b0082dfda5c3e7d0a",
+      "constructorArgsSha256": "c86edb17c8e7a338bf35b519caa3c4f955bcf5ab73476f9c5a3baa34bb73926a",
+      "abiSha256": "c2a169d67682b49ce3501f288e73f18ca96c815fd47db8e614d75b20f3678802"
+    },
+    "KCC20FeeTicket.placeholder.json": {
+      "fileSha256": "f19d86bd5c706d2d5ca8b8eed71a4e0549e9549c20c2a904bb213d726d4570e3",
+      "scriptSha256": "ed81365466ee4c44db1210b3360783af8145f74e49e847848195e09c71ad6930",
+      "sourceSha256": "9830da17d6a156b012008062c5551ca86fc10678022bee1930f40ca8404a1c73",
+      "constructorArgsSha256": "124cbcc4c2749cbea9477fe67e4efe93a4e6dbd1a3f3c4be0dfef11ddb33c9d6",
+      "abiSha256": "8bb5f66f91bc296380eaa6b5bcc7d5045b59c2b4783e8b1bcf394a7e1395a420"
+    },
+    "KCC20Vesting.placeholder.json": {
+      "fileSha256": "00e40444944b49dcc425558bbaa4d70a3ec5d73be48b30189286f53f723f75b4",
+      "scriptSha256": "1b84d74aa01b6a50edbff5bf1f9e988a5a6a00ec645458dfd3912ac532b77c33",
+      "sourceSha256": "6f32a53c6212bd985c2fad48b3dc66ee0daffd5ac411e5676268d22eccbfa5b3",
+      "constructorArgsSha256": "8a1bc8308b171fe2d26dac3355a7fc12d324f4592f1cef51ee5f5e45aa468e70",
+      "abiSha256": "b58ee502376aaf59e0b2d663012b2964a3ae7b30025b2d830e46ea18993e7dc7"
+    },
+    "KCC20SnapshotBootstrap.placeholder.json": {
+      "fileSha256": "bc566a964b5feb1c2055d5130af25951142d695472287b888c5537e9a56ee3d2",
+      "scriptSha256": "85edea7401eb415c447e6a0d0a45e1667802a269dde9fbe33d5881c4a4de51e2"
+    },
+    "KCC20SnapshotController.placeholder.json": {
+      "fileSha256": "f0d7b082e0680a90736948cd6658ccbc8600e097d9b4d5568013acdaafb39bf5",
+      "scriptSha256": "8f90525afcc1c23240f1d18eed30b3b377a72a323e8b48925dfac53bd5aab0ae"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <title>KCC20 transaction builder examples</title>
+  <body>
+    <main>
+      <h1>Build KCC20 transactions locally</h1>
+      <p>
+        TN10 development example. Offline inputs are synthetic and cannot be
+        broadcast.
+      </p>
+      <button id="offline">Build offline deploy and transfer</button>
+      <p>
+        <label
+          >Offline recipe
+          <select id="recipe"></select
+        ></label>
+        <button id="recipe-build">Build offline recipe</button>
+      </p>
+      <h2>Build using your TN10 node</h2>
+      <button id="prepare">Prepare deploy from KasWare account</button>
+      <label
+        >RPC URL <input id="rpc" placeholder="wss://your-tn10-node" size="45"
+      /></label>
+      <p>
+        <label
+          >Operation or transfer configuration JSON
+          <textarea
+            id="operation"
+            rows="12"
+            cols="80"
+            placeholder="Paste the output of deployOperation or transferOperation"
+          ></textarea>
+        </label>
+      </p>
+      <button id="build">Build unsigned transaction</button>
+      <button id="transfer">Build transfer from indexer</button>
+      <button id="sign" disabled>Sign with KasWare</button>
+      <button id="broadcast" disabled>Broadcast signed transaction</button>
+      <p id="status" role="status">Ready</p>
+      <pre id="result"></pre>
+    </main>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>
