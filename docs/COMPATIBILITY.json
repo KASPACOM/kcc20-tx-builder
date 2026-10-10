@@ -71,6 +71,14 @@
       "sourceSha256": "6f32a53c6212bd985c2fad48b3dc66ee0daffd5ac411e5676268d22eccbfa5b3",
       "constructorArgsSha256": "8a1bc8308b171fe2d26dac3355a7fc12d324f4592f1cef51ee5f5e45aa468e70",
       "abiSha256": "b58ee502376aaf59e0b2d663012b2964a3ae7b30025b2d830e46ea18993e7dc7"
+    },
+    "KCC20SnapshotBootstrap.placeholder.json": {
+      "fileSha256": "bc566a964b5feb1c2055d5130af25951142d695472287b888c5537e9a56ee3d2",
+      "scriptSha256": "85edea7401eb415c447e6a0d0a45e1667802a269dde9fbe33d5881c4a4de51e2"
+    },
+    "KCC20SnapshotController.placeholder.json": {
+      "fileSha256": "f0d7b082e0680a90736948cd6658ccbc8600e097d9b4d5568013acdaafb39bf5",
+      "scriptSha256": "8f90525afcc1c23240f1d18eed30b3b377a72a323e8b48925dfac53bd5aab0ae"
     }
   }
 }

@@ -23,6 +23,7 @@ not bundled or initialized by this package.
 - [Integration guide](docs/INTEGRATION.md): amount calculations, engine setup,
   artifacts, source providers, signing boundaries, and error handling.
 - [API guide](docs/API.md): public entry points and operation families.
+- [Independent indexing](https://github.com/KASPACOM/kaspa-covenants/blob/develop/docs/INDEPENDENT_INDEXING.md): self-hosted data boundaries and lightweight-indexer release gates. The lightweight indexer is not yet a live data source.
 - [Snapshot builders](docs/snapshot-start.md): signerless deployment, claims and verification; funded DEV rehearsal is still required.
 - [Release guide](RELEASING.md): publishing and consumer verification.
 

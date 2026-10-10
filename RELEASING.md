@@ -87,3 +87,7 @@ npm view @kaspacom/kcc20-tx-builder version dist-tags \
 A green publishing workflow confirms an upload, not consumer compatibility.
 Inspect the installed tarball and complete the live release gate before
 consumer deployment. Record any unverified operation families explicitly.
+
+## Snapshot prerelease gate
+
+The current candidate preserves upstream version `0.3.0-snapshot.0`. Before publishing it, configure an explicit non-latest dist-tag such as `next` in both registry publish jobs and mark the GitHub release as a prerelease. The current publish commands do not choose a prerelease tag. Keep this blocked until the release workflow and trusted-publisher configuration are verified for the final release revision. Run `test:snapshot:transactions` with the pinned WASM and close the snapshot artifact reproduction and funded-rehearsal gates.

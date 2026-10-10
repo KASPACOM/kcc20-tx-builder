@@ -23,3 +23,5 @@ npm pack --dry-run
 ```
 
 The SDK transaction tests use synthetic funded UTXOs. They cover one, two and eight shards, exact reconstruction, metadata, mutated transactions, funding-signature selection, claims and recipient transfers. They do not establish network admission. A funded DEV rehearsal and independent review are required before enabling deployment in a host application.
+
+For the bundled offline test runtime, set `SNAPSHOT_TEST_WASM="$PWD/examples/vendor/kaspa"`. CI runs the transaction and claim tests with these pinned bytes. The public-release compiler gate currently reproduces the five core families; source reproduction of the two snapshot artifacts remains a separate release check.
