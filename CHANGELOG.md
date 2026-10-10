@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.2.6 (unreleased)
+## 0.2.6
+
+- Reject conflicting explicit native covenant IDs during transfer while retaining legacy alias resolution.
+- Preserve pre-authorized covenant witnesses and validate wallet signature encodings and sighash bytes.
+- Add 24 executable operation scenarios, a validated live-transfer source adapter, and tests run from extracted package contents.
+ (unreleased)
 
 - Add integration and API guides, including amount examples, host-supplied WASM,
   artifact loading, source transport, request schemas, signing, and errors.

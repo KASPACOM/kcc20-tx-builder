@@ -18,8 +18,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm test
-      - run: npm pack --dry-run
       - name: Install example tools and Chromium
         run: |
           npm ci --prefix examples --registry=https://registry.npmjs.org/ --@kaspacom:registry=https://registry.npmjs.org/

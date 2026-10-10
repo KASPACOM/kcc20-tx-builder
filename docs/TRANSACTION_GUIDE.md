@@ -102,6 +102,7 @@ token amount, extension commitment, and borrow state. The offline fixture derive
 that snapshot from its deploy result. Its outpoints are synthetic and must never
 be used as live funding.
 
+Use the [live transfer adapter and walkthrough](LIVE_TRANSFER.md) to retrieve and validate a complete holder snapshot.
 For live use, retrieve decoded state from your own indexer or decode the prior
 transaction and reveal script. RPC UTXOs alone do not contain every contract
 state field. Supply that state to the helper, then let the engine's source
@@ -125,7 +126,12 @@ recipients, token change, covenant IDs, KAS change, and fee before signing.
 indexes from `scripts` as well as ordinary `signInputs`. After KasWare signs,
 it inserts the signature into the ordered ABI arguments and wraps the redeem
 script. Omitting this step produces a signed funding input but an invalid
-covenant spend. Preserve every builder-provided sighash and script template.
+covenant spend. Preserve every builder-provided sighash and script template. The adapter preserves
+prebuilt witnesses on inputs the wallet does not sign, checks returned signature
+encoding and sighash bytes, and rejects changes to transaction intent. These
+checks do not replace cryptographic verification or node consensus validation.
+When using the WASM signer directly, map wire sighash `1` to `wasm.SighashType.All`;
+the WASM enum's numeric value is `0`, not the wire byte.
 
 The frontend checks the wallet account and TN10 network, then offers separate
 Sign and Broadcast actions. It submits through the selected RPC node. The backend

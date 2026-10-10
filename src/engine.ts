@@ -9921,7 +9921,18 @@ export function createKcc20PsktBuilderEngine(
           `active holder UTXO ${tokenTxid}:${tokenVout} not found`,
         );
       }
-      const spendCovenantId = covenantIdFromUtxoEntry(tokenEntry) ?? covenantId;
+      const rpcScript = tokenEntry.scriptPublicKey ??
+        tokenEntry.entry?.scriptPublicKey ?? tokenEntry.utxoEntry?.scriptPublicKey;
+      if (!rpcScript || kw.addressFromScriptPublicKey(rpcScript, network)?.toString() !== tokenAddress) {
+        throw new Error("active holder RPC script does not match rebuilt covenant state");
+      }
+      if (activeHolderUtxo.amountSompi != null &&
+          BigInt(activeHolderUtxo.amountSompi) !== utxoAmountSompi(tokenEntry)) {
+        throw new Error("active holder KAS amount does not match RPC");
+      }
+      const spendCovenantId = params.activeHolderNativeCovenantId
+        ? requireMatchingCovenantId(tokenEntry, covenantId, "active holder")
+        : covenantIdFromUtxoEntry(tokenEntry) ?? covenantId;
 
       let outputSompi = 0n;
       const recipientOutputIndex = 0;

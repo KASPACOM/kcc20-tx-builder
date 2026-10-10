@@ -130,3 +130,5 @@ Start with the [frontend and backend examples](examples/README.md), then read
 the [transaction construction guide](docs/TRANSACTION_GUIDE.md) and
 [operation recipes](docs/RECIPES.md). Both applications construct transactions
 locally using packaged artifacts and host-supplied chain data.
+
+For independently retrieved holder state, see the [live transfer walkthrough](docs/LIVE_TRANSFER.md); all supported user operation families have [runnable offline recipes](docs/RECIPES.md).

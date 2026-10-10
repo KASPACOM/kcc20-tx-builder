@@ -17,7 +17,7 @@ npm --prefix examples run frontend
 ```
 
 `test:examples` packs the current candidate and installs that tarball into the
-examples before testing. This matters before 0.2.6 is published: the lockfile's
+examples extracted from that tarball before testing; it also installs the same candidate into the checkout. This matters before 0.2.6 is published: the lockfile's
 registry bootstrap dependency is 0.2.5, which predates the browser compatibility
 fix. Do not skip the candidate installation when testing a checkout.
 
@@ -68,3 +68,14 @@ not establish that the selected node or wallet supports the current TN10 rules.
 `shared/fixture.ts` is offline test data. Replace it with your RPC provider and
 own indexer/decoded snapshots for live builds. Keep one host-owned connection
 and close it when the host shuts down.
+
+## Complete operation recipes and live transfer
+
+The browser **Offline recipe** selector and `npm run recipe -- <name> --offline`
+construct all 24 documented scenarios. `--arguments` prints their complete typed
+helper arguments as JSON. See [recipes](../docs/RECIPES.md).
+
+To retrieve real holder state independently, follow the
+[live transfer guide](../docs/LIVE_TRANSFER.md). Node supports
+`npm run backend -- transfer transfer.json`; the browser accepts the same config
+through **Build transfer from indexer**. Both verify decoded state against RPC.
