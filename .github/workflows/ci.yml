@@ -24,3 +24,7 @@ jobs:
           npm exec --prefix examples -- playwright install --with-deps --only-shell chromium
       - name: Test packed package in Node and browser
         run: npm run test:examples
+      - name: Verify snapshot transactions with pinned WASM
+        run: npm run test:snapshot:transactions
+        env:
+          SNAPSHOT_TEST_WASM: ${{ github.workspace }}/examples/vendor/kaspa

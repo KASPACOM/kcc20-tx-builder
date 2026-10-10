@@ -1,0 +1,56 @@
+{
+  "schema": "kaspacom-contract-standards-lock/v1",
+  "reviewedAt": "2026-09-10",
+  "kccs": {
+    "repository": "https://github.com/kaspanet/kccs",
+    "commit": "54f4f9c2730f77ec5b1ee8bc746d7f94d83b8ee6",
+    "documents": [
+      "kcc-0001.md",
+      "kcc-0002.md",
+      "kcc-0020.md",
+      "kcc-0020/borrowed-receive-authorization.md"
+    ]
+  },
+  "kip20": {
+    "repository": "https://github.com/kaspanet/kips",
+    "document": "kip-0020.md"
+  },
+  "silverscript": {
+    "repository": "https://github.com/kaspanet/silverscript",
+    "baseCommit": "140bf184fd03dc0f5c29155f89e9e5d733a1152f",
+    "requiredPullRequests": [164, 217],
+    "requiredCommits": [
+      "97e5d7930aa7760bf9323f6f7011dce338ac38a7",
+      "7cf57773a2818675022a65374c602dcc141ea491"
+    ],
+    "requiredPatches": [
+      {
+        "path": "compiler-patches/0001-fix-debugger-preserve-explicit-covenant-witnesses.patch.gz",
+        "sha256": "6090d20a7f12333f1850d5a93c53ffcfc52dedfb6d193527287ec0efe7b04867"
+      },
+      {
+        "path": "compiler-patches/0002-test-compiler-cover-KCC1-dispatch-with-ECDSA.patch.gz",
+        "sha256": "29b2a7f476387e73242966bf31c87c769d1d1daba5ba376da9c6eaa239b6f485"
+      }
+    ],
+    "integrationTree": "d59eaab16114957c16de7c7198b7080e6db0126b"
+  },
+  "silverscriptKcc20": {
+    "repository": "https://github.com/kaspanet/silverscript",
+    "tag": "v1.0.0",
+    "commit": "3ed973335b59269293564805cc2c58a14595ec03",
+    "tree": "2a30f522768d9b4cae6fe30014326c689a25bd41",
+    "releaseAsset": "silverc-linux-x86_64.tar.gz",
+    "releaseAssetSha256": "058ffa17a390526f27280752f864b1bd680217cded14dfc5b7fd168d7e943fb5",
+    "releaseAssets": {
+      "linux-x64": {
+        "name": "silverc-linux-x86_64.tar.gz",
+        "sha256": "058ffa17a390526f27280752f864b1bd680217cded14dfc5b7fd168d7e943fb5"
+      },
+      "win32-x64": {
+        "name": "silverc-windows-x86_64.zip",
+        "sha256": "3e0d660c15a9e7ac90f3960da24d348b076b1891481bfe758db18accc8a102e1"
+      }
+    }
+  }
+}

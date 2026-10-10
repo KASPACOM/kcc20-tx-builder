@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.2.6
+## 0.3.0-snapshot.0
+
+- Preserve the snapshot deployment, start, claim and verification builders merged into main; retain their prerelease version and tests.
 
 - Reject conflicting explicit native covenant IDs during transfer while retaining legacy alias resolution.
 - Preserve pre-authorized covenant witnesses and validate wallet signature encodings and sighash bytes.

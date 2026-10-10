@@ -17,7 +17,7 @@ npm --prefix examples run frontend
 ```
 
 `test:examples` packs the current candidate and installs that tarball into the
-examples extracted from that tarball before testing; it also installs the same candidate into the checkout. This matters before 0.2.6 is published: the lockfile's
+examples extracted from that tarball before testing; it also installs the same candidate into the checkout. This matters before 0.3.0-snapshot.0 is published: the lockfile's
 registry bootstrap dependency is 0.2.5, which predates the browser compatibility
 fix. Do not skip the candidate installation when testing a checkout.
 
@@ -25,7 +25,7 @@ After publication, users can copy `examples` from the package or repository,
 run `npm ci` inside it, then install the matching release explicitly:
 
 ```sh
-npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.2.6 \
+npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.3.0-snapshot.0 \
   --registry=https://registry.npmjs.org/ --@kaspacom:registry=https://registry.npmjs.org/
 npm run backend -- offline
 npm run frontend

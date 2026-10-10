@@ -26,3 +26,8 @@ export * from "./wasm-provider.js";
 export * from "./wallet-operation.js";
 export * from "./wrapper-operation.js";
 export * from "./verify-operation.js";
+
+export * as snapshot from "./snapshot-signerless.js";
+export * as snapshotTransactions from "./snapshot-signerless-transactions.js";
+export * from "./snapshot-deployment.js";
+export * from "./snapshot-verification.js";

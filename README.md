@@ -23,12 +23,14 @@ not bundled or initialized by this package.
 - [Integration guide](docs/INTEGRATION.md): amount calculations, engine setup,
   artifacts, source providers, signing boundaries, and error handling.
 - [API guide](docs/API.md): public entry points and operation families.
+- [Snapshot builders](docs/snapshot-start.md): signerless deployment, claims and verification; funded DEV rehearsal is still required.
 - [Release guide](RELEASING.md): publishing and consumer verification.
 
 Public npm installation does not require a GitHub token. The explicit scoped
 registry flag overrides project settings that route `@kaspacom` to GitHub Packages.
-The current public release is `0.2.5`; this branch prepares `0.2.6` with expanded
-documentation. Pin versions across wallet and server adapters.
+The current public release is `0.2.5`; this branch prepares `0.3.0-snapshot.0` with expanded
+documentation and the snapshot builders already merged into main. This remains a
+prerelease candidate. Pin versions across wallet and server adapters.
 See [the changelog](CHANGELOG.md) for the release candidate.
 
 ## Runtime boundary
