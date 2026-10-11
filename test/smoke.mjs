@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import {
   KCC20_ARTIFACT_SCRIPT_SHA256,
   KCC20_CURRENT_NATIVE_ARTIFACT_KEY,
+  KCC20_SNAPSHOT_ARTIFACT_PINS,
+  KCC20_SNAPSHOT_BUILDER_KEYS,
+  KCC20_SNAPSHOT_TOKEN_TEMPLATE_PIN,
   Kcc20BuilderError,
   assertKcc20ArtifactScriptHash,
   isKcc20ArtifactKey,
@@ -27,13 +31,16 @@ import {
   buildKcc20WrappedConsolidationOperation,
   buildKcc20WrapperMarketDeployOperation,
   buildKcc20WrapTokenOperationFromSnapshot,
+  buildSnapshotKcc20DeploymentPayload,
   buildKcc20PaidMintAmountQuote,
   bytesToHex,
+  calculateSnapshotStartRequiredFunding,
   calculateKcc20OrderTotalSompi,
   calculateKcc20MaximumBuyerGrossSompi,
   calculateKcc20MaximumBuyTokenBaseUnits,
   createKcc20PsktBuilderEngine,
   hexToBytes,
+  holderExtensionCommitment,
   normalizeKcc20IndexedUtxos,
   kcc20MinimumSafePaidMintAmount,
   kcc20PaidMintCapacityMeetsMinimumGross,
@@ -42,17 +49,147 @@ import {
   selectOwnerNativeHolderUtxo,
   selectOwnerWrappedHolderUtxosForSweep,
   planKcc20LadderLimitOrders,
+  snapshotTradingSetupIdentity,
   selectFeeTicketOutpoints,
   selectOwnerFeeTicketUtxos,
   resolveKcc20MintAvailabilitySources,
   splitKcc20MintSupply,
+  templateParts,
 } from "../dist/index.js";
+
+const snapshotMarketId = "2".repeat(64);
+const snapshotTradingIdentity = snapshotTradingSetupIdentity({
+  tokenId: "1".repeat(64),
+  wrapperId: snapshotMarketId,
+  orderbookId: snapshotMarketId,
+});
+if (
+  snapshotTradingIdentity.wrapperId !== snapshotMarketId ||
+  snapshotTradingIdentity.orderbookId !== snapshotMarketId
+) {
+  throw new Error("snapshot wrapper and orderbook family identity was rejected");
+}
+try {
+  snapshotTradingSetupIdentity({
+    tokenId: "1".repeat(64),
+    wrapperId: "1".repeat(64),
+    orderbookId: snapshotMarketId,
+  });
+  throw new Error("snapshot wrapper accepted the canonical token identity");
+} catch (error) {
+  if (!String(error?.message).includes("canonical token id")) throw error;
+}
+
+if (
+  calculateSnapshotStartRequiredFunding(
+    { reserveCellKas: "50000000", bootstrapCellKas: "50000000" },
+    2,
+    "10000",
+  ) !== 50_020_000n
+) {
+  throw new Error("snapshot start funding must use the complete start plan");
+}
+try {
+  calculateSnapshotStartRequiredFunding(
+    { bootstrapCellKas: "50000000" },
+    2,
+    "10000",
+  );
+  throw new Error("snapshot start funding accepted a missing reserve cell");
+} catch (error) {
+  if (!String(error?.message).includes("start reserve cell KAS")) throw error;
+}
+
+for (const key of [
+  "kcc20-snapshot.deploy-bootstrap",
+  "kcc20-snapshot.deploy-controller",
+  "kcc20-snapshot.start",
+  "kcc20-snapshot.claim",
+]) {
+  if (!KCC20_SNAPSHOT_BUILDER_KEYS.includes(key)) {
+    throw new Error(`shared snapshot builder key is missing: ${key}`);
+  }
+}
 
 if (KCC20_CURRENT_NATIVE_ARTIFACT_KEY !== "KCC20.placeholder.json") {
   throw new Error("the current KCC20 artifact key drifted");
 }
+const canonicalKcc20ScriptSha256 =
+  "4633b082f26adbf14600b767d6e2146e36ce67d63d8202c0281857922c05ac41";
+if (
+  KCC20_ARTIFACT_SCRIPT_SHA256[KCC20_CURRENT_NATIVE_ARTIFACT_KEY] !==
+  canonicalKcc20ScriptSha256
+) {
+  throw new Error("the canonical KCC20 contract artifact changed");
+}
 
 const receiptHash = (digit) => digit.repeat(64);
+const fixedText32 = (value) => {
+  const output = new Uint8Array(32);
+  output.set(new TextEncoder().encode(value));
+  return output;
+};
+const snapshotCreator = receiptHash("1");
+const snapshotExtension = {
+  kind: 1,
+  creator: hexToBytes(snapshotCreator),
+  ticker: fixedText32("MIGRA"),
+  name: fixedText32("MIGRA"),
+  displayScale: 100_000_000n,
+  maxSupply: 1_000n,
+  mintLaneCount: 1n,
+  mintPolicy: 0,
+  mintPriceSompi: 0n,
+  treasury: hexToBytes(snapshotCreator),
+  protocolFeeRecipient: hexToBytes(snapshotCreator),
+  protocolFeeBps: 0n,
+};
+const snapshotPayload = JSON.parse(
+  new TextDecoder().decode(
+    buildSnapshotKcc20DeploymentPayload({
+      creator: snapshotCreator,
+      ticker: "MIGRA",
+      name: "MIGRA",
+      displayScale: "100000000",
+      totalSupply: "1000",
+      holderExtensionCommitment: bytesToHex(
+        holderExtensionCommitment(snapshotExtension),
+      ),
+      migrationId: receiptHash("2"),
+      manifestCommitment: receiptHash("3"),
+      reserves: [
+        { amount: "400", owner: receiptHash("4"), ownerScheme: 4 },
+        { amount: "600", owner: receiptHash("5"), ownerScheme: 4 },
+      ],
+    }),
+  ),
+);
+if (
+  snapshotPayload.tn10?.tmpl !== "KCC20" ||
+  snapshotPayload.tn10.args.find(
+    (argument) => argument.name === "snapshotReserves",
+  )?.value?.length !== 2
+) {
+  throw new Error("snapshot start did not produce its KCC20 metadata opening");
+}
+try {
+  buildSnapshotKcc20DeploymentPayload({
+    creator: snapshotCreator,
+    ticker: "MIGRA",
+    name: "MIGRA",
+    displayScale: "100000000",
+    totalSupply: "1000",
+    holderExtensionCommitment: receiptHash("f"),
+    migrationId: receiptHash("2"),
+    manifestCommitment: receiptHash("3"),
+    reserves: [{ amount: "1000", owner: receiptHash("4"), ownerScheme: 4 }],
+  });
+  throw new Error("snapshot start accepted uncommitted token metadata");
+} catch (error) {
+  if (!String(error?.message).includes("committed holder extension")) {
+    throw error;
+  }
+}
 const fixedDeployIntents = buildKcc20DeployIntentOutputs({
   mintPolicy: 0,
   covenantId: receiptHash("a"),
@@ -179,7 +316,58 @@ for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
     await readFile(new URL(`../artifacts/${key}`, import.meta.url), "utf8"),
   );
   assertKcc20ArtifactScriptHash(key, artifact);
+  if (key === KCC20_CURRENT_NATIVE_ARTIFACT_KEY) {
+    if (
+      artifact.generation?.silverscript_tag !== "v1.0.0" ||
+      artifact.generation?.silverscript_tree !==
+        "2a30f522768d9b4cae6fe30014326c689a25bd41" ||
+      artifact.program_information?.abi?.mint_public?.dispatch_tag !==
+        "e7e18505" ||
+      artifact.program_information?.max_token_inputs !== 8 ||
+      artifact.program_information?.max_token_outputs !== 8
+    ) {
+      throw new Error("the canonical KCC20 artifact metadata changed");
+    }
+  }
 }
+
+for (const [kind, pin] of Object.entries(KCC20_SNAPSHOT_ARTIFACT_PINS)) {
+  const raw = await readFile(
+    new URL(`../artifacts/kcc20-snapshot-${kind}/${pin.key}`, import.meta.url),
+  );
+  const actualArtifactSha256 = createHash("sha256").update(raw).digest("hex");
+  if (actualArtifactSha256 !== pin.artifactSha256) {
+    throw new Error(`${kind} snapshot raw artifact pin changed`);
+  }
+  const artifact = JSON.parse(raw.toString("utf8"));
+  if (
+    artifact.contract_name !== pin.contractName ||
+    artifact.script?.length !== pin.scriptLength ||
+    artifact.state_layout?.start !== pin.stateStart ||
+    artifact.state_layout?.len !== pin.stateLength
+  ) {
+    throw new Error(`${kind} snapshot artifact metadata changed`);
+  }
+}
+
+const canonicalKcc20Artifact = JSON.parse(
+  await readFile(
+    new URL("../artifacts/KCC20.placeholder.json", import.meta.url),
+    "utf8",
+  ),
+);
+const canonicalKcc20Template = templateParts(canonicalKcc20Artifact);
+if (
+  bytesToHex(canonicalKcc20Template.hash) !==
+    KCC20_SNAPSHOT_TOKEN_TEMPLATE_PIN.hash ||
+  canonicalKcc20Template.prefixLength !==
+    KCC20_SNAPSHOT_TOKEN_TEMPLATE_PIN.prefixLength ||
+  canonicalKcc20Template.suffixLength !==
+    KCC20_SNAPSHOT_TOKEN_TEMPLATE_PIN.suffixLength
+) {
+  throw new Error("snapshot KCC20 template pin changed");
+}
+
 if (isKcc20ArtifactKey("unknown.placeholder.json")) {
   throw new Error("unknown KCC20 artifact key was accepted");
 }
@@ -551,6 +739,42 @@ try {
 
 if (!backendOnlyRejected) {
   throw new Error("shared builder accepted a backend-only matcher operation");
+}
+
+let parsedOnlySnapshotArtifactRejected = false;
+try {
+  await createKcc20PsktBuilderEngine({
+    wasm: {},
+    artifacts: {
+      "KCC20.placeholder.json": { contract_name: "KCC20" },
+      "KCC20SnapshotBootstrap.placeholder.json": {
+        contract_name: "KCC20SnapshotBootstrap",
+      },
+    },
+  }).build({
+    schema: "kcc20-in-process-pskt-builder-input/v1",
+    request: {
+      builderKey: "kcc20-snapshot.deploy-bootstrap",
+      network: "testnet-10",
+      owner: {
+        walletAddress: `kaspatest:${"q".repeat(61)}`,
+      },
+      params: {
+        artifactPins: {
+          kcc20ArtifactSha256: "0".repeat(64),
+          bootstrapArtifactSha256: "0".repeat(64),
+        },
+      },
+    },
+  });
+} catch (error) {
+  parsedOnlySnapshotArtifactRejected =
+    error instanceof Error &&
+    error.message.includes("must include the exact raw bytes");
+}
+
+if (!parsedOnlySnapshotArtifactRejected) {
+  throw new Error("snapshot builder accepted an unpinned parsed artifact");
 }
 
 const feeTicketRootDeploy = buildFeeTicketRootDeployOperation(

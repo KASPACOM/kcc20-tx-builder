@@ -33,7 +33,8 @@ amount/fee calculations, and action-specific UTXO selection. It supports
 deploy, verify, mint, mint availability, transfer, native/wrapped
 consolidation, wrap, unwrap, wrapper-market deploy, create/fill/sweep/cancel
 orders, FeeTicket root/create/burn/transfer/update operations, and the
-deterministic matcher/operator transaction builders. Matcher/operator
+snapshot bootstrap deploy/bind/seal/cancel, controller deploy, reserve handoff,
+claim, and deterministic matcher/operator transaction builders. Matcher/operator
 invocation, authorization, scheduling, and key custody remain backend-only;
 hosts must explicitly enable those builders with `allowBackendOnly`.
 
@@ -46,8 +47,14 @@ configure the bridge with its already-loaded runtime:
 ```ts
 clientBuilder.configure({
   wasm: loadedKaspa,
-  artifactProvider: (key) =>
-    fetch(`/kcc20-artifacts/${key}`).then((response) => response.json()),
+  artifactProvider: async (key) => {
+    const response = await fetch(`/kcc20-artifacts/${key}`);
+    const rawBytes = new Uint8Array(await response.arrayBuffer());
+    return {
+      artifact: JSON.parse(new TextDecoder().decode(rawBytes)),
+      rawBytes,
+    };
+  },
   sourceProvider: {
     getUtxosByAddresses: (request) =>
       applicationRpcConnection.getUtxosByAddresses(request),
@@ -58,6 +65,11 @@ clientBuilder.configure({
 The artifact and source providers are host policies. Private operator keys
 must never be embedded in this package; a trusted backend may inject one at
 runtime for an explicitly authorized operator build.
+
+Snapshot builds require the raw artifact bytes so the package can compare the
+file SHA-256 with the migration's frozen artifact pins before constructing a
+transaction. Returning only parsed JSON is intentionally insufficient for that
+check.
 
 When `sourceProvider` is present, its connection lifecycle belongs entirely to
 the host: the builder does not construct, connect, or disconnect an RPC client.

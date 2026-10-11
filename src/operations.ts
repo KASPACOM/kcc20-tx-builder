@@ -22,6 +22,10 @@ export const KCC20_BUILDER_KEYS = [
   "fee-ticket.create-from-utility-burn",
   "fee-ticket.burn",
   "fee-ticket.transfer",
+  "kcc20-snapshot.deploy-bootstrap",
+  "kcc20-snapshot.deploy-controller",
+  "kcc20-snapshot.start",
+  "kcc20-snapshot.claim",
 ] as const;
 
 export type Kcc20BuilderKey = (typeof KCC20_BUILDER_KEYS)[number];
