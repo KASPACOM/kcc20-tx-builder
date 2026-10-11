@@ -1135,8 +1135,16 @@ export function selectFundingEntry(
   entries,
   requiredSompi,
   skippedOutpoints = [],
+  requiredOutpoint = undefined,
 ) {
-  const skipped = new Set(skippedOutpoints);
+  const skipped = new Set(skippedOutpoints.map(normalizeFundingOutpoint));
+  const pinned =
+    requiredOutpoint === undefined || requiredOutpoint === null
+      ? undefined
+      : normalizeFundingOutpoint(requiredOutpoint);
+  if (pinned !== undefined && !pinned) {
+    throw new Error("pinned funding outpoint is invalid");
+  }
   const sorted = [...entries].sort((a, b) => {
     const av = utxoAmountSompi(a);
     const bv = utxoAmountSompi(b);
@@ -1144,15 +1152,48 @@ export function selectFundingEntry(
     return av < bv ? 1 : -1;
   });
   const entry = sorted.find((candidate) => {
-    const outpoint = `${candidate.outpoint?.transactionId}:${candidate.outpoint?.index}`;
+    const outpoint = normalizeFundingOutpoint(candidate.outpoint);
     return (
-      !skipped.has(outpoint) && utxoAmountSompi(candidate) >= requiredSompi
+      (!pinned || outpoint === pinned) &&
+      !skipped.has(outpoint) &&
+      utxoAmountSompi(candidate) >= requiredSompi
     );
   });
   if (!entry) {
+    if (pinned) {
+      throw new Error(
+        `pinned funding UTXO ${pinned} is unavailable or cannot cover ${requiredSompi} sompi`,
+      );
+    }
     throw new Error(`no single funding UTXO can cover ${requiredSompi} sompi`);
   }
   return entry;
+}
+
+function normalizeFundingOutpoint(value) {
+  if (typeof value === "string") {
+    const match = value
+      .trim()
+      .toLowerCase()
+      .match(/^([a-f0-9]{64}):(\d+)$/);
+    if (!match) return "";
+    const index = Number(match[2]);
+    return Number.isSafeInteger(index) && index >= 0 && index <= 0xffffffff
+      ? `${match[1]}:${index}`
+      : "";
+  }
+  const transactionId = String(
+    value?.transactionId ?? value?.transactionIdHex ?? value?.txid ?? "",
+  )
+    .trim()
+    .toLowerCase();
+  const index = Number(value?.index ?? value?.vout);
+  return /^[a-f0-9]{64}$/.test(transactionId) &&
+    Number.isSafeInteger(index) &&
+    index >= 0 &&
+    index <= 0xffffffff
+    ? `${transactionId}:${index}`
+    : "";
 }
 
 export function requiredToccataFeeSompi(kw, network, transaction) {

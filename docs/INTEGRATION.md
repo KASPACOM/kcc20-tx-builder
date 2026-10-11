@@ -101,13 +101,19 @@ For a browser, serve the package's JSON artifacts through your asset pipeline:
 export async function artifactProvider(key: string): Promise<unknown> {
   const response = await fetch(`/kcc20-artifacts/${encodeURIComponent(key)}`);
   if (!response.ok) throw new Error(`Cannot load artifact ${key}: ${response.status}`);
-  return response.json();
+  const rawBytes = new Uint8Array(await response.arrayBuffer());
+  return {
+    artifact: JSON.parse(new TextDecoder().decode(rawBytes)),
+    rawBytes,
+  };
 }
 ```
 
 Copy the installed package's `artifacts/*.json` files to that asset directory
 as part of the host build. A server can load those same files once using its
-own filesystem adapter and pass the resulting objects through `artifacts`.
+own filesystem adapter and pass an envelope containing both the parsed
+`artifact` and its exact `rawBytes` through `artifacts`. Snapshot builders
+require those bytes to verify the frozen SHA-256 artifact pins.
 Filesystem access belongs in the host, outside this package.
 
 `rpcClientFactory` is an alternative for hosts that need the builder to create

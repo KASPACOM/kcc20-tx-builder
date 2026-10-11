@@ -6,7 +6,7 @@
     "backend": "tsx backend/cli.ts",
     "frontend": "vite frontend --host 127.0.0.1",
     "build": "tsc --noEmit && vite build frontend",
-    "test": "tsx --test test/*.test.ts",
+    "test": "tsx --test test/build.test.ts test/recipes.test.ts test/sources.test.ts",
     "test:browser": "tsx test/browser.ts",
     "recipe": "tsx backend/recipe.ts"
   },

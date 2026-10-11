@@ -1,21 +1,18 @@
 # Changelog
 
-## 0.3.0-snapshot.0
+## 0.4.0 (unreleased)
 
-- Preserve the snapshot deployment, start, claim and verification builders merged into main; retain their prerelease version and tests.
-
+- Add signerless snapshot deployment, start, claim, transfer, and verification builders with pinned contract artifacts and transaction tests.
 - Reject conflicting explicit native covenant IDs during transfer while retaining legacy alias resolution.
 - Preserve pre-authorized covenant witnesses and validate wallet signature encodings and sighash bytes.
 - Add 24 executable operation scenarios, a validated live-transfer source adapter, and tests run from extracted package contents.
- (unreleased)
-
 - Add integration and API guides, including amount examples, host-supplied WASM,
   artifact loading, source transport, request schemas, signing, and errors.
 - Include guides, release instructions, and security reporting in the npm tarball.
 - Replace the README's host-specific bridge example with the exported engine API.
 - Document public npm registry overrides and replace obsolete first-release steps.
 
-Artifact contents are unchanged from `0.2.5`. The engine RPC adapter now supports frozen WASM exports from browser bundlers.
+The engine RPC adapter now supports frozen WASM exports from browser bundlers.
 
 ### Public integration examples
 

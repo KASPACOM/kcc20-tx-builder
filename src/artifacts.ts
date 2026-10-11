@@ -21,6 +21,39 @@ export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
     "1b84d74aa01b6a50edbff5bf1f9e988a5a6a00ec645458dfd3912ac532b77c33",
 });
 
+/**
+ * Canonical raw artifact pins and structural metadata for signerless snapshot
+ * migrations. Consumers must use these values instead of maintaining their
+ * own copies; the raw SHA-256 pins cover the exact packaged JSON bytes.
+ */
+export const KCC20_SNAPSHOT_ARTIFACT_PINS = Object.freeze({
+  bootstrap: Object.freeze({
+    key: "KCC20SnapshotBootstrap.placeholder.json",
+    contractName: "KCC20SnapshotBootstrap",
+    artifactSha256:
+      "bc566a964b5feb1c2055d5130af25951142d695472287b888c5537e9a56ee3d2",
+    scriptLength: 33718,
+    stateStart: 1,
+    stateLength: 405,
+  }),
+  controller: Object.freeze({
+    key: "KCC20SnapshotController.placeholder.json",
+    contractName: "KCC20SnapshotController",
+    artifactSha256:
+      "f0d7b082e0680a90736948cd6658ccbc8600e097d9b4d5568013acdaafb39bf5",
+    scriptLength: 15297,
+    stateStart: 1,
+    stateLength: 432,
+  }),
+});
+
+/** Canonical KCC20 template committed by both snapshot contracts. */
+export const KCC20_SNAPSHOT_TOKEN_TEMPLATE_PIN = Object.freeze({
+  hash: "911f0638ccb7368bf36d117f1725073ae7ee487ce8b58ca3e8375051c2d40f6c",
+  prefixLength: 1,
+  suffixLength: 25439,
+});
+
 export type Kcc20ArtifactKey = keyof typeof KCC20_ARTIFACT_SCRIPT_SHA256;
 
 export function isKcc20ArtifactKey(value: string): value is Kcc20ArtifactKey {

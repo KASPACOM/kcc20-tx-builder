@@ -22,7 +22,7 @@ assert.equal(plan.controllerState.tokenId, hex('0'));
 assert.equal(plan.controllerState.remainingAmount, '123');
 assert.equal(plan.controllerState.shardCount, '1');
 assert.throws(() => buildControllerGenesisPlan({...definition, shardCount: 9}));
-assert.throws(() => buildControllerGenesisPlan({...definition, shard: {...definition.shard, depth: 21}}));
+assert.throws(() => buildControllerGenesisPlan({...definition, shard: {...definition.shard, depth: 33}}));
 assert.throws(() => buildControllerGenesisPlan({...definition, deploymentGuardCommitment: hex('0')}));
 assert.throws(() => buildControllerGenesisPlan({...definition, shard: {...definition.shard, allocationTotal: '9223372036854775808'}}));
 assert.throws(() => claimActivation(100n, 99n, 0n));

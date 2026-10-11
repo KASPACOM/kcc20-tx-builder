@@ -6,6 +6,9 @@ for (const [name, value] of Object.entries({
   createKcc20PsktBuilderEngine: root.createKcc20PsktBuilderEngine,
   buildKcc20DeployTokenOperation: deploy.buildKcc20DeployTokenOperation,
   buildKcc20WrapTokenOperation: wrapper.buildKcc20WrapTokenOperation,
+  createKcc20SnapshotPsktBuilder: root.createKcc20SnapshotPsktBuilder,
+  buildSnapshotBootstrapScriptForState:
+    root.buildSnapshotBootstrapScriptForState,
 })) {
   if (typeof value !== "function") {
     throw new Error(`CommonJS package export is missing ${name}`);

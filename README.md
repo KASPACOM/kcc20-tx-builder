@@ -7,7 +7,7 @@ frontend and the Node backend.
 ## Install
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.2.5 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.4.0 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
@@ -29,10 +29,9 @@ not bundled or initialized by this package.
 
 Public npm installation does not require a GitHub token. The explicit scoped
 registry flag overrides project settings that route `@kaspacom` to GitHub Packages.
-The current public release is `0.2.5`; this branch prepares `0.3.0-snapshot.0` with expanded
-documentation and the snapshot builders already merged into main. This remains a
-prerelease candidate. Pin versions across wallet and server adapters.
-See [the changelog](CHANGELOG.md) for the release candidate.
+This branch prepares `0.4.0` with expanded documentation and signerless snapshot
+builders. Pin the same exact version across wallet and server adapters. See
+[the changelog](CHANGELOG.md) for the release contents.
 
 ## Runtime boundary
 
@@ -51,7 +50,9 @@ amount/fee calculations, and action-specific UTXO selection. It supports
 deploy, verify, mint, mint availability, transfer, native/wrapped
 consolidation, wrap, unwrap, wrapper-market deploy, create/fill/sweep/cancel
 orders, FeeTicket root/create/burn/transfer/update operations, and the
-deterministic matcher/operator transaction builders. Matcher/operator
+immutable bootstrap and controller deployments, signerless snapshot start,
+claims, recipient transfers, and deterministic matcher/operator transaction
+builders. Matcher/operator
 invocation, authorization, scheduling, and key custody remain backend-only;
 hosts must explicitly enable those builders with `allowBackendOnly`.
 
@@ -67,11 +68,17 @@ import { createKcc20PsktBuilderEngine } from "@kaspacom/kcc20-tx-builder";
 createKcc20PsktBuilderEngine({
   wasm: loadedKaspa,
   artifacts: {},
-  artifactProvider: (key) =>
-    fetch(`/kcc20-artifacts/${encodeURIComponent(key)}`).then((response) => {
-      if (!response.ok) throw new Error(`Cannot load artifact ${key}`);
-      return response.json();
-    }),
+  artifactProvider: async (key) => {
+    const response = await fetch(
+      `/kcc20-artifacts/${encodeURIComponent(key)}`,
+    );
+    if (!response.ok) throw new Error(`Cannot load artifact ${key}`);
+    const rawBytes = new Uint8Array(await response.arrayBuffer());
+    return {
+      artifact: JSON.parse(new TextDecoder().decode(rawBytes)),
+      rawBytes,
+    };
+  },
   sourceProvider: {
     getUtxosByAddresses: (request) =>
       applicationRpcConnection.getUtxosByAddresses(request),
@@ -82,6 +89,11 @@ createKcc20PsktBuilderEngine({
 The artifact and source providers are host policies. Private operator keys
 must never be embedded in this package; a trusted backend may inject one at
 runtime for an explicitly authorized operator build.
+
+Snapshot builds require the raw artifact bytes so the package can compare the
+file SHA-256 with the migration's frozen artifact pins before constructing a
+transaction. Returning only parsed JSON is intentionally insufficient for that
+check.
 
 When `sourceProvider` is present, its connection lifecycle belongs entirely to
 the host: the builder does not construct, connect, or disconnect an RPC client.
@@ -109,7 +121,8 @@ import kcc20Artifact from "@kaspacom/kcc20-tx-builder/artifacts/KCC20.placeholde
 ```
 
 The published, hash-pinned set contains `KCC20`, `KCC20Wrapper`,
-`KCC20Orderbook`, `KCC20FeeTicket`, and `KCC20Vesting`. Consumers should not
+`KCC20Orderbook`, `KCC20FeeTicket`, `KCC20Vesting`,
+`KCC20SnapshotBootstrap`, and `KCC20SnapshotController`. Consumers should not
 vendor separate copies of these files.
 
 How JSON modules are loaded depends on the consuming runtime and bundler. A

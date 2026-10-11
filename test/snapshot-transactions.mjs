@@ -348,7 +348,10 @@ for (const count of [1, 2, 8]) {
   assert.ok(started.unsignedTransaction.outputs.slice(0, count).every(output => output.covenant.covenantId === bootstrap.tokenId));
   assert.throws(() => buildSnapshotStartUnsignedTransaction(kw, {...args, controllerInputs: []}), /every committed controller/);
   assert.throws(() => prepareSnapshotDeployment(kw, {...definition, totalSupply: '1'}, artifacts), /allocations/);
-  assert.throws(() => prepareSnapshotDeployment(kw, {...definition, shards: definition.shards.map(s => ({...s, depth: 21}))}, artifacts), /depth/);
+  assert.throws(
+    () => prepareSnapshotDeployment(kw, {...definition, shards: definition.shards.map(s => ({...s, depth: 33}))}, artifacts),
+    /shard tree configuration|depth/,
+  );
   assert.throws(() => prepareSnapshotDeployment(kw, definition, {...artifacts,
     bootstrapArtifact: {...bootstrapArtifact, script: [0]}}), /hash mismatch/);
 }
