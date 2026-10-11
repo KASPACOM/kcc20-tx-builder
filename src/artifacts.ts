@@ -7,6 +7,8 @@ export const KCC20_CURRENT_NATIVE_ARTIFACT_KEY =
   "KCC20.placeholder.json" as const;
 
 export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
+  "KCC20SnapshotBootstrap.placeholder.json": "85edea7401eb415c447e6a0d0a45e1667802a269dde9fbe33d5881c4a4de51e2",
+  "KCC20SnapshotController.placeholder.json": "8f90525afcc1c23240f1d18eed30b3b377a72a323e8b48925dfac53bd5aab0ae",
   [KCC20_CURRENT_NATIVE_ARTIFACT_KEY]:
     "4633b082f26adbf14600b767d6e2146e36ce67d63d8202c0281857922c05ac41",
   "KCC20FeeTicket.placeholder.json":

@@ -1,0 +1,2 @@
+# Preserve the upstream generated WASM bundle byte-for-byte for checksum verification.
+examples/vendor/kaspa/** -whitespace linguist-vendored

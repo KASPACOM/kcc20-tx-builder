@@ -233,7 +233,7 @@ export function buildKcc20TransferTokenOperation(
         : "No single KCC20 holder UTXO is available for this wallet and amount",
     );
   }
-  const nativeCovenantId = holder.covenantId ?? covenantId;
+  const nativeCovenantId = holder.covenantId;
   return buildKcc20WalletOperationFromPlan(
     wallet,
     {
@@ -245,7 +245,7 @@ export function buildKcc20TransferTokenOperation(
       params: {
         covenantId,
         appCanonicalCovenantId: covenantId,
-        activeHolderNativeCovenantId: nativeCovenantId,
+        ...(nativeCovenantId ? { activeHolderNativeCovenantId: nativeCovenantId } : {}),
         tokenAmount,
         recipientOwner,
         recipientOwnerScheme: 0,
@@ -257,7 +257,7 @@ export function buildKcc20TransferTokenOperation(
         {
           type: "kcc20-holder-utxo",
           covenantId,
-          activeHolderNativeCovenantId: nativeCovenantId,
+          ...(nativeCovenantId ? { activeHolderNativeCovenantId: nativeCovenantId } : {}),
           owner,
           minimumTokenAmount: tokenAmount,
           ...summary,

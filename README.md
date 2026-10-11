@@ -7,7 +7,9 @@ frontend and the Node backend.
 ## Install
 
 ```sh
-npm install @kaspacom/kcc20-tx-builder
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.4.0 \
+  --registry=https://registry.npmjs.org/ \
+  --@kaspacom:registry=https://registry.npmjs.org/
 ```
 
 The package provides ESM and CommonJS entry points and requires Node.js 20 or
@@ -15,6 +17,21 @@ newer for Node consumers.
 Browser consumers must provide their already-loaded browser Kaspa WASM runtime;
 Node consumers provide their Node Kaspa WASM runtime. Kaspa WASM is deliberately
 not bundled or initialized by this package.
+
+## Documentation
+
+- [Integration guide](docs/INTEGRATION.md): amount calculations, engine setup,
+  artifacts, source providers, signing boundaries, and error handling.
+- [API guide](docs/API.md): public entry points and operation families.
+- [Independent indexing](https://github.com/KASPACOM/kaspa-covenants/blob/develop/docs/INDEPENDENT_INDEXING.md): self-hosted data boundaries and lightweight-indexer release gates. The lightweight indexer is not yet a live data source.
+- [Snapshot builders](docs/snapshot-start.md): signerless deployment, claims and verification; funded DEV rehearsal is still required.
+- [Release guide](RELEASING.md): publishing and consumer verification.
+
+Public npm installation does not require a GitHub token. The explicit scoped
+registry flag overrides project settings that route `@kaspacom` to GitHub Packages.
+This branch prepares `0.4.0` with expanded documentation and signerless snapshot
+builders. Pin the same exact version across wallet and server adapters. See
+[the changelog](CHANGELOG.md) for the release contents.
 
 ## Runtime boundary
 
@@ -33,22 +50,29 @@ amount/fee calculations, and action-specific UTXO selection. It supports
 deploy, verify, mint, mint availability, transfer, native/wrapped
 consolidation, wrap, unwrap, wrapper-market deploy, create/fill/sweep/cancel
 orders, FeeTicket root/create/burn/transfer/update operations, and the
-snapshot bootstrap deploy/bind/seal/cancel, controller deploy, reserve handoff,
-claim, and deterministic matcher/operator transaction builders. Matcher/operator
+immutable bootstrap and controller deployments, signerless snapshot start,
+claims, recipient transfers, and deterministic matcher/operator transaction
+builders. Matcher/operator
 invocation, authorization, scheduling, and key custody remain backend-only;
 hosts must explicitly enable those builders with `allowBackendOnly`.
 
 The package ships the KCC20 contract artifacts under `artifacts/`, but the
 engine still accepts supplied artifacts and UTXO/RPC access and never reads
 files, environment variables, or WASM assets itself. Browser and backend hosts
-decide how to load package artifacts for their runtime. The frontend host can
-configure the bridge with its already-loaded runtime:
+decide how to load package artifacts for their runtime. The host can
+configure the exported engine with its already-loaded runtime:
 
 ```ts
-clientBuilder.configure({
+import { createKcc20PsktBuilderEngine } from "@kaspacom/kcc20-tx-builder";
+
+createKcc20PsktBuilderEngine({
   wasm: loadedKaspa,
+  artifacts: {},
   artifactProvider: async (key) => {
-    const response = await fetch(`/kcc20-artifacts/${key}`);
+    const response = await fetch(
+      `/kcc20-artifacts/${encodeURIComponent(key)}`,
+    );
+    if (!response.ok) throw new Error(`Cannot load artifact ${key}`);
     const rawBytes = new Uint8Array(await response.arrayBuffer());
     return {
       artifact: JSON.parse(new TextDecoder().decode(rawBytes)),
@@ -97,7 +121,8 @@ import kcc20Artifact from "@kaspacom/kcc20-tx-builder/artifacts/KCC20.placeholde
 ```
 
 The published, hash-pinned set contains `KCC20`, `KCC20Wrapper`,
-`KCC20Orderbook`, `KCC20FeeTicket`, and `KCC20Vesting`. Consumers should not
+`KCC20Orderbook`, `KCC20FeeTicket`, `KCC20Vesting`,
+`KCC20SnapshotBootstrap`, and `KCC20SnapshotController`. Consumers should not
 vendor separate copies of these files.
 
 How JSON modules are loaded depends on the consuming runtime and bundler. A
@@ -114,3 +139,12 @@ backend secrets into this package in a browser.
 ## License
 
 Apache-2.0
+
+## Runnable transaction examples
+
+Start with the [frontend and backend examples](examples/README.md), then read
+the [transaction construction guide](docs/TRANSACTION_GUIDE.md) and
+[operation recipes](docs/RECIPES.md). Both applications construct transactions
+locally using packaged artifacts and host-supplied chain data.
+
+For independently retrieved holder state, see the [live transfer walkthrough](docs/LIVE_TRANSFER.md); all supported user operation families have [runnable offline recipes](docs/RECIPES.md).
