@@ -3,13 +3,13 @@ import { preview } from "vite";
 import { chromium } from "playwright";
 import { runtime, loadArtifact } from "../backend/runtime.ts";
 import {
-  createBuilder,
   deployOperation,
   transferOperation,
 } from "../shared/build.ts";
 import { recipeFixtures } from "../shared/recipe-fixtures.ts";
 import { recipes } from "../shared/recipes.ts";
 import { fixture, recipient, owner } from "../shared/fixture.ts";
+import { createOfflineBuilder } from "../shared/offline-profile.ts";
 const server = await preview({
   root: "frontend",
   preview: { host: "127.0.0.1", port: 4173, strictPort: true },
@@ -38,7 +38,7 @@ try {
   );
   const wasm = await runtime();
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const deploy = await build(deployOperation(data.wallet));
   const transfer = await build(
     transferOperation(data.wallet, data.addDeploy(deploy), recipient),

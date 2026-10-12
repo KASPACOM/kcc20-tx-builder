@@ -363,7 +363,9 @@ export function buildSnapshotStartSignatureScripts(
   const reserves = plan.reserves.map(normalizeKcc20State);
   const kcc20Template = templateParts(kcc20Artifact);
   const controllerTemplate = templateParts(controllerArtifact);
-  const bootstrapBuilder = new kw.ScriptBuilder();
+  const bootstrapBuilder = new kw.ScriptBuilder({
+    flags: { covenantsEnabled: true },
+  });
   for (const field of encodeControllerStateRecordArrays(controllers))
     bootstrapBuilder.addData(field);
   for (const field of encodeKcc20StateRecordArrays(reserves))
@@ -374,7 +376,7 @@ export function buildSnapshotStartSignatureScripts(
   bootstrapBuilder.addData(controllerTemplate.suffix);
   bootstrapBuilder.addData(dispatchTagFor(bootstrapArtifact, "start"));
   const controllerSignatureScripts = controllers.map((state, index) => {
-    const builder = new kw.ScriptBuilder();
+    const builder = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
     addControllerState(builder, state);
     builder.addI64(BigInt(bootstrapInputIndex));
     builder.addI64(BigInt(index));
@@ -591,7 +593,7 @@ export function buildClaimSignatureScripts(
   requireControllerArtifact(controllerArtifact);
   requireKcc20Artifact(kcc20Artifact);
   requireOwnerWitness(claim.ownerScheme, claim.ownerWitness);
-  const builder = new kw.ScriptBuilder();
+  const builder = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
   builder.addI64(BigInt(claim.globalIndex));
   builder.addI64(BigInt(claim.shardLeafIndex));
   addByte(builder, claim.ownerScheme);

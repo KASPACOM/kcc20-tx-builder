@@ -1,9 +1,9 @@
 {
   "schema": "kaspacom-contract-standards-lock/v1",
-  "reviewedAt": "2026-09-10",
+  "reviewedAt": "2026-10-11",
   "kccs": {
     "repository": "https://github.com/kaspanet/kccs",
-    "commit": "54f4f9c2730f77ec5b1ee8bc746d7f94d83b8ee6",
+    "commit": "3fbec524abfbc20e87652eb938db218f8c17db17",
     "documents": [
       "kcc-0001.md",
       "kcc-0002.md",
@@ -18,7 +18,10 @@
   "silverscript": {
     "repository": "https://github.com/kaspanet/silverscript",
     "baseCommit": "140bf184fd03dc0f5c29155f89e9e5d733a1152f",
-    "requiredPullRequests": [164, 217],
+    "requiredPullRequests": [
+      164,
+      217
+    ],
     "requiredCommits": [
       "97e5d7930aa7760bf9323f6f7011dce338ac38a7",
       "7cf57773a2818675022a65374c602dcc141ea491"

@@ -1,4 +1,6 @@
 export * from "./artifacts.js";
+export * from "./token-profiles.js";
+export * from "./token-profiles.generated.js";
 export * from "./action-source-resolver.js";
 export * from "./abi.js";
 export * from "./builder.js";
@@ -34,3 +36,8 @@ export * as snapshot from "./snapshot-signerless.js";
 export * as snapshotTransactions from "./snapshot-signerless-transactions.js";
 export * from "./snapshot-deployment.js";
 export * from "./snapshot-verification.js";
+
+export * from "./token-authorization.js";
+
+export * from "./profile-transfer.js";
+export * from "./transfer-payload.js";

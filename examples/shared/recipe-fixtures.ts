@@ -10,7 +10,6 @@ import {
 } from "@kaspacom/kcc20-tx-builder/sale-common";
 import type { Kcc20IndexedCovenantUtxo } from "@kaspacom/kcc20-tx-builder/action-source-resolver";
 import {
-  createBuilder,
   deployOperation,
   network,
   type Runtime,
@@ -18,6 +17,7 @@ import {
 } from "./build.ts";
 import { fixture, owner, recipient } from "./fixture.ts";
 import { recipes } from "./recipes.ts";
+import { createOfflineBuilder } from "./offline-profile.ts";
 
 // These are independent synthetic source snapshots, not a simulated chain ledger.
 // Never broadcast their transactions or fund their public test-vector addresses.
@@ -26,7 +26,7 @@ export async function recipeFixtures(
   loadArtifact: (key: string) => Promise<unknown>,
 ) {
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const options = {
     network,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -416,6 +416,7 @@ export async function recipeFixtures(
       wallet,
       {
         canonicalCovenantId: tokenId,
+        tokenUtxo: baseHolder,
         tokenDecimals: 2,
         wrappedRootAmount: "0",
       },

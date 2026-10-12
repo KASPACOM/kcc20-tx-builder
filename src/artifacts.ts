@@ -7,18 +7,20 @@ export const KCC20_CURRENT_NATIVE_ARTIFACT_KEY =
   "KCC20.placeholder.json" as const;
 
 export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
-  "KCC20SnapshotBootstrap.placeholder.json": "85edea7401eb415c447e6a0d0a45e1667802a269dde9fbe33d5881c4a4de51e2",
-  "KCC20SnapshotController.placeholder.json": "8f90525afcc1c23240f1d18eed30b3b377a72a323e8b48925dfac53bd5aab0ae",
+  "KCC20SnapshotBootstrap.placeholder.json":
+    "3d64211a2b3c5ac24009b9ce59d4e8ecb8f2114dbf0c43b5a060b2ed91704e02",
+  "KCC20SnapshotController.placeholder.json":
+    "fdc2e396a66a1f708522d68f879ec67d71bd0070c7417b1e7f5dd3a6c8cfda88",
   [KCC20_CURRENT_NATIVE_ARTIFACT_KEY]:
-    "4633b082f26adbf14600b767d6e2146e36ce67d63d8202c0281857922c05ac41",
+    "dd9cb334cd9e9220b15644782f271ef3ecdba34fd0762010e3d6bc18176837ae",
   "KCC20FeeTicket.placeholder.json":
-    "ed81365466ee4c44db1210b3360783af8145f74e49e847848195e09c71ad6930",
+    "c0e95cb8e5226462674647f86d5760626b5c38b7bd97a6e2ec9ba61fdef8941f",
   "KCC20Orderbook.placeholder.json":
     "ef9fe81ff7aa2dc2df118d8d7cc126aca6f2f9c181b9c2d15727a538b23c6f71",
   "KCC20Wrapper.placeholder.json":
-    "f3bdf09be9aa258708a306283a4278a93cfb64f35fc50ed7d316b9b189ef9030",
+    "23cbd5473860cab4e63890d24ae1bd6732fce5beaa34f594dad01e845e3e9b9f",
   "KCC20Vesting.placeholder.json":
-    "1b84d74aa01b6a50edbff5bf1f9e988a5a6a00ec645458dfd3912ac532b77c33",
+    "e32d9f5bde124526475a61075ba46eef41955d4662b1422713860cfbd7a59661",
 });
 
 /**
@@ -31,7 +33,7 @@ export const KCC20_SNAPSHOT_ARTIFACT_PINS = Object.freeze({
     key: "KCC20SnapshotBootstrap.placeholder.json",
     contractName: "KCC20SnapshotBootstrap",
     artifactSha256:
-      "bc566a964b5feb1c2055d5130af25951142d695472287b888c5537e9a56ee3d2",
+      "5f0caea9818f5bd6110023a7f089a0d26f87d3fd0901cb52e24a32bd1853b302",
     scriptLength: 33718,
     stateStart: 1,
     stateLength: 405,
@@ -40,7 +42,7 @@ export const KCC20_SNAPSHOT_ARTIFACT_PINS = Object.freeze({
     key: "KCC20SnapshotController.placeholder.json",
     contractName: "KCC20SnapshotController",
     artifactSha256:
-      "f0d7b082e0680a90736948cd6658ccbc8600e097d9b4d5568013acdaafb39bf5",
+      "8c5d2056bb0a445ffc1a6967238fac46378372b5f357524c6795201699bf2b2f",
     scriptLength: 15297,
     stateStart: 1,
     stateLength: 432,
@@ -49,9 +51,9 @@ export const KCC20_SNAPSHOT_ARTIFACT_PINS = Object.freeze({
 
 /** Canonical KCC20 template committed by both snapshot contracts. */
 export const KCC20_SNAPSHOT_TOKEN_TEMPLATE_PIN = Object.freeze({
-  hash: "911f0638ccb7368bf36d117f1725073ae7ee487ce8b58ca3e8375051c2d40f6c",
+  hash: "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29",
   prefixLength: 1,
-  suffixLength: 25439,
+  suffixLength: 25264,
 });
 
 export type Kcc20ArtifactKey = keyof typeof KCC20_ARTIFACT_SCRIPT_SHA256;

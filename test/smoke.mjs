@@ -39,6 +39,8 @@ import {
   calculateKcc20MaximumBuyerGrossSompi,
   calculateKcc20MaximumBuyTokenBaseUnits,
   createKcc20PsktBuilderEngine,
+  BUNDLED_TOKEN_PROFILES,
+  canonicalRegistryJson,
   hexToBytes,
   holderExtensionCommitment,
   normalizeKcc20IndexedUtxos,
@@ -67,7 +69,9 @@ if (
   snapshotTradingIdentity.wrapperId !== snapshotMarketId ||
   snapshotTradingIdentity.orderbookId !== snapshotMarketId
 ) {
-  throw new Error("snapshot wrapper and orderbook family identity was rejected");
+  throw new Error(
+    "snapshot wrapper and orderbook family identity was rejected",
+  );
 }
 try {
   snapshotTradingSetupIdentity({
@@ -114,8 +118,9 @@ for (const key of [
 if (KCC20_CURRENT_NATIVE_ARTIFACT_KEY !== "KCC20.placeholder.json") {
   throw new Error("the current KCC20 artifact key drifted");
 }
-const canonicalKcc20ScriptSha256 =
-  "4633b082f26adbf14600b767d6e2146e36ce67d63d8202c0281857922c05ac41";
+const canonicalKcc20ScriptSha256 = BUNDLED_TOKEN_PROFILES.profiles.find(
+  (p) => p.nativeExtensions,
+).scriptSha256;
 if (
   KCC20_ARTIFACT_SCRIPT_SHA256[KCC20_CURRENT_NATIVE_ARTIFACT_KEY] !==
   canonicalKcc20ScriptSha256
@@ -743,7 +748,19 @@ if (!backendOnlyRejected) {
 
 let parsedOnlySnapshotArtifactRejected = false;
 try {
+  // Offline fixture approval isolates artifact validation from the release gate.
+  const fixtureRegistry = structuredClone(BUNDLED_TOKEN_PROFILES);
+  fixtureRegistry.profiles[0].review = {
+    status: "approved",
+    evidence: ["offline-smoke-fixture"],
+  };
   await createKcc20PsktBuilderEngine({
+    tokenProfileRegistry: {
+      manifest: fixtureRegistry,
+      sha256: createHash("sha256")
+        .update(canonicalRegistryJson(fixtureRegistry))
+        .digest("hex"),
+    },
     wasm: {},
     artifacts: {
       "KCC20.placeholder.json": { contract_name: "KCC20" },
@@ -1099,6 +1116,7 @@ const wrapperDeploy = buildKcc20WrapperMarketDeployOperation(
   wallet,
   {
     canonicalCovenantId: canonicalId,
+    tokenUtxo: tokenSnapshot[1],
     tokenDecimals: 8,
     wrappedRootAmount: "0",
   },
@@ -1106,9 +1124,12 @@ const wrapperDeploy = buildKcc20WrapperMarketDeployOperation(
 );
 if (
   wrapperDeploy.payload.signing?.builderKey !== "kcc20wrapper.deploy-market" ||
-  wrapperDeploy.payload.params.priceScale !== "100000000"
+  wrapperDeploy.payload.params.priceScale !== "100000000" ||
+  wrapperDeploy.payload.params.tokenUtxo?.outpoint !== `${"8".repeat(64)}:1`
 ) {
-  throw new Error("wrapper market deploy operation did not preserve scale");
+  throw new Error(
+    "wrapper market deploy operation did not preserve evidence or scale",
+  );
 }
 
 const order = buildKcc20OrderOperation(
