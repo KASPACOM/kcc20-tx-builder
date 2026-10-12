@@ -1,3 +1,4 @@
+import { readLightweightPages } from "./lightweight-indexer.ts";
 import { buildKcc20ScriptForState } from "@kaspacom/kcc20-tx-builder/abi";
 import { buildKcc20TransferTokenOperation } from "@kaspacom/kcc20-tx-builder/token-operation";
 import {
@@ -52,7 +53,7 @@ export async function liveTransferOperation(
   const url = new URL(config.stateUrl);
   if (!["http:", "https:"].includes(url.protocol))
     throw new Error("State URL must use HTTP or HTTPS");
-  const document = await withTimeout(
+  let document = await withTimeout(
     (async () => {
       const response = await fetcher(url, {
         signal: AbortSignal.timeout(20_000),
@@ -63,6 +64,9 @@ export async function liveTransferOperation(
     })(),
     "Decoded state query",
   );
+  if (Array.isArray(document.items)) {
+    document = { network: document.network, utxos: await readLightweightPages(wasm, document, url, fetcher) };
+  }
   if (
     document.network !== network ||
     !Array.isArray(document.utxos) ||

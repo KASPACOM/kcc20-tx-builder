@@ -104,3 +104,35 @@ The network check belongs to the host connection setup, as shown in both runnabl
 apps. An input can be spent after validation: on a node rejection, refresh state
 and rebuild. If submission times out, check the transaction ID and spent inputs
 before retrying. These examples do not claim live wallet or node acceptance.
+
+## Use the lightweight indexer
+
+The frontend and backend examples also accept the self-hosted lightweight
+indexer's `/v1/sources` response. Set `stateUrl` to your own API, for example:
+
+```text
+http://127.0.0.1:8080/v1/sources?covenantId=YOUR_TOKEN_ID&ownerIdentifier=YOUR_OWNER
+```
+
+Use the native covenant ID and 32-byte owner identifier, without `0x`. The shared
+adapter in `examples/shared/lightweight-indexer.ts` follows bounded pagination,
+including empty filtered pages, and rejects stale or wrong-network responses.
+It requires exact decimal strings for monetary values and a supported script
+version. The transfer path verifies the decoded script and current spent status
+against the configured node before constructing an unsigned transaction.
+Ordinary KAS funding outputs also come from that node.
+
+This adapter is validated for native-token transfers from unborrowed Schnorr
+holders. Wrapped-token and trading operations need their own state and authority
+mapping; this transfer adapter does not establish support for those operations.
+
+For a browser application, configure the indexer's `cors-origins` with the exact
+frontend origin. The backend CLI uses the same adapter without browser CORS.
+Check the indexer's declared history coverage separately: a fresh response does
+not prove a complete balance or authorize a deposit credit. If a selected output
+is spent before submission, obtain fresh sources and rebuild the transaction.
+
+See the [lightweight indexer bootstrap and coverage guide](https://github.com/KASPACOM/kcc20-exchange-indexer/blob/feat/initial-kcc20-indexer/docs/BOOTSTRAP.md).
+The indexer remains a release candidate while its historical replay and validation
+gates are open. This integration adds an example adapter; it does not change the
+package's public API or provide a signing service.
