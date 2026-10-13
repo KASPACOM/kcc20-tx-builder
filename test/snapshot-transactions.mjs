@@ -1,18 +1,9 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { pathToFileURL } from "node:url";
-const wasmPath = process.env.SNAPSHOT_TEST_WASM;
-if (!wasmPath) throw new Error("SNAPSHOT_TEST_WASM must point to the pinned kaspa-wasm-toc directory");
-async function initKaspa() {
-  const kw = await import(pathToFileURL(`${wasmPath}/kaspa.js`));
-  kw.initSync(await readFile(`${wasmPath}/kaspa_bg.wasm`));
-  return kw;
-}
+import { loadPinnedKaspaWasm } from "./load-kaspa-wasm.mjs";
 import { templateParts } from "../dist/abi.js";
 import {
   buildBootstrapGenesisPlan,
@@ -39,7 +30,7 @@ const [bootstrapArtifact, controllerArtifact, kcc20Artifact, standardsLock] = aw
   readJson("artifacts/KCC20.placeholder.json"),
   readJson("artifacts/snapshot-standards.lock.json"),
 ]);
-const kw = await initKaspa();
+const kw = await loadPinnedKaspaWasm(process.env.SNAPSHOT_TEST_WASM);
 const bytes = (value) => Uint8Array.from({ length: 32 }, () => value);
 const hex = (value) => Buffer.from(value).toString("hex");
 const migration = bytes(0x10);

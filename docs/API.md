@@ -2,7 +2,7 @@
 
 The root module exports the APIs below. Generated declarations under `dist/`
 are the exact reference for the installed version; source links explain the
-operation-specific fields. This guide covers version `0.4.0`.
+operation-specific fields. This guide covers version `0.5.0`.
 
 ## Entry points
 
