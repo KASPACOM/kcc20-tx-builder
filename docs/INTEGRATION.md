@@ -1,6 +1,6 @@
 # Integrating the TX Builder
 
-This guide describes the API shipped in `@kaspacom/kcc20-tx-builder@0.2.5`.
+This guide describes the API shipped in `@kaspacom/kcc20-tx-builder@0.5.0`.
 The host application supplies wallet identity, network configuration, contract
 artifacts, chain data, and an initialized Kaspa WASM runtime. The package
 constructs operations and transaction JSON. The host signs, validates,
@@ -9,7 +9,7 @@ broadcasts, and tracks the result.
 ## Install from the public registry
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.2.5 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.5.0 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```

@@ -274,7 +274,7 @@ export function buildSnapshotStartUnsignedTransaction(
     fundingInput,
     changeAddress,
     feeSompi,
-    payload = "",
+    payload = new Uint8Array() as Uint8Array<ArrayBufferLike>,
   },
 ) {
   requirePlan(plan, "snapshot-start-plan");

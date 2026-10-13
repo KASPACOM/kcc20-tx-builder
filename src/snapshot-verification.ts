@@ -1,20 +1,23 @@
 import { prepareSnapshotDeployment, type SnapshotArtifacts, type SnapshotDeploymentDefinition } from './snapshot-deployment.js';
-import { bytesToHex } from './encoding.js';
 import * as tx from './snapshot-signerless-transactions.js';
 
-export function snapshotStartPayload(definition: SnapshotDeploymentDefinition, prepared: ReturnType<typeof prepareSnapshotDeployment>): string {
+export function snapshotStartPayload(definition: SnapshotDeploymentDefinition, prepared: ReturnType<typeof prepareSnapshotDeployment>): Uint8Array {
   const plan = prepared.plan;
   if (prepared.stage !== 'snapshot-start') throw new Error('snapshot start plan required');
-  const opening = {
-    ...prepared.extension, ticker: definition.ticker, name: definition.ticker,
-    premintSupply: definition.totalSupply, premintRecipient: plan.reserves[0].owner, premintOwnerScheme: 4,
-    holderExtensionCommitment: prepared.holderExtensionCommitment, snapshotMigrationId: definition.migrationId,
-    snapshotManifestCommitment: definition.manifestCommitment,
-    snapshotReserves: plan.reserves.map((reserve: any, shardIndex: number) => ({ ...reserve, shardIndex })),
-  };
-  return bytesToHex(new TextEncoder().encode(JSON.stringify({ tn10: { v: 1, tmpl: 'KCC20',
-    args: Object.entries(opening).map(([name, value]) => ({ name, type: 'value', value })),
-  } })));
+  return tx.buildSnapshotKcc20DeploymentPayload({
+    creator: definition.creator,
+    ticker: definition.ticker,
+    name: definition.ticker,
+    displayScale: definition.displayScale,
+    totalSupply: definition.totalSupply,
+    holderExtensionCommitment: prepared.holderExtensionCommitment,
+    migrationId: definition.migrationId,
+    manifestCommitment: definition.manifestCommitment,
+    reserves: plan.reserves,
+    treasury: definition.creator,
+    protocolFeeRecipient: definition.creator,
+    protocolFeeBps: 0,
+  });
 }
 
 /** Reconstruct the whole transaction from approved definition and pinned artifacts. */
@@ -59,7 +62,8 @@ export function verifySnapshotDeploymentTransaction(kw: any, args: {
       throw new Error('snapshot bootstrap input differs from approved genesis');
     }
     expected = tx.buildSnapshotStartUnsignedTransaction(kw, {
-      ...common, payload: snapshotStartPayload(args.definition, prepared),
+      ...common,
+      payload: snapshotStartPayload(args.definition, prepared),
       bootstrapInput,
       controllerInputs: plan.controllers.map((controller: any, index: number) => {
         const actual = input(index + 1, tx.buildSnapshotControllerScriptForState(args.artifacts.controllerArtifact, controller.stateBefore));

@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.5.0 (unreleased)
+
+- Remove the obsolete operator-controlled snapshot cancellation constant and
+  builders; signerless start is the only supported snapshot lifecycle.
+- Return canonical start payload bytes from `snapshotStartPayload` so callers
+  cannot accidentally reinterpret binary payload data as text.
 
 - Add signerless snapshot deployment, start, claim, transfer, and verification builders with pinned contract artifacts and transaction tests.
 - Reject conflicting explicit native covenant IDs during transfer while retaining legacy alias resolution.
