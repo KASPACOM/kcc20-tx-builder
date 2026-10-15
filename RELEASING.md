@@ -43,12 +43,12 @@ review the release first; do not create a release merely to test the workflow.
 Install the exact released version using the registry used by your CI:
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.2.5 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.5.0 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
 
-Replace `0.2.5` with the reviewed version for a later upgrade. Commit both
+Replace `0.5.0` with the reviewed version for a later upgrade. Commit both
 `package.json` and `package-lock.json`. Keep frontend and backend on the same
 exact package version. Remove any `file:../kcc20-tx-builder` resolution before
 independent CI or deployment. Run package, backend, and frontend verification
@@ -90,4 +90,4 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Snapshot release gate
 
-The current candidate is version `0.4.0`. Keep publication blocked until the release workflow and trusted-publisher configuration are verified for the final release revision. Run `test:snapshot:transactions` with the pinned WASM and close the snapshot artifact reproduction and funded-rehearsal gates before creating the `v0.4.0` tag.
+The current candidate is version `0.5.0`. Keep publication blocked until the release workflow and trusted-publisher configuration are verified for the final release revision. Run `test:snapshot:transactions` with the pinned WASM and close the snapshot artifact reproduction and funded-rehearsal gates before creating the `v0.5.0` tag.
