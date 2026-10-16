@@ -1,4 +1,7 @@
 export const KCC20_BUILDER_KEYS = [
+  "kcom-vesting.deploy",
+  "kcom-vesting.release",
+  "kcom-vesting.finish",
   "kcc20.deploy-token",
   "kcc20.mint",
   "kcc20.set-public-mint-active",

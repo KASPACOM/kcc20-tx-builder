@@ -41,3 +41,5 @@ export * from "./token-authorization.js";
 
 export * from "./profile-transfer.js";
 export * from "./transfer-payload.js";
+
+export * from "./kcom-vesting.js";

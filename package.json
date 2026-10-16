@@ -1,6 +1,6 @@
 {
   "name": "@kaspacom/kcc20-tx-builder",
-  "version": "0.5.0-lastcall.0",
+  "version": "0.5.1-kcom.2",
   "description": "Runtime-independent KCC20 covenant transaction and PSKT construction primitives.",
   "license": "Apache-2.0",
   "author": "KaspaCom",
@@ -90,7 +90,8 @@
     "prepack": "npm test",
     "test:examples": "npm run verify:compatibility && node scripts/test-examples.mjs --browser",
     "verify:compatibility": "node scripts/verify-compatibility.mjs",
-    "test:snapshot:transactions": "npm run build && node test/snapshot-transactions.mjs && node test/snapshot-claims.mjs"
+    "test:snapshot:transactions": "npm run build && node test/snapshot-transactions.mjs && node test/snapshot-claims.mjs",
+    "test:kcom-vesting": "npm run build && node test/kcom-vesting.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
