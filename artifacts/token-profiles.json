@@ -1,5 +1,5 @@
 {
-  "schema": "kcc20-token-profiles/v1",
+  "schema": "kcc20-token-profiles/v2",
   "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
   "profiles": [
     {
@@ -15,10 +15,6 @@
         "len": 112
       },
       "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
-      "review": {
-        "status": "candidate",
-        "evidence": []
-      },
       "transferEntrypoint": "transfer",
       "delegatorEntrypoint": "transfer_delegator",
       "transferTag": "79c71c23",
@@ -43,7 +39,6 @@
       ],
       "fungibility": "single-holder-class",
       "nativeExtensions": true,
-      "fundedTradingVerified": false,
       "wrapper": {
         "fingerprint": "0634803d0cb750fb555f5eccbd57d18d9638736b675caab290e46a8acdbb25dd",
         "artifactKey": "KCC20Wrapper.placeholder.json",
@@ -94,12 +89,7 @@
         "len": 112
       },
       "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
-      "review": {
-        "status": "candidate",
-        "evidence": []
-      },
       "nativeExtensions": false,
-      "fundedTradingVerified": false,
       "wrapper": {
         "fingerprint": "455772a93ec788b755a832655eee96d14050c3dfb2263a4fd8d7dd19705632d4",
         "artifactKey": "ArgentKCC20Wrapper.placeholder.json",

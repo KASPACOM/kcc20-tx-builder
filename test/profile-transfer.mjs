@@ -36,7 +36,6 @@ const entry = (marker, script, covenantId) => ({
 for (const candidate of BUNDLED_TOKEN_PROFILES.profiles) {
   const manifest = structuredClone(BUNDLED_TOKEN_PROFILES),
     profile = manifest.profiles.find((entry) => entry.id === candidate.id);
-  profile.review = { status: "approved", evidence: ["offline-test-only"] };
   const tokenProfileRegistry = { manifest, sha256: digest(manifest) };
   const artifact = JSON.parse(
     await readFile(
@@ -108,16 +107,13 @@ for (const candidate of BUNDLED_TOKEN_PROFILES.profiles) {
           tokenProfileRegistry: undefined,
           profile: {
             ...candidate,
-            review: { status: "approved", evidence: ["caller-controlled"] },
+            maxTokenInputs: candidate.maxTokenInputs + 1,
           },
         }),
       /digest mismatch/,
     );
     const changedManifest = structuredClone(manifest);
-    changedManifest.profiles.find((entry) => entry.id === candidate.id).review = {
-      status: "approved",
-      evidence: ["changed-after-authentication"],
-    };
+    changedManifest.profiles.find((entry) => entry.id === candidate.id).maxTokenInputs += 1;
     assert.throws(
       () =>
         buildProfileTransferTransaction(kw, {

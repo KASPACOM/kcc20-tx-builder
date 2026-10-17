@@ -297,7 +297,7 @@ export function createKcc20PsktBuilderEngine(
       return { version: profile.id, profile, artifact, script };
     }
     throw new Error(
-      "KCC20 UTXO address does not match an approved token profile",
+      "KCC20 UTXO address does not match a bundled token profile",
     );
   }
 
@@ -354,7 +354,7 @@ export function createKcc20PsktBuilderEngine(
       tokenProfiles.profiles
         .filter(
           (p) =>
-            p.wrapper && (p.nativeExtensions || p.review.status === "approved"),
+            p.wrapper,
         )
         .map(async (profile) => ({
           artifact: await readStaticArtifact(profile.wrapper.artifactKey),
@@ -594,18 +594,6 @@ export function createKcc20PsktBuilderEngine(
     }
 
     const builderKey = input.request?.builderKey;
-    if (
-      builderKey === "kcc20.deploy-token" ||
-      String(builderKey).startsWith("kcc20-snapshot.")
-    ) {
-      const native = tokenProfiles.profiles.find(
-        (p) => p.artifactKey === KCC20_ARTIFACT_PATH,
-      );
-      if (!native)
-        throw new Error("native token deployment profile is unavailable");
-      requireTokenCapability(native, "transfer");
-    }
-
     if (
       builderKey === "kcc20orderbook.matcher-settle-crossed" &&
       !options.allowBackendOnly
@@ -9492,7 +9480,7 @@ export function createKcc20PsktBuilderEngine(
     }
     const profile = resolvedArtifacts[0].profile;
     if (holderUtxos.length > profile.maxTokenInputs) {
-      throw new Error("consolidation exceeds the approved profile input bound");
+      throw new Error("consolidation exceeds the token profile input bound");
     }
     const artifact = resolvedArtifacts[0].artifact;
     for (const peerState of states.slice(1)) {
@@ -13294,7 +13282,7 @@ export function createKcc20PsktBuilderEngine(
     const parts = templateParts(artifact);
     const hash = bytesToHex(templateHash(parts.prefix, parts.suffix));
     const profile = tokenProfiles.profiles.find((p) => p.templateHash === hash);
-    if (!profile) throw new Error("token artifact has no reviewed profile");
+    if (!profile) throw new Error("token artifact has no bundled profile");
     return profile;
   }
 

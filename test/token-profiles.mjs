@@ -42,23 +42,17 @@ for (const profile of registry.profiles) {
   changedWrapper.abi[0].name = "malicious";
   assert.throws(
     () => authenticateTokenWrapper(profile, changedWrapper),
-    /approved profile/,
+    /bundled profile/,
   );
 }
-assert.throws(
-  () => requireTokenCapability(candidate, "transfer"),
-  /awaiting review/,
-);
+requireTokenCapability(candidate, "transfer");
 const changed = structuredClone(BUNDLED_TOKEN_PROFILES);
-changed.profiles[0].review.status = "approved";
+changed.profiles[0].maxTokenInputs += 1;
 assert.throws(
   () => validateTokenProfileRegistry(changed, BUNDLED_TOKEN_PROFILE_DIGEST),
   /digest mismatch/,
 );
-assert.throws(
-  () => validateTokenProfileRegistry(changed, digest(changed)),
-  /invalid/,
-);
+validateTokenProfileRegistry(changed, digest(changed));
 const duplicate = structuredClone(BUNDLED_TOKEN_PROFILES);
 duplicate.profiles.push(duplicate.profiles[0]);
 assert.throws(
@@ -71,12 +65,7 @@ assert.throws(
   () => authenticateTokenArtifact(candidate, altered),
   /ABI or metadata/,
 );
-// Approval here belongs only to this offline test. The shipped manifest stays a candidate.
-const approved = {
-  ...candidate,
-  review: { status: "approved", evidence: ["offline-test-fixture"] },
-  fundedTradingVerified: true,
-};
+const approved = candidate;
 const base = {
   profile: approved,
   authenticated: true,
@@ -87,16 +76,11 @@ const base = {
 };
 assert.equal(evaluateTokenReadiness(base).status, "imported");
 for (const [input, code] of [
-  [{ profile: undefined }, "TEMPLATE_REVIEW_REQUIRED"],
-  [{ profile: candidate }, "TEMPLATE_REVIEW_REQUIRED"],
+  [{ profile: undefined }, "TOKEN_PROFILE_UNAVAILABLE"],
   [{ authenticated: false }, "TOKEN_EVIDENCE_UNAVAILABLE"],
   [{ singleHolderClass: false }, "HOLDER_CLASS_UNSUPPORTED"],
   [{ decimals: 9 }, "TRADING_PRECISION_UNSUPPORTED"],
   [{ wrapper: "indexing" }, "WRAPPER_INDEXING"],
-  [
-    { profile: { ...approved, fundedTradingVerified: false } },
-    "TRADING_PROFILE_UNVERIFIED",
-  ],
   [{ tokenVerified: false }, "TOKEN_VERIFICATION_REQUIRED"],
 ])
   assert.equal(evaluateTokenReadiness({ ...base, ...input }).reasonCode, code);
@@ -223,11 +207,7 @@ const independent = registry.profiles.find(
   (p) => p.id === "argent-reference-kcc20-v1",
 );
 assert(independent && !independent.nativeExtensions);
-const approvedIndependent = {
-  ...independent,
-  review: { status: "approved", evidence: ["offline-test"] },
-  fundedTradingVerified: true,
-};
+const approvedIndependent = independent;
 assert.equal(
   evaluateTokenReadiness({
     ...base,
@@ -258,13 +238,12 @@ authenticateTokenArtifact(independent, externalArtifact);
 assert.notEqual(independent.scriptLength, candidate.scriptLength);
 assert.notEqual(independent.stateLayout.start, candidate.stateLayout.start);
 assert.equal(independent.maxTokenInputs, 3);
-assert.throws(() => requireTokenCapability(independent, "transfer"), /review/);
+requireTokenCapability(independent, "transfer");
 assert.throws(
   () =>
     requireTokenCapability(
       {
         ...independent,
-        review: { status: "approved", evidence: ["offline-test"] },
       },
       "mint",
     ),
