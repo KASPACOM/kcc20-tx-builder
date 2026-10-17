@@ -193,8 +193,7 @@ function validateSelection(manifest: KcomClaimEligibilityManifest, selection: Kc
   check([1, 2, 3].includes(selection.tier), "invalid tier"); authority(selection.beneficiary);
   return manifest.leaves[selection.leafIndex];
 }
-export function reviewKcomClaimSelection(manifest: KcomClaimEligibilityManifest, selection: KcomClaimSelection) {
-  verifyKcomClaimManifest(manifest, manifest.contentHash);
+function selectionReview(manifest: KcomClaimEligibilityManifest, selection: KcomClaimSelection) {
   const leaf = validateSelection(manifest, selection), nullifier = kcomClaimNullifier(manifest.campaignId, leaf.authority);
   return {
     status: "offline-review-not-authorized-or-submitted" as const,
@@ -202,6 +201,21 @@ export function reviewKcomClaimSelection(manifest: KcomClaimEligibilityManifest,
     nullifier, requiresOriginalAuthorityAuthorization: true as const,
     selectionDigest: digest("selection", hexToBytes(manifest.campaignId), hexToBytes(manifest.root), hexToBytes(nullifier), new Uint8Array([selection.tier, selection.beneficiary.scheme]), hexToBytes(selection.beneficiary.identifier)),
   };
+}
+export function reviewKcomClaimSelection(manifest: KcomClaimEligibilityManifest, selection: KcomClaimSelection) {
+  verifyKcomClaimManifest(manifest, manifest.contentHash);
+  return selectionReview(manifest, selection);
+}
+/** Validates once against the external trust anchor and captures an isolated snapshot.
+ * Returned reviews are O(1) in manifest size and are still unsigned/offline.
+ */
+export function createKcomClaimSelectionReviewer(manifest: KcomClaimEligibilityManifest, expectedContentHash: string) {
+  verifyKcomClaimManifest(manifest, expectedContentHash);
+  const snapshot = structuredClone(manifest);
+  return Object.freeze({
+    manifestHash: snapshot.contentHash,
+    review: (selection: KcomClaimSelection) => selectionReview(snapshot, selection),
+  });
 }
 export function settleKcomClaimReference(manifest: KcomClaimEligibilityManifest, selections: readonly KcomClaimSelection[]) {
   verifyKcomClaimManifest(manifest, manifest.contentHash);

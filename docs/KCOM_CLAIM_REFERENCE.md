@@ -42,3 +42,5 @@ The suite includes 1/3/5-leaf independent Python BLAKE3/SHA256 vectors and 64 in
 The 1,000-equal-wallet case uses 100 Short, 200 Medium, 300 Long and 400 unclaimed. At eight decimals Short receives 2M, Medium 16M, Long 81,999,999.999996 KCOM, and treasury receives 400 raw units (0.000004 KCOM) from independently floored shares. Together they total exactly 100M.
 
 ESM/CommonJS exports agree. Tests also cover aliases, tampered shares/hashes/proofs, wrong campaigns, unsupported schemes, canonical integer limits, redirected identities, duplicate selections and full-allocation activation accounting. No funded campaign or application deployment is established by these checks.
+
+For server previews, `createKcomClaimSelectionReviewer(manifest, expectedHash)` validates the external trust anchor once and captures an isolated copy. Each returned `review` validates only the bounded selection fields and hashes its fixed-size terms. Mutating the caller's original manifest cannot change that snapshot. This avoids hashing an entire 10,000-wallet tree for each preview request; it does not bypass initial manifest verification or authorize a claim.

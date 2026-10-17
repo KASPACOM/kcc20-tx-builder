@@ -249,3 +249,14 @@ test("independent Python allocation vectors cover all 64 absent/Short/Medium/Lon
     for (let i = 0; i < row.allocations.length; i++) for (const [key, expected] of Object.entries(row.allocations[i])) assert.equal(result.allocations[i][key], expected);
   }
 });
+test("cached selection reviewer authenticates once, isolates caller mutations and preserves unsigned review semantics", async () => {
+  const { createKcomClaimSelectionReviewer } = await import("../dist/index.js");
+  const m = make(1000), choice = selection(999, 3);
+  const expected = reviewKcomClaimSelection(m, choice);
+  const reviewer = createKcomClaimSelectionReviewer(m, m.contentHash);
+  m.leaves[999].authority.identifier = hex(222);
+  m.root = hex(333);
+  assert.deepEqual(reviewer.review(choice), expected);
+  assert.throws(() => reviewer.review(selection(1000, 3)), /out of range/);
+  assert.throws(() => createKcomClaimSelectionReviewer(make(), hex(99)), /trusted hash/);
+});
