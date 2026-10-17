@@ -10,11 +10,12 @@ import {
   network,
 } from "../shared/build.ts";
 import { fixture, recipient } from "../shared/fixture.ts";
+import { createOfflineBuilder } from "../shared/offline-profile.ts";
 const wasm = await runtime();
 const mode = process.argv[2] ?? "offline";
 if (mode === "offline") {
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const deploy = await build(deployOperation(data.wallet));
   const transfer = await build(
     transferOperation(data.wallet, data.addDeploy(deploy), recipient),

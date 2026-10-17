@@ -370,6 +370,7 @@ export function buildKcc20WrapperMarketDeployOperation(
   input: {
     canonicalCovenantId: string;
     contractCanonicalCovenantId?: string | null;
+    tokenUtxo: Kcc20IndexedCovenantUtxo;
     tokenDecimals?: number | null;
     wrappedRootAmount?: string;
     feeTicketId?: string | null;
@@ -403,6 +404,7 @@ export function buildKcc20WrapperMarketDeployOperation(
       params: {
         canonicalCovenantId: appCanonicalId,
         contractCanonicalCovenantId: contractCanonicalId,
+        tokenUtxo: input.tokenUtxo,
         feeTicketId,
         wrappedRootAmount: rootAmount,
         priceScale: kcc20DisplayScaleForDecimals(decimals).toString(),

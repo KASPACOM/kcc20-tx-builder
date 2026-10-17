@@ -12,6 +12,7 @@ import {
   type Built,
 } from "../shared/build.ts";
 import { fixture, recipient } from "../shared/fixture.ts";
+import { createOfflineBuilder } from "../shared/offline-profile.ts";
 import { attachScripts, signingInputs } from "../shared/signing.ts";
 const status = document.querySelector("#status")!;
 const output = document.querySelector("#result")!;
@@ -60,7 +61,7 @@ async function clear() {
 export async function offline() {
   const wasm = await runtime();
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const deploy = await build(deployOperation(data.wallet));
   const transfer = await build(
     transferOperation(data.wallet, data.addDeploy(deploy), recipient),

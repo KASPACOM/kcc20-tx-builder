@@ -11,6 +11,7 @@ import {
   type Runtime,
 } from "../shared/build.ts";
 import { fixture, recipient } from "../shared/fixture.ts";
+import { createOfflineBuilder } from "../shared/offline-profile.ts";
 import { attachScripts, signingInputs } from "../shared/signing.ts";
 const wasm = await runtime();
 // Offline construction must not silently fall back to any backend or RPC.
@@ -18,9 +19,22 @@ globalThis.fetch = async () => {
   throw new Error("Network access forbidden in offline examples");
 };
 
+test("production builder keeps bundled candidate profiles gated", async () => {
+  const data = fixture(wasm);
+  await assert.rejects(
+    createBuilder(wasm, data.sources, loadArtifact)(deployOperation(data.wallet)),
+    /awaiting review/,
+  );
+  await assert.doesNotReject(
+    createOfflineBuilder(wasm, data.sources, loadArtifact)(
+      deployOperation(data.wallet),
+    ),
+  );
+});
+
 test("build deploy and transfer with actual WASM, covenant bindings, amounts and change", async () => {
   const data = fixture(wasm);
-  const build = createBuilder(
+  const build = createOfflineBuilder(
     Object.freeze({ ...wasm }),
     data.sources,
     loadArtifact,
@@ -61,7 +75,7 @@ test("build deploy and transfer with actual WASM, covenant bindings, amounts and
 });
 test("reject missing funding, stale source, wrong owner, network and incompatible artifact/runtime", async () => {
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const operation = deployOperation(data.wallet);
   const deploy = await build(operation);
   const holder = data.addDeploy(deploy);
@@ -88,20 +102,20 @@ test("reject missing funding, stale source, wrong owner, network and incompatibl
     /holder UTXO/,
   );
   await assert.rejects(
-    createBuilder(wasm, fixture(wasm).sources, async () => ({
+    createOfflineBuilder(wasm, fixture(wasm).sources, async () => ({
       script: [1, 2],
     }))(operation),
     /hash mismatch/,
   );
   assert.throws(
-    () => createBuilder({} as Runtime, data.sources, loadArtifact),
+    () => createOfflineBuilder({} as Runtime, data.sources, loadArtifact),
     /Incompatible WASM/,
   );
 });
 
 test("reject conflicting explicit native identity, but retain legacy alias resolution", async () => {
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const holder = data.addDeploy(await build(deployOperation(data.wallet)));
   const operation = transferOperation(data.wallet, holder, recipient);
   const entry = data.rows.get(holder.address)![0];
@@ -130,7 +144,7 @@ test("reject conflicting explicit native identity, but retain legacy alias resol
 
 test("preserve witnesses outside requested signing inputs and reject malformed signatures", async () => {
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const deploy = await build(deployOperation(data.wallet));
   const holder = data.addDeploy(deploy);
   const transfer = await build(
@@ -171,7 +185,7 @@ test("preserve witnesses outside requested signing inputs and reject malformed s
 
 test("generic transfer rejects conflicting RPC scripts and KAS amounts", async () => {
   const data = fixture(wasm),
-    build = createBuilder(wasm, data.sources, loadArtifact);
+    build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const holder = data.addDeploy(await build(deployOperation(data.wallet)));
   const operation = transferOperation(data.wallet, holder, recipient);
   const row = data.rows.get(holder.address)![0];
@@ -187,7 +201,7 @@ test("reject a present funding input that cannot cover the required KAS", async 
   const data = fixture(wasm);
   data.rows.get(data.wallet.walletAddress)![0].amount = 1n;
   await assert.rejects(
-    createBuilder(
+    createOfflineBuilder(
       wasm,
       data.sources,
       loadArtifact,

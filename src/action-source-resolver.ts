@@ -1,3 +1,4 @@
+import { tokenPublicKeyHash } from "./token-authorization.js";
 export interface Kcc20IndexedCovenantUtxo {
   [field: string]: unknown;
   txidHex: string;
@@ -125,6 +126,16 @@ export function ownerNativeHolderUtxos(
   owner: string,
 ): Kcc20IndexedCovenantUtxo[] {
   const normalizedOwner = owner.toLowerCase();
+  const hashedOwner = /^[a-f0-9]{64}$/.test(normalizedOwner)
+    ? Array.from(
+        tokenPublicKeyHash(
+          Uint8Array.from(normalizedOwner.match(/../g)!, (b) =>
+            parseInt(b, 16),
+          ),
+        ),
+        (b) => b.toString(16).padStart(2, "0"),
+      ).join("")
+    : null;
   return utxos.filter((utxo) => {
     const state = utxo.state;
     const value = amount(state?.["amount"]);
@@ -132,10 +143,17 @@ export function ownerNativeHolderUtxos(
       value !== null &&
       value > 0n &&
       state?.["isMintAuthority"] !== true &&
-      numberValue(state?.["ownerScheme"] ?? state?.["identifierType"]) === 0 &&
-      stringValue(
-        state?.["ownerIdentifier"] ?? state?.["owner"],
-      )?.toLowerCase() === normalizedOwner
+      ((numberValue(state?.["ownerScheme"] ?? state?.["identifierType"]) ===
+        0 &&
+        stringValue(
+          state?.["ownerIdentifier"] ?? state?.["owner"],
+        )?.toLowerCase() === normalizedOwner) ||
+        (numberValue(state?.["ownerScheme"] ?? state?.["identifierType"]) ===
+          1 &&
+          hashedOwner !== null &&
+          stringValue(
+            state?.["ownerIdentifier"] ?? state?.["owner"],
+          )?.toLowerCase() === hashedOwner))
     );
   });
 }

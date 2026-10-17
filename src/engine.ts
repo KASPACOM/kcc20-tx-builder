@@ -1,5 +1,19 @@
 // @ts-nocheck
+import { planTokenOwnerWitness } from "./token-authorization.js";
 import { sha256 } from "@noble/hashes/sha256";
+import {
+  authenticateTokenArtifact,
+  authenticateTokenWrapper,
+  validateTokenProfileRegistry,
+  requireTokenCapability,
+  resolveTokenProfilePriceScale,
+} from "./token-profiles.js";
+import { buildAuthenticatedKcc20TransferPayload } from "./transfer-payload.js";
+import {
+  BUNDLED_TOKEN_PROFILES,
+  BUNDLED_TOKEN_PROFILE_DIGEST,
+} from "./token-profiles.generated.js";
+import type { TokenProfileRegistry } from "./token-profiles.js";
 import type { KaspaWasmRuntime } from "./runtime.js";
 import {
   DEFAULT_COMPUTE_BUDGET,
@@ -55,6 +69,7 @@ import {
   buildKcc20SetPublicMintActiveSigScript,
   buildKcc20TransferSigScript,
   dispatchTagFor,
+  templateHash,
   encodeKcc20StateRecordArrays,
   holderExtensionCommitment,
   mintExtensionCommitment,
@@ -81,6 +96,9 @@ export interface Kcc20PsktBuilderEngineOptions {
   };
   rpcClientFactory?: (config: unknown) => any;
   allowBackendOnly?: boolean;
+  walletSigningCapabilities?: { schnorr: boolean; ecdsa: boolean };
+  /** Trusted host registry; never populate this from transaction request data. */
+  tokenProfileRegistry?: { manifest: TokenProfileRegistry; sha256: string };
 }
 
 export interface FeeTicketBatchCreateCapability {
@@ -210,6 +228,10 @@ export function createKcc20PsktBuilderEngine(
   const WRAPPED_ARTIFACT_PATH = "KCC20Orderbook.placeholder.json";
   const FEE_TICKET_ARTIFACT_PATH = "KCC20FeeTicket.placeholder.json";
   const staticArtifactCache = new Map();
+  const tokenProfiles = validateTokenProfileRegistry(
+    options.tokenProfileRegistry?.manifest ?? BUNDLED_TOKEN_PROFILES,
+    options.tokenProfileRegistry?.sha256 ?? BUNDLED_TOKEN_PROFILE_DIGEST,
+  );
 
   function readStaticArtifact(path) {
     let cached = staticArtifactCache.get(path);
@@ -224,7 +246,18 @@ export function createKcc20PsktBuilderEngine(
               ? (artifact.artifact ?? artifact)
               : artifact;
           const normalized = normalizeSilverScriptArtifact(artifactValue);
-          assertKcc20ArtifactScriptHash(path, normalized);
+          const profile = tokenProfiles.profiles.find(
+            (p) => p.artifactKey === path,
+          );
+          if (profile) authenticateTokenArtifact(profile, artifactValue);
+          else {
+            const ownerProfile = tokenProfiles.profiles.find(
+              (p) => p.wrapper?.artifactKey === path,
+            );
+            if (ownerProfile)
+              authenticateTokenWrapper(ownerProfile, artifactValue);
+            else assertKcc20ArtifactScriptHash(path, normalized);
+          }
           return normalized;
         })
         .catch((error) => {
@@ -244,18 +277,28 @@ export function createKcc20PsktBuilderEngine(
   }
 
   async function resolveKcc20ArtifactForState(state, address, network) {
-    const artifact = await readStaticArtifact(KCC20_ARTIFACT_PATH);
-    const script = buildKcc20ScriptForState(artifact, state);
-    const candidateAddress = kaspaWasm
-      .addressFromScriptPublicKey(
-        kaspaWasm.payToScriptHashScript(script),
-        network,
+    for (const profile of tokenProfiles.profiles) {
+      const artifact = await readStaticArtifact(profile.artifactKey);
+      const script = buildKcc20ScriptForState(artifact, state);
+      const candidateAddress = kaspaWasm
+        .addressFromScriptPublicKey(
+          kaspaWasm.payToScriptHashScript(script),
+          network,
+        )
+        .toString();
+      if (candidateAddress !== address) continue;
+      requireTokenCapability(profile, "transfer");
+      if (
+        !profile.ownerSchemes.includes(
+          Number(state.ownerScheme ?? state.identifierType),
+        )
       )
-      .toString();
-    if (candidateAddress !== address) {
-      throw new Error("KCC20 UTXO address does not match the current artifact");
+        throw new Error("owner scheme is unsupported by this token profile");
+      return { version: profile.id, profile, artifact, script };
     }
-    return { version: "standard-native-v1", artifact, script };
+    throw new Error(
+      "KCC20 UTXO address does not match an approved token profile",
+    );
   }
 
   function artifactEntrypointDispatchTag(artifact, entrypoint) {
@@ -307,12 +350,18 @@ export function createKcc20PsktBuilderEngine(
   }
 
   async function readWrapperArtifacts() {
-    return [
-      {
-        artifact: await readStaticArtifact(WRAPPER_ARTIFACT_PATH),
-        version: "standard-native-v1",
-      },
-    ];
+    return Promise.all(
+      tokenProfiles.profiles
+        .filter(
+          (p) =>
+            p.wrapper && (p.nativeExtensions || p.review.status === "approved"),
+        )
+        .map(async (profile) => ({
+          artifact: await readStaticArtifact(profile.wrapper.artifactKey),
+          version: "standard-native-v1",
+          tokenProfileId: profile.id,
+        })),
+    );
   }
 
   function wrappedArtifactSupportsEntrypoint(info, name) {
@@ -545,6 +594,17 @@ export function createKcc20PsktBuilderEngine(
     }
 
     const builderKey = input.request?.builderKey;
+    if (
+      builderKey === "kcc20.deploy-token" ||
+      String(builderKey).startsWith("kcc20-snapshot.")
+    ) {
+      const native = tokenProfiles.profiles.find(
+        (p) => p.artifactKey === KCC20_ARTIFACT_PATH,
+      );
+      if (!native)
+        throw new Error("native token deployment profile is unavailable");
+      requireTokenCapability(native, "transfer");
+    }
 
     if (
       builderKey === "kcc20orderbook.matcher-settle-crossed" &&
@@ -872,10 +932,7 @@ export function createKcc20PsktBuilderEngine(
       payToScriptHashScript,
     } = kw;
 
-    const utilityScript = buildNativeKcc20ScriptForState(
-      kcc20Artifact.script,
-      utilityState,
-    );
+    const utilityScript = buildKcc20ScriptForState(kcc20Artifact, utilityState);
     const rootAddress = requireKaspaAddress(rootUtxo.address);
     const utilityAddress = requireKaspaAddress(utilityUtxo.address);
     const rootArtifactInfo = selectFeeTicketArtifactForState(
@@ -2606,13 +2663,7 @@ export function createKcc20PsktBuilderEngine(
       params.wrappedRootAmount ?? "0",
       "wrappedRootAmount",
     );
-    const priceScale = parsePositiveU64(
-      params.priceScale ??
-        params.tokenDisplayScale ??
-        DEFAULT_KCC20_PRICE_SCALE,
-      "priceScale",
-    );
-    assertWrapperArtifactPriceScale(priceScale);
+    const requestedPriceScale = params.priceScale ?? params.tokenDisplayScale;
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
     const rpcUrl = env.KASPA_WRPC_URL || DEFAULT_WRPC_URL;
@@ -2630,7 +2681,31 @@ export function createKcc20PsktBuilderEngine(
       "computeBudget",
     );
 
-    const wrapperArtifact = await readStaticArtifact(WRAPPER_ARTIFACT_PATH);
+    const evidence = params.tokenUtxo;
+    if (!evidence)
+      throw new Error(
+        "authenticated token output is required before wrapper deployment",
+      );
+    const sourceState = kcc20StateFromUtxo(evidence, request.owner);
+    const sourceProfile = await resolveKcc20ArtifactForState(
+      sourceState,
+      requireKaspaAddress(evidence.address),
+      network,
+    );
+    requireTokenCapability(sourceProfile.profile, "wrap");
+    if (!sourceProfile.profile.wrapper)
+      throw new Error("token profile has no wrapper adapter");
+    const priceScale = resolveTokenProfilePriceScale(
+      sourceProfile.profile,
+      requestedPriceScale === undefined
+        ? undefined
+        : parsePositiveU64(requestedPriceScale, "priceScale"),
+      DEFAULT_KCC20_PRICE_SCALE,
+    );
+    assertWrapperArtifactPriceScale(priceScale);
+    const wrapperArtifact = await readStaticArtifact(
+      sourceProfile.profile.wrapper.artifactKey,
+    );
     const wrappedArtifacts = await readWrappedArtifacts();
     const wrappedArtifact = wrappedArtifacts[0].artifact;
     const wrapperState = {
@@ -2688,6 +2763,29 @@ export function createKcc20PsktBuilderEngine(
     });
     await rpc.connect();
     try {
+      const evidenceUtxos = await getUtxosByAddresses(rpc, [evidence.address]);
+      const sourceEntry = findUtxoEntry(
+        evidenceUtxos.entries,
+        requireHex32(evidence.txidHex, "token evidence txid"),
+        parseVout(evidence.vout, "token evidence vout"),
+      );
+      if (!sourceEntry)
+        throw new Error("token evidence is spent or unavailable");
+      requireMatchingCovenantId(
+        sourceEntry,
+        contractCanonicalTokenId,
+        "wrapper token evidence",
+      );
+      const sourceSpk =
+        sourceEntry.scriptPublicKey ??
+        sourceEntry.entry?.scriptPublicKey ??
+        sourceEntry.utxoEntry?.scriptPublicKey;
+      if (
+        !sourceSpk ||
+        kw.addressFromScriptPublicKey(sourceSpk, network)?.toString() !==
+          evidence.address
+      )
+        throw new Error("token evidence script does not match RPC");
       const utxos = await getUtxosByAddresses(rpc, [walletAddress]);
       const fundingEntry = selectFundingEntry(
         utxos.entries,
@@ -2812,6 +2910,10 @@ export function createKcc20PsktBuilderEngine(
         submitTransactionSupported: true,
         metadata: {
           builderKey: "kcc20wrapper.deploy-market",
+          tokenProfileId: sourceProfile.profile.id,
+          tokenProfileRegistryHash:
+            options.tokenProfileRegistry?.sha256 ??
+            BUNDLED_TOKEN_PROFILE_DIGEST,
           contract: "KCC20Wrapper",
           network,
           walletAddress,
@@ -2966,6 +3068,7 @@ export function createKcc20PsktBuilderEngine(
       network,
     );
     const kcc20Artifact = kcc20ArtifactInfo.artifact;
+    requireTokenCapability(kcc20ArtifactInfo.profile, "wrap");
     const remaining = holderState.amount - tokenAmount;
     const priceScale = parsePositiveU64(
       wrapperUtxo.state?.priceScale ??
@@ -3007,7 +3110,9 @@ export function createKcc20PsktBuilderEngine(
 
     const wrapperArtifactInfo = selectWrapperArtifactForUtxo({
       kw,
-      artifacts: wrapperArtifacts,
+      artifacts: wrapperArtifacts.filter(
+        (info) => info.tokenProfileId === kcc20ArtifactInfo.profile.id,
+      ),
       state: wrapperState,
       utxo: wrapperUtxo,
       network,
@@ -3024,10 +3129,7 @@ export function createKcc20PsktBuilderEngine(
     const wrapperArtifact = wrapperArtifactInfo.artifact;
     const wrappedArtifact = wrappedArtifactInfo.artifact;
     const wrapperScript = wrapperArtifactInfo.script;
-    const holderScript = buildNativeKcc20ScriptForState(
-      kcc20Artifact.script,
-      holderState,
-    );
+    const holderScript = buildKcc20ScriptForState(kcc20Artifact, holderState);
     const wrapperAddress = requireKaspaAddress(wrapperUtxo.address);
     const holderAddress = requireKaspaAddress(holderUtxo.address);
     assertScriptAddress(
@@ -3072,7 +3174,7 @@ export function createKcc20PsktBuilderEngine(
           (entries) =>
             Boolean(
               findUtxoEntry(entries, wrapperTxid, wrapperVout) &&
-              findUtxoEntry(entries, holderTxid, holderVout),
+                findUtxoEntry(entries, holderTxid, holderVout),
             ),
           covenantUtxos,
         );
@@ -3375,6 +3477,7 @@ export function createKcc20PsktBuilderEngine(
       network,
     );
     const kcc20Artifact = kcc20ArtifactInfo.artifact;
+    requireTokenCapability(kcc20ArtifactInfo.profile, "unwrap");
     const wrappedState = kcc20V3WrappedStateFromUtxo(
       wrappedUtxo,
       canonicalTokenId,
@@ -3442,7 +3545,9 @@ export function createKcc20PsktBuilderEngine(
 
     const wrapperArtifactInfo = selectWrapperArtifactForUtxo({
       kw,
-      artifacts: wrapperArtifacts,
+      artifacts: wrapperArtifacts.filter(
+        (info) => info.tokenProfileId === kcc20ArtifactInfo.profile.id,
+      ),
       state: wrapperState,
       utxo: wrapperUtxo,
       network,
@@ -3467,10 +3572,7 @@ export function createKcc20PsktBuilderEngine(
     const wrappedScript = wrappedArtifactInfo.script;
     const refundAware =
       wrappedArtifactRefundsHolderDeposits(wrappedArtifactInfo);
-    const reserveScript = buildNativeKcc20ScriptForState(
-      kcc20Artifact.script,
-      reserveState,
-    );
+    const reserveScript = buildKcc20ScriptForState(kcc20Artifact, reserveState);
     const wrapperAddress = wrapperArtifactInfo.address;
     const wrappedAddress = wrappedArtifactInfo.address;
     const reserveAddress = requireKaspaAddress(reserveUtxo.address);
@@ -8621,6 +8723,7 @@ export function createKcc20PsktBuilderEngine(
       minterAddress,
       network,
     );
+    requireTokenCapability(resolvedArtifact.profile, "mint");
     const artifact = resolvedArtifact.artifact;
     const recipientState = {
       amount: mintAmount,
@@ -9056,6 +9159,7 @@ export function createKcc20PsktBuilderEngine(
             minterAddress,
             network,
           );
+          requireTokenCapability(resolvedArtifact.profile, "mint");
           dispatchTagFor(resolvedArtifact.artifact, "set_public_mint_active");
           const minterTxid = requireHex32(
             activeMinterUtxo.txidHex,
@@ -9385,6 +9489,10 @@ export function createKcc20PsktBuilderEngine(
       )
     ) {
       throw new Error("consolidation requires holder UTXOs from one artifact");
+    }
+    const profile = resolvedArtifacts[0].profile;
+    if (holderUtxos.length > profile.maxTokenInputs) {
+      throw new Error("consolidation exceeds the approved profile input bound");
     }
     const artifact = resolvedArtifacts[0].artifact;
     for (const peerState of states.slice(1)) {
@@ -9835,14 +9943,6 @@ export function createKcc20PsktBuilderEngine(
     if (inputState.isMintAuthority || inputState.amount <= 0n) {
       throw new Error("KCC20 transfer requires a holder UTXO");
     }
-    if (inputState.ownerScheme !== 0) {
-      throw new Error("KCC20 transfer requires a Schnorr P2PK holder UTXO");
-    }
-    if (bytesToHex(inputState.ownerIdentifier) !== owner) {
-      throw new Error(
-        "KCC20 transfer requires wallet to own the active holder UTXO",
-      );
-    }
     if (transferAmount > inputState.amount) {
       throw new Error("tokenAmount exceeds active holder balance");
     }
@@ -9856,6 +9956,25 @@ export function createKcc20PsktBuilderEngine(
       network,
     );
     const artifact = resolvedArtifact.artifact;
+    if (params.mode && params.mode !== "owner")
+      throw new Error(
+        "borrowed receive requires the explicit borrow transaction builder",
+      );
+    const authorization = planTokenOwnerWitness({
+      profile: resolvedArtifact.profile,
+      owner: bytesToHex(inputState.ownerIdentifier),
+      ownerScheme: inputState.ownerScheme,
+      publicKey: request.owner?.publicKey ?? request.owner?.kcc20Owner,
+      capabilities: options.walletSigningCapabilities ?? {
+        schnorr: true,
+        ecdsa: false,
+      },
+      role: "leader",
+    });
+    if (!resolvedArtifact.profile.ownerSchemes.includes(recipientOwnerScheme))
+      throw new Error(
+        "recipient owner scheme is unsupported by the token profile",
+      );
     const recipientState = {
       ...inputState,
       owner: hexToBytes(recipientOwner),
@@ -9901,18 +10020,28 @@ export function createKcc20PsktBuilderEngine(
           `active holder UTXO ${tokenTxid}:${tokenVout} not found`,
         );
       }
-      const rpcScript = tokenEntry.scriptPublicKey ??
-        tokenEntry.entry?.scriptPublicKey ?? tokenEntry.utxoEntry?.scriptPublicKey;
-      if (!rpcScript || kw.addressFromScriptPublicKey(rpcScript, network)?.toString() !== tokenAddress) {
-        throw new Error("active holder RPC script does not match rebuilt covenant state");
+      const rpcScript =
+        tokenEntry.scriptPublicKey ??
+        tokenEntry.entry?.scriptPublicKey ??
+        tokenEntry.utxoEntry?.scriptPublicKey;
+      if (
+        !rpcScript ||
+        kw.addressFromScriptPublicKey(rpcScript, network)?.toString() !==
+          tokenAddress
+      ) {
+        throw new Error(
+          "active holder RPC script does not match rebuilt covenant state",
+        );
       }
-      if (activeHolderUtxo.amountSompi != null &&
-          BigInt(activeHolderUtxo.amountSompi) !== utxoAmountSompi(tokenEntry)) {
+      if (
+        activeHolderUtxo.amountSompi != null &&
+        BigInt(activeHolderUtxo.amountSompi) !== utxoAmountSompi(tokenEntry)
+      ) {
         throw new Error("active holder KAS amount does not match RPC");
       }
       const spendCovenantId = params.activeHolderNativeCovenantId
         ? requireMatchingCovenantId(tokenEntry, covenantId, "active holder")
-        : covenantIdFromUtxoEntry(tokenEntry) ?? covenantId;
+        : (covenantIdFromUtxoEntry(tokenEntry) ?? covenantId);
 
       let outputSompi = 0n;
       const recipientOutputIndex = 0;
@@ -9991,9 +10120,9 @@ export function createKcc20PsktBuilderEngine(
         outputs,
         subnetworkId: SUBNETWORK_ID_NATIVE,
         gas: 0n,
-        payload: buildTransferPayload({
+        payload: buildAuthenticatedKcc20TransferPayload({
           covenantId: spendCovenantId,
-          fromOwner: owner,
+          fromOwnerIdentifier: bytesToHex(inputState.ownerIdentifier),
           recipientOwner,
           recipientOwnerScheme,
           tokenAmount: transferAmount,
@@ -10007,11 +10136,13 @@ export function createKcc20PsktBuilderEngine(
           inputIndex: 0,
           scriptHex: bytesToHex(tokenScript),
           signType: 1,
+          signatureAlgorithm: authorization.signatureAlgorithm,
           signatureScript: {
             mode: "ordered-args",
             args: kcc20TransferOrderedArgs(
               artifact,
               changeState ? [recipientState, changeState] : [recipientState],
+              authorization.argument,
             ),
           },
         },
@@ -10038,6 +10169,10 @@ export function createKcc20PsktBuilderEngine(
         scripts,
         submitTransactionSupported: true,
         metadata: {
+          tokenProfileId: resolvedArtifact.profile.id,
+          tokenProfileRegistryHash:
+            options.tokenProfileRegistry?.sha256 ??
+            BUNDLED_TOKEN_PROFILE_DIGEST,
           builderKey: "kcc20.transfer",
           operation: "transfer-token",
           action: "transfer",
@@ -11253,37 +11388,6 @@ export function createKcc20PsktBuilderEngine(
             { name: "covenantId", type: "byte[32]", value: fields.covenantId },
             { name: "revealMode", type: "string", value: fields.revealMode },
             { name: "owner", type: "byte[32]", value: fields.owner },
-            {
-              name: "tokenAmount",
-              type: "u64",
-              value: fields.tokenAmount.toString(),
-            },
-          ],
-        },
-      }),
-    );
-  }
-
-  function buildTransferPayload(fields) {
-    return new TextEncoder().encode(
-      JSON.stringify({
-        tn12: {
-          v: 1,
-          tmpl: "KCC20",
-          op: "transfer",
-          args: [
-            { name: "covenantId", type: "byte[32]", value: fields.covenantId },
-            { name: "fromOwner", type: "byte[32]", value: fields.fromOwner },
-            {
-              name: "recipientOwner",
-              type: "byte[32]",
-              value: fields.recipientOwner,
-            },
-            {
-              name: "recipientOwnerScheme",
-              type: "u64",
-              value: String(fields.recipientOwnerScheme),
-            },
             {
               name: "tokenAmount",
               type: "u64",
@@ -13046,9 +13150,9 @@ export function createKcc20PsktBuilderEngine(
     );
     const publicMintActive = Boolean(
       source.publicMintActive ??
-      state.publicMintActive ??
-      mintPolicy.publicMintActive ??
-      false,
+        state.publicMintActive ??
+        mintPolicy.publicMintActive ??
+        false,
     );
     const extension = {
       kind: Number(source.kind ?? 1),
@@ -13186,20 +13290,41 @@ export function createKcc20PsktBuilderEngine(
     return values;
   }
 
-  function kcc20TransferOrderedArgs(artifact, nextStates) {
+  function profileForArtifact(artifact) {
+    const parts = templateParts(artifact);
+    const hash = bytesToHex(templateHash(parts.prefix, parts.suffix));
+    const profile = tokenProfiles.profiles.find((p) => p.templateHash === hash);
+    if (!profile) throw new Error("token artifact has no reviewed profile");
+    return profile;
+  }
+
+  function kcc20TransferOrderedArgs(artifact, nextStates, witness) {
+    const profile = profileForArtifact(artifact);
+    if (nextStates.length > profile.maxTokenOutputs)
+      throw new Error("transfer exceeds profile output bound");
     const fields =
       encodeKcc20StateRecordArrays(nextStates).map(dataTemplateArg);
     return [
       ...fields,
-      { type: "signature", prefixHex: "00" },
-      dataTemplateArg(dispatchTagFor(artifact, "transfer")),
+      witness ?? { type: "signature", prefixHex: "00" },
+      dataTemplateArg(
+        dispatchTagFor(
+          artifact,
+          profileForArtifact(artifact).transferEntrypoint,
+        ),
+      ),
     ];
   }
 
   function kcc20TransferDelegatorOrderedArgs(artifact) {
     return [
       { type: "signature" },
-      dataTemplateArg(dispatchTagFor(artifact, "transfer_delegator")),
+      dataTemplateArg(
+        dispatchTagFor(
+          artifact,
+          profileForArtifact(artifact).delegatorEntrypoint,
+        ),
+      ),
     ];
   }
 

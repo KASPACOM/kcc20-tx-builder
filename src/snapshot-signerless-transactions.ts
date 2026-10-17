@@ -61,10 +61,7 @@ export function buildSnapshotKcc20DeploymentPayload({
   if (normalizedProtocolFeeBps > 10_000n) {
     throw new Error("snapshot token protocol fee bps exceeds 10000");
   }
-  const normalizedMigrationId = hex32(
-    migrationId,
-    "snapshot migration id",
-  );
+  const normalizedMigrationId = hex32(migrationId, "snapshot migration id");
   const normalizedManifestCommitment = hex32(
     manifestCommitment,
     "snapshot manifest commitment",
@@ -132,11 +129,7 @@ export function buildSnapshotKcc20DeploymentPayload({
     claimArg("displayScale", "u64", normalizedDisplayScale.toString()),
     claimArg("mintPriceSompi", "u64", "0"),
     claimArg("treasury", "byte[32]", normalizedTreasury),
-    claimArg(
-      "protocolFeeRecipient",
-      "byte[32]",
-      normalizedFeeRecipient,
-    ),
+    claimArg("protocolFeeRecipient", "byte[32]", normalizedFeeRecipient),
     claimArg("protocolFeeBps", "u64", normalizedProtocolFeeBps.toString()),
     claimArg("ticker", "string", normalizedTicker),
     claimArg("name", "string", normalizedName),
@@ -780,9 +773,7 @@ function fixedText32(value, label) {
 }
 
 function bytesHex(value) {
-  return [...value]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return [...value].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function transactionOf(kw, inputs, outputs, lockTime, payload) {
@@ -968,10 +959,10 @@ function setP2shSignatureScript(
   revealScript,
   prefix,
 ) {
-  transaction.inputs[inputIndex].signatureScript =
-    kw.ScriptBuilder.fromScript(
-      revealScript,
-    ).encodePayToScriptHashSignatureScript(prefix);
+  transaction.inputs[inputIndex].signatureScript = kw.ScriptBuilder.fromScript(
+    revealScript,
+    { flags: { covenantsEnabled: true } },
+  ).encodePayToScriptHashSignatureScript(prefix);
 }
 
 function unsignedEnvelope(kw, transaction, intent, signInputs) {

@@ -1,13 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { runtime, loadArtifact } from "../backend/runtime.ts";
-import { createBuilder, deployOperation, network } from "../shared/build.ts";
+import { deployOperation, network } from "../shared/build.ts";
 import { fixture, recipient } from "../shared/fixture.ts";
+import { createOfflineBuilder } from "../shared/offline-profile.ts";
 import { liveTransferOperation } from "../shared/live-transfer.ts";
 const wasm = await runtime();
 async function setup() {
   const data = fixture(wasm);
-  const build = createBuilder(wasm, data.sources, loadArtifact);
+  const build = createOfflineBuilder(wasm, data.sources, loadArtifact);
   const holder = data.addDeploy(await build(deployOperation(data.wallet)));
   const config = {
     network,

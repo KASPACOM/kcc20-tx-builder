@@ -7,6 +7,7 @@ import {
   isKcc20ArtifactKey,
 } from "@kaspacom/kcc20-tx-builder/artifacts";
 import type { Kcc20IndexedCovenantUtxo } from "@kaspacom/kcc20-tx-builder/action-source-resolver";
+import type { AuthenticatedTokenProfileRegistry } from "@kaspacom/kcc20-tx-builder/token-profiles";
 import type * as Wasm from "../vendor/kaspa/kaspa.js";
 
 export const network = "testnet-10";
@@ -74,6 +75,7 @@ export function createBuilder(
   wasm: Runtime,
   sources: Sources,
   loadArtifact: (key: string) => Promise<unknown>,
+  options: { tokenProfileRegistry?: AuthenticatedTokenProfileRegistry } = {},
 ) {
   for (const key of [
     "Transaction",
@@ -99,6 +101,7 @@ export function createBuilder(
       assertKcc20ArtifactScriptHash(key, artifact);
       return artifact;
     },
+    tokenProfileRegistry: options.tokenProfileRegistry,
   });
   return async (operation: Operation): Promise<Built> => {
     const result = await engine.build(engineInput(operation));
