@@ -748,12 +748,7 @@ if (!backendOnlyRejected) {
 
 let parsedOnlySnapshotArtifactRejected = false;
 try {
-  // Offline fixture approval isolates artifact validation from the release gate.
   const fixtureRegistry = structuredClone(BUNDLED_TOKEN_PROFILES);
-  fixtureRegistry.profiles[0].review = {
-    status: "approved",
-    evidence: ["offline-smoke-fixture"],
-  };
   await createKcc20PsktBuilderEngine({
     tokenProfileRegistry: {
       manifest: fixtureRegistry,

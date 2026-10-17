@@ -19,11 +19,10 @@ globalThis.fetch = async () => {
   throw new Error("Network access forbidden in offline examples");
 };
 
-test("production builder keeps bundled candidate profiles gated", async () => {
+test("production and offline builders use the same bundled profile", async () => {
   const data = fixture(wasm);
-  await assert.rejects(
+  await assert.doesNotReject(
     createBuilder(wasm, data.sources, loadArtifact)(deployOperation(data.wallet)),
-    /awaiting review/,
   );
   await assert.doesNotReject(
     createOfflineBuilder(wasm, data.sources, loadArtifact)(

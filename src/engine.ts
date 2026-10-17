@@ -297,7 +297,7 @@ export function createKcc20PsktBuilderEngine(
       return { version: profile.id, profile, artifact, script };
     }
     throw new Error(
-      "KCC20 UTXO address does not match an approved token profile",
+      "KCC20 UTXO address does not match a bundled token profile",
     );
   }
 
@@ -349,19 +349,13 @@ export function createKcc20PsktBuilderEngine(
     ];
   }
 
-  async function readWrapperArtifacts() {
-    return Promise.all(
-      tokenProfiles.profiles
-        .filter(
-          (p) =>
-            p.wrapper && (p.nativeExtensions || p.review.status === "approved"),
-        )
-        .map(async (profile) => ({
-          artifact: await readStaticArtifact(profile.wrapper.artifactKey),
-          version: "standard-native-v1",
-          tokenProfileId: profile.id,
-        })),
-    );
+  async function readWrapperArtifacts(profile) {
+    if (!profile.wrapper) return [];
+    return [{
+      artifact: await readStaticArtifact(profile.wrapper.artifactKey),
+      version: "standard-native-v1",
+      tokenProfileId: profile.id,
+    }];
   }
 
   function wrappedArtifactSupportsEntrypoint(info, name) {
@@ -594,18 +588,6 @@ export function createKcc20PsktBuilderEngine(
     }
 
     const builderKey = input.request?.builderKey;
-    if (
-      builderKey === "kcc20.deploy-token" ||
-      String(builderKey).startsWith("kcc20-snapshot.")
-    ) {
-      const native = tokenProfiles.profiles.find(
-        (p) => p.artifactKey === KCC20_ARTIFACT_PATH,
-      );
-      if (!native)
-        throw new Error("native token deployment profile is unavailable");
-      requireTokenCapability(native, "transfer");
-    }
-
     if (
       builderKey === "kcc20orderbook.matcher-settle-crossed" &&
       !options.allowBackendOnly
@@ -3044,10 +3026,7 @@ export function createKcc20PsktBuilderEngine(
       "computeBudget",
     );
 
-    const [wrapperArtifacts, wrappedArtifacts] = await Promise.all([
-      readWrapperArtifacts(),
-      readWrappedArtifacts(),
-    ]);
+    const wrappedArtifacts = await readWrappedArtifacts();
     const holderState = kcc20StateFromUtxo(holderUtxo, request.owner);
     if (holderState.identifierType !== 0) {
       throw new Error("wrap requires pubkey-owned KCC20 holder UTXO");
@@ -3069,6 +3048,7 @@ export function createKcc20PsktBuilderEngine(
     );
     const kcc20Artifact = kcc20ArtifactInfo.artifact;
     requireTokenCapability(kcc20ArtifactInfo.profile, "wrap");
+    const wrapperArtifacts = await readWrapperArtifacts(kcc20ArtifactInfo.profile);
     const remaining = holderState.amount - tokenAmount;
     const priceScale = parsePositiveU64(
       wrapperUtxo.state?.priceScale ??
@@ -3460,10 +3440,7 @@ export function createKcc20PsktBuilderEngine(
       "computeBudget",
     );
 
-    const [wrapperArtifacts, wrappedArtifacts] = await Promise.all([
-      readWrapperArtifacts(),
-      readWrappedArtifacts(),
-    ]);
+    const wrappedArtifacts = await readWrappedArtifacts();
     const reserveState = kcc20StateFromUtxo(reserveUtxo, request.owner);
     if (reserveState.ownerScheme !== 4 || reserveState.isMintAuthority) {
       throw new Error("KCC20 reserve UTXO must be covenant-owned holder state");
@@ -3478,6 +3455,7 @@ export function createKcc20PsktBuilderEngine(
     );
     const kcc20Artifact = kcc20ArtifactInfo.artifact;
     requireTokenCapability(kcc20ArtifactInfo.profile, "unwrap");
+    const wrapperArtifacts = await readWrapperArtifacts(kcc20ArtifactInfo.profile);
     const wrappedState = kcc20V3WrappedStateFromUtxo(
       wrappedUtxo,
       canonicalTokenId,
@@ -9492,7 +9470,7 @@ export function createKcc20PsktBuilderEngine(
     }
     const profile = resolvedArtifacts[0].profile;
     if (holderUtxos.length > profile.maxTokenInputs) {
-      throw new Error("consolidation exceeds the approved profile input bound");
+      throw new Error("consolidation exceeds the token profile input bound");
     }
     const artifact = resolvedArtifacts[0].artifact;
     for (const peerState of states.slice(1)) {
@@ -13294,7 +13272,7 @@ export function createKcc20PsktBuilderEngine(
     const parts = templateParts(artifact);
     const hash = bytesToHex(templateHash(parts.prefix, parts.suffix));
     const profile = tokenProfiles.profiles.find((p) => p.templateHash === hash);
-    if (!profile) throw new Error("token artifact has no reviewed profile");
+    if (!profile) throw new Error("token artifact has no bundled profile");
     return profile;
   }
 
