@@ -104,10 +104,26 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           INTEGRITY: ${{ steps.pack.outputs.integrity }}
         run: |
-          for registry in https://registry.npmjs.org/ https://npm.pkg.github.com/; do
-            actual=$(npm view "@kaspacom/kcc20-tx-builder@$VERSION" dist.integrity --parseable --registry="$registry" --@kaspacom:registry="$registry")
-            test "$actual" = "$INTEGRITY" || { echo "registry contents differ: $registry"; exit 1; }
+          for attempt in $(seq 1 60); do
+            pending=0
+            for registry in https://registry.npmjs.org/ https://npm.pkg.github.com/; do
+              actual=$(npm view "@kaspacom/kcc20-tx-builder@$VERSION" dist.integrity --parseable --prefer-online --registry="$registry" --@kaspacom:registry="$registry" 2>/dev/null || true)
+              if [ -z "$actual" ]; then
+                pending=1
+              elif [ "$actual" != "$INTEGRITY" ]; then
+                echo "registry contents differ: $registry"
+                exit 1
+              fi
+            done
+            if [ "$pending" -eq 0 ]; then
+              echo "Both registries expose version $VERSION with matching integrity"
+              exit 0
+            fi
+            echo "Registry metadata is processing ($attempt/60)"
+            sleep 10
           done
+          echo 'Registry metadata did not become available within 10 minutes'
+          exit 1
       - name: Create matching GitHub Release
         if: steps.version.outputs.publish == 'true'
         env:
