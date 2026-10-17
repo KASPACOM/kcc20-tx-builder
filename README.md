@@ -7,7 +7,7 @@ frontend and the Node backend.
 ## Install
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.5.0 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.6.0 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
@@ -29,7 +29,7 @@ not bundled or initialized by this package.
 
 Public npm installation does not require a GitHub token. The explicit scoped
 registry flag overrides project settings that route `@kaspacom` to GitHub Packages.
-This branch prepares `0.5.0` with expanded documentation and signerless snapshot
+This branch prepares `0.6.0` with expanded documentation and signerless snapshot
 builders. Pin the same exact version across wallet and server adapters. See
 [the changelog](CHANGELOG.md) for the release contents.
 

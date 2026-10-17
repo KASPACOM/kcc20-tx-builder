@@ -12,10 +12,12 @@ are immutable, so update `package.json` before each release.
 
 ## Publishing setup
 
-The package is already public on npmjs at `0.2.5`. GitHub Releases trigger
-`.github/workflows/publish.yml`, which has independent npmjs and GitHub Packages
-jobs. Both jobs install dependencies, run tests, and require the release tag to
-match `v` plus the checked-out `package.json` version.
+After a successful `main` CI run, `.github/workflows/publish.yml` compares the
+package version with the first parent of the merged commit. A changed version
+triggers one job that packs the package once, publishes that tarball to npmjs
+and GitHub Packages, verifies both registries, then creates the matching tag
+and GitHub Release. A manual workflow dispatch retries a partial upload only
+when any already published version has the same tarball integrity.
 
 npmjs uses trusted OIDC publishing with provenance on Node 24. Its trusted
 publisher identifies organization `KASPACOM`, repository `kcc20-tx-builder`,
@@ -26,29 +28,29 @@ Do not add long-lived npm tokens or publish from an unreviewed checkout.
 ## Prepare a release
 
 1. Start from reviewed `main` and update the version in a release PR.
-2. Run `npm ci`, `npm test`, and `npm pack --dry-run`.
+2. Run `npm ci`, `npm test`, `npm run test:examples`, and
+   `npm run test:snapshot:transactions` with the pinned WASM.
 3. Inspect the tarball for compiled ESM/CommonJS entry points, declarations,
    artifacts, documentation, and license. Check that no credentials or local
    wallet files are included.
-4. Merge the release PR after CI and review pass.
-5. Create the matching `v<version>` tag and GitHub Release from that commit.
-6. Confirm both publish jobs succeed and inspect registry metadata and the
+4. Complete the funded TN10 deploy, transfer, wrap, trade, and snapshot
+   construction checks against the exact candidate before merging.
+5. Merge the release PR after CI and review pass. Successful `main` CI starts
+   publishing automatically.
+6. Confirm the publish job succeeds and inspect registry metadata and the
    package tarball before upgrading consumers.
-
-Creating a GitHub Release publishes the package automatically. Prepare and
-review the release first; do not create a release merely to test the workflow.
 
 ## Consumer upgrades
 
 Install the exact released version using the registry used by your CI:
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.5.0 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.6.0 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
 
-Replace `0.5.0` with the reviewed version for a later upgrade. Commit both
+Replace `0.6.0` with the reviewed version for a later upgrade. Commit both
 `package.json` and `package-lock.json`. Keep frontend and backend on the same
 exact package version. Remove any `file:../kcc20-tx-builder` resolution before
 independent CI or deployment. Run package, backend, and frontend verification
@@ -90,4 +92,7 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Snapshot release gate
 
-The current candidate is version `0.5.0`. Keep publication blocked until the release workflow and trusted-publisher configuration are verified for the final release revision. Run `test:snapshot:transactions` with the pinned WASM and close the snapshot artifact reproduction and funded-rehearsal gates before creating the `v0.5.0` tag.
+The current candidate is version `0.6.0`. Run `test:snapshot:transactions` with
+the pinned WASM and close the snapshot artifact reproduction and funded TN10
+construction gates before merging the release PR. The first publish run must
+confirm npm trusted publishing for this workflow.
