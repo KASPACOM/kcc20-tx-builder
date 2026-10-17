@@ -148,3 +148,7 @@ the [transaction construction guide](docs/TRANSACTION_GUIDE.md) and
 locally using packaged artifacts and host-supplied chain data.
 
 For independently retrieved holder state, see the [live transfer walkthrough](docs/LIVE_TRANSFER.md); all supported user operation families have [runnable offline recipes](docs/RECIPES.md).
+
+### Draft KCOM claim reference tools
+
+Offline eligibility manifests/proofs, imported backend-v2 allocation verification, selection reviews, settlement math and vesting activation previews are exported from `kcom-claim-policy`. See [KCOM claim reference tooling](docs/KCOM_CLAIM_REFERENCE.md). These functions do not construct campaign transactions; strict deadline and campaign contract gates remain unresolved.

@@ -43,3 +43,5 @@ export * from "./profile-transfer.js";
 export * from "./transfer-payload.js";
 
 export * from "./kcom-vesting.js";
+
+export * from "./kcom-claim-policy.js";
