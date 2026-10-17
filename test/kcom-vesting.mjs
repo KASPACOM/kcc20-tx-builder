@@ -203,6 +203,11 @@ await assert.rejects(
   }),
   /TN10/,
 );
+// Final closure preserves both covenant cells in the beneficiary output; it needs only fee funding.
+entries.set(walletAddress, [{...funding, amount:100000000n}]);
+const feeOnlyFinish = await build(input("kcom-vesting.finish", {amountRaw:"100003"}));
+assert.equal(feeOnlyFinish.metadata.positionClosed,true);
+entries.set(walletAddress,[funding]);
 entries.set(
   kw
     .addressFromScriptPublicKey(position.scriptPublicKey, "testnet-10")

@@ -224,7 +224,7 @@ export function createKcomVestingPsktBuilder(options) {
                 e.outpoint.index === r.index,
             ),
         ),
-        cell + fee + 10000n,
+        (key === "kcom-vesting.finish" ? fee : cell + fee) + 10000n,
       );
       if (key === "kcom-vesting.deploy") {
         if (BigInt(state.released) !== 0n)
