@@ -1,5 +1,6 @@
 import {
   BUNDLED_TOKEN_PROFILES,
+  BUNDLED_TOKEN_PROFILE_DIGEST,
 } from "@kaspacom/kcc20-tx-builder/token-profiles.generated";
 import type { AuthenticatedTokenProfileRegistry } from "@kaspacom/kcc20-tx-builder/token-profiles";
 import {
@@ -8,20 +9,11 @@ import {
   type Sources,
 } from "./build.ts";
 
-const manifest = structuredClone(BUNDLED_TOKEN_PROFILES);
-const nativeProfile = manifest.profiles.find((profile) => profile.nativeExtensions);
-if (!nativeProfile) throw new Error("Offline native KCC20 profile is unavailable");
-nativeProfile.review = {
-  status: "approved",
-  evidence: ["offline-example-test-vectors"],
-};
-nativeProfile.fundedTradingVerified = true;
-
-/** Synthetic offline fixtures only. Never use this registry for live construction. */
+/** Offline fixtures use the same authenticated registry as live construction. */
 export const OFFLINE_EXAMPLE_TOKEN_PROFILE_REGISTRY: AuthenticatedTokenProfileRegistry =
   Object.freeze({
-    manifest,
-    sha256: "0e683704a52752e516d59a3200c78514626ea1301bad150c401e8b292393350e",
+    manifest: BUNDLED_TOKEN_PROFILES,
+    sha256: BUNDLED_TOKEN_PROFILE_DIGEST,
   });
 
 export function createOfflineBuilder(

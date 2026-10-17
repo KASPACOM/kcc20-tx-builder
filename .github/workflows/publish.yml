@@ -1,47 +1,141 @@
 name: Publish package
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
 
-permissions:
-  contents: read
-  id-token: write
-  packages: write
+concurrency:
+  group: kcc20-tx-builder-release
+  cancel-in-progress: false
 
 jobs:
-  publish-npm:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
+      - name: Require current main revision
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git ls-remote origin refs/heads/main | cut -f1)" || {
+            echo 'A newer main revision exists; skipping this release run'
+            exit 1
+          }
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+      - name: Check version bump
+        id: version
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const { appendFileSync } = require('node:fs');
+          const current = require('./package.json').version;
+          const previous = JSON.parse(execFileSync('git', ['show', 'HEAD^:package.json'], { encoding: 'utf8' })).version;
+          const retry = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
+          const shouldPublish = retry || current !== previous;
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${current}\npublish=${shouldPublish}\n`);
+          console.log(`version ${previous} -> ${current}; publish=${shouldPublish}`);
+          NODE
       - name: Update npm for trusted publishing
-        run: npm install --global npm@latest
-      - run: npm ci
-      - run: npm test
-      - name: Verify release tag matches package version
-        run: node -e "const p=require('./package.json');if(process.env.GITHUB_REF_NAME!=='v'+p.version)throw new Error('Expected tag v'+p.version)"
-      - name: Publish to npm
-        run: npm publish --provenance --access public
-
-  publish-github-packages:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+        if: steps.version.outputs.publish == 'true'
+        run: npm install --global npm@11.19.1
+      - name: Install and verify package
+        if: steps.version.outputs.publish == 'true'
+        id: pack
+        run: |
+          npm ci
+          npm test
+          npm pack --ignore-scripts --json > release-pack.json
+          node -e "const p=require('./release-pack.json');require('node:fs').appendFileSync(process.env.GITHUB_OUTPUT,'tarball='+p[0].filename+'\nintegrity='+p[0].integrity+'\n')"
+      - name: Publish to npmjs
+        if: steps.version.outputs.publish == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+          INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        run: |
+          registry=https://registry.npmjs.org/
+          existing=$(npm view "@kaspacom/kcc20-tx-builder@$VERSION" dist.integrity --parseable --registry="$registry" --@kaspacom:registry="$registry" 2>/dev/null || true)
+          if [ -n "$existing" ]; then
+            test "$existing" = "$INTEGRITY" || { echo 'npmjs version exists with different contents'; exit 1; }
+          else
+            npm publish "$TARBALL" --provenance --access public --tag latest --registry="$registry" --@kaspacom:registry="$registry"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.version.outputs.publish == 'true'
         with:
           node-version: 24
-          cache: npm
           registry-url: https://npm.pkg.github.com
-          scope: "@kaspacom"
-      - run: npm ci
-      - run: npm test
-      - name: Verify release tag matches package version
-        run: node -e "const p=require('./package.json');if(process.env.GITHUB_REF_NAME!=='v'+p.version)throw new Error('Expected tag v'+p.version)"
+          scope: '@kaspacom'
       - name: Publish to GitHub Packages
-        run: npm publish
+        if: steps.version.outputs.publish == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+          INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        run: |
+          registry=https://npm.pkg.github.com/
+          existing=$(npm view "@kaspacom/kcc20-tx-builder@$VERSION" dist.integrity --parseable --registry="$registry" --@kaspacom:registry="$registry" 2>/dev/null || true)
+          if [ -n "$existing" ]; then
+            test "$existing" = "$INTEGRITY" || { echo 'GitHub Packages version exists with different contents'; exit 1; }
+          else
+            npm publish "$TARBALL" --registry="$registry" --@kaspacom:registry="$registry"
+          fi
+      - name: Verify both registries
+        if: steps.version.outputs.publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        run: |
+          for attempt in $(seq 1 60); do
+            pending=0
+            for registry in https://registry.npmjs.org/ https://npm.pkg.github.com/; do
+              actual=$(npm view "@kaspacom/kcc20-tx-builder@$VERSION" dist.integrity --parseable --prefer-online --registry="$registry" --@kaspacom:registry="$registry" 2>/dev/null || true)
+              if [ -z "$actual" ]; then
+                pending=1
+              elif [ "$actual" != "$INTEGRITY" ]; then
+                echo "registry contents differ: $registry"
+                exit 1
+              fi
+            done
+            if [ "$pending" -eq 0 ]; then
+              echo "Both registries expose version $VERSION with matching integrity"
+              exit 0
+            fi
+            echo "Registry metadata is processing ($attempt/60)"
+            sleep 10
+          done
+          echo 'Registry metadata did not become available within 10 minutes'
+          exit 1
+      - name: Create matching GitHub Release
+        if: steps.version.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            git fetch --quiet origin "refs/tags/$tag:refs/tags/$tag"
+            target=$(git rev-parse "$tag^{commit}")
+            test "$target" = "$SHA" || { echo 'release tag points to another commit'; exit 1; }
+          else
+            gh release create "$tag" --target "$SHA" --title "$tag" --generate-notes
+          fi

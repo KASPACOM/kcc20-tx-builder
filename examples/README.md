@@ -21,9 +21,8 @@ examples extracted from that tarball before testing; it also installs the same c
 registry bootstrap dependency is 0.2.5, which predates the browser compatibility
 fix. Do not skip the candidate installation when testing a checkout.
 
-Synthetic offline examples use a digest-authenticated, test-only approval of the
-native profile so candidate releases can exercise transaction construction. Live
-builders do not receive that fixture and retain the production review gate.
+Synthetic offline examples use the same digest-authenticated bundled profile as
+live builders. They do not broadcast transactions.
 
 After publication, users can copy `examples` from the package or repository,
 run `npm ci` inside it, then install the matching release explicitly:

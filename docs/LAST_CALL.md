@@ -1,11 +1,11 @@
 # KCC20 Last Call builders
 
 Target revision: `3fbec524abfbc20e87652eb938db218f8c17db17`.
-Local package: `0.5.0-lastcall.0`. This is an unpublished candidate.
+Local package: `0.5.0-lastcall.1`. Funded TN10 qualification remains a release task.
 
 ## Profile boundary
 
-Authenticate the registry digest, then match an approved profile to a revealed
+Authenticate the registry digest, then match a bundled profile to a revealed
 program and current RPC output. `authenticateTokenArtifact` checks the entire
 artifact, ABI, state layout and executable template commitment. Names and
 uploaded JSON are not authority.
@@ -23,9 +23,8 @@ API does not broadcast.
 never selected automatically. The normal wallet engine supports its reviewed
 public-key paths; advanced authority/borrow callers use the explicit API.
 
-Wrapper construction resolves the approved token template and its committed
-wrapper artifact. External custom mint/burn operations are rejected. A profile
-must be reviewed before construction; trading qualification remains separate.
+Wrapper construction resolves the bundled token template and its committed
+wrapper artifact. External custom mint/burn operations are rejected.
 Profiles with `displayDecimals` pin the wrapper price scale to that precision.
 
 ## Artifact synchronization
@@ -48,4 +47,4 @@ snapshots are reusable, but previous contract approvals cannot be rebound.
 Local tests cover independent bytecode/state offset, profile bounds, owner and
 borrow witness construction, malformed commitments, and one/two/eight-shard
 snapshot construction. Synthetic funding in these tests is not a funded TN10
-proof. Native and independent registry profiles remain candidates until review.
+proof. Funded deploy and trading checks belong to release qualification.

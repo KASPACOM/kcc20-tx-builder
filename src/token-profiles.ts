@@ -37,7 +37,6 @@ export interface TokenProfile {
   scriptLength: number;
   stateLayout: { start: number; len: number };
   standardRevision: string;
-  review: { status: "candidate" | "approved"; evidence: string[] };
   transferTag: string;
   delegatorTag: string;
   transferEntrypoint: string;
@@ -48,13 +47,12 @@ export interface TokenProfile {
   operations: TokenOperation[];
   fungibility: "single-holder-class" | "unverified";
   nativeExtensions: boolean;
-  fundedTradingVerified: boolean;
   wrapper?: TokenWrapperProfile;
   /** Reviewed fixed display convention for programs without token metadata. */
   displayDecimals?: number;
 }
 export interface TokenProfileRegistry {
-  schema: "kcc20-token-profiles/v1";
+  schema: "kcc20-token-profiles/v2";
   standardRevision: string;
   profiles: TokenProfile[];
 }
@@ -92,7 +90,7 @@ export function validateTokenProfileRegistry(
   }
   const registry = value as TokenProfileRegistry;
   if (
-    registry?.schema !== "kcc20-token-profiles/v1" ||
+    registry?.schema !== "kcc20-token-profiles/v2" ||
     registry.standardRevision !== KCC20_STANDARD_REVISION ||
     !Array.isArray(registry.profiles)
   ) {
@@ -120,11 +118,6 @@ export function validateTokenProfileRegistry(
       p.stateLayout.start < 0 ||
       p.stateLayout.len !== 112 ||
       p.stateLayout.start + 112 > p.scriptLength ||
-      !["candidate", "approved"].includes(p.review?.status) ||
-      !Array.isArray(p.review?.evidence) ||
-      p.review.evidence.some((e) => typeof e !== "string" || !e.trim()) ||
-      (p.review.status === "approved" && !p.review.evidence.length) ||
-      (p.fundedTradingVerified && p.review.status !== "approved") ||
       !/^[0-9a-f]{8}$/.test(p.transferTag) ||
       !/^[0-9a-f]{8}$/.test(p.delegatorTag) ||
       !/^[A-Za-z_][A-Za-z0-9_]{0,95}$/.test(p.transferEntrypoint) ||
@@ -150,8 +143,7 @@ export function validateTokenProfileRegistry(
           ].includes(op),
       ) ||
       !["single-holder-class", "unverified"].includes(p.fungibility) ||
-      typeof p.nativeExtensions !== "boolean" ||
-      typeof p.fundedTradingVerified !== "boolean"
+      typeof p.nativeExtensions !== "boolean"
     ) {
       throw new Error("invalid or duplicate KCC20 token profile");
     }
@@ -184,7 +176,7 @@ export function validateTokenProfileRegistry(
     ids.add(p.id);
     templates.add(p.templateHash);
   }
-  // Snapshot caller-owned data so changing an upload cannot change an approved profile.
+  // Snapshot caller-owned data so changing an upload cannot change a bundled profile.
   return deepFreeze(JSON.parse(JSON.stringify(registry)));
 }
 
@@ -218,7 +210,7 @@ export function authenticateTokenArtifact(
     profile.artifactCanonicalSha256
   ) {
     throw new Error(
-      "KCC20 artifact ABI or metadata does not match approved profile",
+      "KCC20 artifact ABI or metadata does not match the bundled profile",
     );
   }
   const a = normalizeSilverScriptArtifact(raw);
@@ -229,7 +221,7 @@ export function authenticateTokenArtifact(
     a.state_layout?.start !== profile.stateLayout.start ||
     a.state_layout?.len !== 112
   ) {
-    throw new Error("KCC20 artifact layout does not match approved profile");
+    throw new Error("KCC20 artifact layout does not match the bundled profile");
   }
   const bytes = Uint8Array.from(a.script);
   if (
@@ -241,7 +233,7 @@ export function authenticateTokenArtifact(
       ),
     ) !== profile.templateHash
   ) {
-    throw new Error("KCC20 artifact script does not match approved profile");
+    throw new Error("KCC20 artifact script does not match the bundled profile");
   }
   for (const name of [
     profile.transferEntrypoint,
@@ -274,12 +266,12 @@ export function authenticateTokenWrapper(
 ): ReturnType<typeof normalizeSilverScriptArtifact> {
   const w = profile.wrapper;
   if (!w || w.tokenTemplateHash !== profile.templateHash)
-    throw new Error("token has no reviewed wrapper binding");
+    throw new Error("token has no bundled wrapper binding");
   if (
     hex(sha256(new TextEncoder().encode(canonicalRegistryJson(raw)))) !==
     w.artifactCanonicalSha256
   )
-    throw new Error("wrapper artifact does not match approved profile");
+    throw new Error("wrapper artifact does not match the bundled profile");
   const a = normalizeSilverScriptArtifact(raw),
     bytes = Uint8Array.from(a.script);
   if (
@@ -294,7 +286,7 @@ export function authenticateTokenWrapper(
       ),
     ) !== w.templateHash
   )
-    throw new Error("wrapper template does not match approved profile");
+    throw new Error("wrapper template does not match the bundled profile");
   return a;
 }
 
@@ -302,26 +294,21 @@ export function requireTokenCapability(
   profile: TokenProfile,
   operation: TokenOperation,
 ): void {
-  if (profile.review.status !== "approved")
-    throw new Error("KCC20 template is awaiting review");
   if (!profile.operations.includes(operation))
     throw new Error(`KCC20 profile does not support ${operation}`);
   if (
     ["wrap", "unwrap", "trade"].includes(operation) &&
-    ((operation === "trade" && !profile.fundedTradingVerified) ||
-      profile.fungibility !== "single-holder-class" ||
+    (profile.fungibility !== "single-holder-class" ||
       !profile.ownerSchemes.includes(4) ||
       !profile.wrapper)
   ) {
-    throw new Error(
-      "KCC20 template has not passed funded trading verification",
-    );
+    throw new Error("KCC20 profile does not support this trading operation");
   }
   if (["mint", "burn"].includes(operation) && !profile.nativeExtensions)
     throw new Error("external mint/burn adapter is unavailable");
 }
 
-/** Resolve the trading scale, enforcing profiles with a reviewed fixed precision. */
+/** Resolve the trading scale, enforcing profiles with a fixed precision. */
 export function resolveTokenProfilePriceScale(
   profile: TokenProfile,
   requested: bigint | undefined,
@@ -334,7 +321,7 @@ export function resolveTokenProfilePriceScale(
   if (expected !== undefined) {
     if (requested !== undefined && requested !== expected)
       throw new Error(
-        "priceScale does not match reviewed token profile display precision",
+        "priceScale does not match token profile display precision",
       );
     return expected;
   }
@@ -355,7 +342,6 @@ export function rebuildProfileToken(
 
 export interface TokenReadiness {
   status:
-    | "awaiting_review"
     | "needs_verification"
     | "blocked"
     | "queued"
@@ -390,17 +376,17 @@ export function evaluateTokenReadiness(input: {
     code: string,
     reason: string,
   ) => ({ ...result, status, reasonCode: code, reason });
-  if (!p || p.review.status !== "approved")
+  if (!p)
     return stop(
-      "awaiting_review",
-      "TEMPLATE_REVIEW_REQUIRED",
-      "Token contract template is awaiting review.",
+      "blocked",
+      "TOKEN_PROFILE_UNAVAILABLE",
+      "Token contract template is unavailable.",
     );
   if (!input.authenticated)
     return stop(
       "blocked",
       "TOKEN_EVIDENCE_UNAVAILABLE",
-      "Current token outputs have not been authenticated against the approved template.",
+      "Current token outputs have not been authenticated against the token template.",
     );
   if (!input.tokenVerified)
     return stop(
@@ -436,7 +422,7 @@ export function evaluateTokenReadiness(input: {
     return stop(
       "blocked",
       "TRADING_PRECISION_MISMATCH",
-      "Trading precision does not match the reviewed token profile.",
+      "Trading precision does not match the token profile.",
     );
   if (
     !result.capabilities.wrap ||
@@ -445,8 +431,8 @@ export function evaluateTokenReadiness(input: {
   )
     return stop(
       "blocked",
-      "TRADING_PROFILE_UNVERIFIED",
-      "Token template has not passed wrap, trade and unwrap verification.",
+      "TRADING_PROFILE_UNSUPPORTED",
+      "Token template does not support wrap, trade and unwrap.",
     );
   if (input.wrapper === "blocked")
     return stop(
