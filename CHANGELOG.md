@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- Remove manual token profile review and funded proof flags from runtime capability checks.
+- Keep authenticated registry digests, artifact hashes, operation limits, and transaction validation.
+- Publish one verified tarball to npmjs and GitHub Packages after a successful version bump on `main`.
+
 ## 0.5.0 (unreleased)
 
 - Remove the obsolete operator-controlled snapshot cancellation constant and
