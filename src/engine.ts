@@ -349,19 +349,13 @@ export function createKcc20PsktBuilderEngine(
     ];
   }
 
-  async function readWrapperArtifacts() {
-    return Promise.all(
-      tokenProfiles.profiles
-        .filter(
-          (p) =>
-            p.wrapper,
-        )
-        .map(async (profile) => ({
-          artifact: await readStaticArtifact(profile.wrapper.artifactKey),
-          version: "standard-native-v1",
-          tokenProfileId: profile.id,
-        })),
-    );
+  async function readWrapperArtifacts(profile) {
+    if (!profile.wrapper) return [];
+    return [{
+      artifact: await readStaticArtifact(profile.wrapper.artifactKey),
+      version: "standard-native-v1",
+      tokenProfileId: profile.id,
+    }];
   }
 
   function wrappedArtifactSupportsEntrypoint(info, name) {
@@ -3032,10 +3026,7 @@ export function createKcc20PsktBuilderEngine(
       "computeBudget",
     );
 
-    const [wrapperArtifacts, wrappedArtifacts] = await Promise.all([
-      readWrapperArtifacts(),
-      readWrappedArtifacts(),
-    ]);
+    const wrappedArtifacts = await readWrappedArtifacts();
     const holderState = kcc20StateFromUtxo(holderUtxo, request.owner);
     if (holderState.identifierType !== 0) {
       throw new Error("wrap requires pubkey-owned KCC20 holder UTXO");
@@ -3057,6 +3048,7 @@ export function createKcc20PsktBuilderEngine(
     );
     const kcc20Artifact = kcc20ArtifactInfo.artifact;
     requireTokenCapability(kcc20ArtifactInfo.profile, "wrap");
+    const wrapperArtifacts = await readWrapperArtifacts(kcc20ArtifactInfo.profile);
     const remaining = holderState.amount - tokenAmount;
     const priceScale = parsePositiveU64(
       wrapperUtxo.state?.priceScale ??
@@ -3448,10 +3440,7 @@ export function createKcc20PsktBuilderEngine(
       "computeBudget",
     );
 
-    const [wrapperArtifacts, wrappedArtifacts] = await Promise.all([
-      readWrapperArtifacts(),
-      readWrappedArtifacts(),
-    ]);
+    const wrappedArtifacts = await readWrappedArtifacts();
     const reserveState = kcc20StateFromUtxo(reserveUtxo, request.owner);
     if (reserveState.ownerScheme !== 4 || reserveState.isMintAuthority) {
       throw new Error("KCC20 reserve UTXO must be covenant-owned holder state");
@@ -3466,6 +3455,7 @@ export function createKcc20PsktBuilderEngine(
     );
     const kcc20Artifact = kcc20ArtifactInfo.artifact;
     requireTokenCapability(kcc20ArtifactInfo.profile, "unwrap");
+    const wrapperArtifacts = await readWrapperArtifacts(kcc20ArtifactInfo.profile);
     const wrappedState = kcc20V3WrappedStateFromUtxo(
       wrappedUtxo,
       canonicalTokenId,
