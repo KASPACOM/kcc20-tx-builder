@@ -431,7 +431,7 @@ export function evaluateTokenReadiness(input: {
   )
     return stop(
       "blocked",
-      "TRADING_PROFILE_UNVERIFIED",
+      "TRADING_PROFILE_UNSUPPORTED",
       "Token template does not support wrap, trade and unwrap.",
     );
   if (input.wrapper === "blocked")
