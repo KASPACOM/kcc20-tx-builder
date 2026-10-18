@@ -1,6 +1,6 @@
 {
   "name": "@kaspacom/kcc20-tx-builder",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Runtime-independent KCC20 covenant transaction and PSKT construction primitives.",
   "license": "Apache-2.0",
   "author": "KaspaCom",
@@ -86,7 +86,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs && node test/token-profiles.mjs && node test/profile-transfer.mjs",
+    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs && node test/token-profiles.mjs && node test/profile-transfer.mjs && node test/pinned-funding.mjs",
     "prepack": "npm test",
     "test:examples": "npm run verify:compatibility && node scripts/test-examples.mjs --browser",
     "verify:compatibility": "node scripts/verify-compatibility.mjs",
