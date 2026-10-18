@@ -703,6 +703,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         priorityFee + 10_000n,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 1;
       const fundingChangeOutputIndex = 1;
@@ -1026,6 +1028,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 2;
       const change =
@@ -1284,6 +1288,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         priorityFee + 10_000n,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = entries.length;
       const fundingChangeOutputIndex = outputs.length;
@@ -1529,6 +1535,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         priorityFee + 10_000n,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = entries.length;
       const fundingChangeOutputIndex = outputs.length;
@@ -2772,6 +2780,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         utxos.entries,
         deploySompi * 2n + priorityFee + 10_000_000n,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingChangeOutputIndex = 2;
       const change =
@@ -3256,6 +3266,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 2;
       const change =
@@ -3707,6 +3719,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 3;
       const change =
@@ -4099,6 +4113,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 1;
       const change =
@@ -4513,6 +4529,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const ticketInputIndex = ticketEntry ? 1 : -1;
       const fundingInputIndex = ticketEntry ? 2 : 1;
@@ -5055,6 +5073,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const ticketInputIndex = ticketEntry ? 2 : -1;
       const fundingInputIndex = ticketEntry ? 3 : 2;
@@ -5601,6 +5621,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex =
         resolvedLegs.length + (sharedTicketEntry ? 1 : 0);
@@ -6301,7 +6323,7 @@ export function createKcc20PsktBuilderEngine(
           : priorityFee + 10_000n;
       let fundingEntry;
       try {
-        fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding);
+        fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding, [], request.params?.fundingOutpoint);
       } catch (error) {
         if (totalSellerFundedHolderTopUpSompi > 0n) {
           throw kcc20PsktBuilderError(
@@ -7046,7 +7068,7 @@ export function createKcc20PsktBuilderEngine(
           : priorityFee + 10_000n;
       let fundingEntry;
       try {
-        fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding);
+        fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding, [], request.params?.fundingOutpoint);
       } catch (error) {
         if (totalSellerFundedHolderTopUpSompi > 0n) {
           throw kcc20PsktBuilderError(
@@ -7495,6 +7517,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = entries.length;
       const change = utxoAmountSompi(fundingEntry) - priorityFee;
@@ -8050,6 +8074,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const ticketInputIndex = ticketEntry ? 2 : -1;
       const fundingInputIndex = ticketEntry ? 3 : 2;
@@ -8463,6 +8489,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 1;
       const change =
@@ -8855,6 +8883,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 1;
       const change =
@@ -9220,6 +9250,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         priorityFee + 10_000n,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = resolvedLanes.length;
       const fundingChange = BigInt(fundingEntry.amount) - priorityFee;
@@ -9574,6 +9606,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = entries.length;
       const change = utxoAmountSompi(fundingEntry) - priorityFee;
@@ -9778,6 +9812,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 1;
       const change = utxoAmountSompi(fundingEntry) - priorityFee;
@@ -10061,6 +10097,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         requiredFunding,
+        [],
+        request.params?.fundingOutpoint,
       );
       const fundingInputIndex = 1;
       const change =
@@ -10618,6 +10656,8 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         utxos.entries,
         deploySompi + priorityFee + 10_000_000n,
+        [],
+        request.params?.fundingOutpoint,
       );
       const created = await createTransactions({
         entries: [fundingEntry],
