@@ -152,3 +152,5 @@ For independently retrieved holder state, see the [live transfer walkthrough](do
 ### Draft KCOM claim reference tools
 
 Offline eligibility manifests/proofs, imported backend-v2 allocation verification, selection reviews, settlement math and vesting activation previews are exported from `kcom-claim-policy`. See [KCOM claim reference tooling](docs/KCOM_CLAIM_REFERENCE.md). These functions do not construct campaign transactions; strict deadline and campaign contract gates remain unresolved.
+
+Dedicated test-token allocation fixtures can use the explicit [TN10 proof-budget policy](docs/kcom-tn10-proof-budget.md). Production claim APIs keep the fixed 100M budget.

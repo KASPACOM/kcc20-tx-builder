@@ -45,8 +45,29 @@ export interface KcomClaimProvenance {
   sourceManifestHashes: string[];
   cutoffMs: string;
 }
+export interface KcomClaimTn10ProofBudget {
+  schema: "kcom-claim-tn10-proof-budget/v1";
+  network: "testnet-10";
+  tokenId: string;
+  campaignBudgetRaw: string;
+}
+interface ClaimBudgetContext {
+  budget: bigint;
+  base: bigint;
+  medium: bigint;
+  long: bigint;
+  proofPolicy?: KcomClaimTn10ProofBudget;
+}
+const PRODUCTION_BUDGET: ClaimBudgetContext = Object.freeze({
+  budget: KCOM_CLAIM_BUDGET_RAW, base: KCOM_CLAIM_BASE_RAW,
+  medium: KCOM_CLAIM_MEDIUM_RAW, long: KCOM_CLAIM_LONG_RAW,
+});
+interface ClaimManifestInput {
+  campaignId: string; tokenId: string; provenance: KcomClaimProvenance; entitlements: readonly KcomClaimEntitlement[];
+}
 export interface KcomClaimEligibilityManifest {
   schema: typeof KCOM_CLAIM_FORMAT;
+  proofPolicy?: KcomClaimTn10ProofBudget;
   status: "draft-offline-unapproved-contract-format";
   campaignId: string;
   tokenId: string;
@@ -113,10 +134,12 @@ function levels(campaignId: string, leaves: readonly KcomClaimLeaf[]): string[][
   }
   return result;
 }
-export function buildKcomClaimManifest(input: {
-  campaignId: string; tokenId: string; provenance: KcomClaimProvenance; entitlements: readonly KcomClaimEntitlement[];
-}): KcomClaimEligibilityManifest {
+export function buildKcomClaimManifest(input: ClaimManifestInput): KcomClaimEligibilityManifest {
+  return buildManifestInContext(input, PRODUCTION_BUDGET);
+}
+function buildManifestInContext(input: ClaimManifestInput, context: ClaimBudgetContext): KcomClaimEligibilityManifest {
   hex32(input.campaignId, "campaign ID"); hex32(input.tokenId, "token ID");
+  if (context.proofPolicy) check(input.tokenId === context.proofPolicy.tokenId, "proof token differs from trusted policy");
   const aggregated = new Map<string, KcomClaimEntitlement>();
   for (const row of input.entitlements) {
     const key = authority(row.authority), n = integer(row.baseEntitlementRaw, "base entitlement");
@@ -127,28 +150,35 @@ export function buildKcomClaimManifest(input: {
   }
   const sorted = [...aggregated].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([, row], index) => ({ index, ...row }));
   const total = sorted.reduce((n, row) => n + BigInt(row.baseEntitlementRaw), 0n);
-  check(total <= KCOM_CLAIM_BASE_RAW, "base entitlements exceed base pool");
-  const dust = KCOM_CLAIM_BASE_RAW - total;
+  check(total <= context.base, "base entitlements exceed base pool");
+  const dust = context.base - total;
   // Only floor rounding is accepted, not a discretionary underallocation.
   check(dust < BigInt(sorted.length), "base allocation gap exceeds floor-rounding bound");
   const tree = levels(input.campaignId, sorted);
   const unsigned = {
     schema: KCOM_CLAIM_FORMAT, status: "draft-offline-unapproved-contract-format" as const,
     campaignId: input.campaignId, tokenId: input.tokenId, decimals: 8 as const,
-    basePoolRaw: KCOM_CLAIM_BASE_RAW.toString(), campaignBudgetRaw: KCOM_CLAIM_BUDGET_RAW.toString(),
+    basePoolRaw: context.base.toString(), campaignBudgetRaw: context.budget.toString(),
+    ...(context.proofPolicy ? { proofPolicy: { ...context.proofPolicy } } : {}),
     totalBaseEntitlementRaw: total.toString(), baseRoundingReserveRaw: dust.toString(),
     provenance: provenance(input.provenance), root: tree[tree.length - 1][0], leaves: sorted,
   };
   return { ...unsigned, contentHash: kcomClaimContentHash(unsigned) };
 }
 export function verifyKcomClaimManifest(manifest: KcomClaimEligibilityManifest, expectedContentHash: string): void {
+  verifyManifestInContext(manifest, expectedContentHash, PRODUCTION_BUDGET);
+}
+function verifyManifestInContext(manifest: KcomClaimEligibilityManifest, expectedContentHash: string, context: ClaimBudgetContext): void {
   hex32(expectedContentHash, "expected manifest hash");
-  const rebuilt = buildKcomClaimManifest({ campaignId: manifest.campaignId, tokenId: manifest.tokenId, provenance: manifest.provenance, entitlements: manifest.leaves });
+  const rebuilt = buildManifestInContext({ campaignId: manifest.campaignId, tokenId: manifest.tokenId, provenance: manifest.provenance, entitlements: manifest.leaves }, context);
   check(kcomCanonicalJson(manifest) === kcomCanonicalJson(rebuilt), "manifest differs from canonical reconstruction");
   check(manifest.contentHash === expectedContentHash, "manifest trusted hash mismatch");
 }
 export function createKcomClaimProof(manifest: KcomClaimEligibilityManifest, index: number): KcomClaimProof {
-  verifyKcomClaimManifest(manifest, manifest.contentHash);
+  return proofInContext(manifest, index, PRODUCTION_BUDGET);
+}
+function proofInContext(manifest: KcomClaimEligibilityManifest, index: number, context: ClaimBudgetContext): KcomClaimProof {
+  verifyManifestInContext(manifest, manifest.contentHash, context);
   check(Number.isSafeInteger(index) && index >= 0 && index < manifest.leaves.length, "proof index out of range");
   const tree = levels(manifest.campaignId, manifest.leaves), siblings = [];
   let at = index;
@@ -157,7 +187,10 @@ export function createKcomClaimProof(manifest: KcomClaimEligibilityManifest, ind
 }
 /** Batch export validates and hashes the tree once, then emits O(N log N) proof data. */
 export function createKcomClaimProofs(manifest: KcomClaimEligibilityManifest): KcomClaimProof[] {
-  verifyKcomClaimManifest(manifest, manifest.contentHash);
+  return proofsInContext(manifest, PRODUCTION_BUDGET);
+}
+function proofsInContext(manifest: KcomClaimEligibilityManifest, context: ClaimBudgetContext): KcomClaimProof[] {
+  verifyManifestInContext(manifest, manifest.contentHash, context);
   const tree = levels(manifest.campaignId, manifest.leaves);
   return manifest.leaves.map((leaf) => {
     let at = leaf.index;
@@ -218,7 +251,10 @@ export function createKcomClaimSelectionReviewer(manifest: KcomClaimEligibilityM
   });
 }
 export function settleKcomClaimReference(manifest: KcomClaimEligibilityManifest, selections: readonly KcomClaimSelection[]) {
-  verifyKcomClaimManifest(manifest, manifest.contentHash);
+  return settleInContext(manifest, selections, PRODUCTION_BUDGET);
+}
+function settleInContext(manifest: KcomClaimEligibilityManifest, selections: readonly KcomClaimSelection[], context: ClaimBudgetContext) {
+  verifyManifestInContext(manifest, manifest.contentHash, context);
   const used = new Set<number>();
   const rows = selections.map((selection) => {
     const leaf = validateSelection(manifest, selection);
@@ -233,8 +269,8 @@ export function settleKcomClaimReference(manifest: KcomClaimEligibilityManifest,
   let mediumPaid = 0n, longPaid = 0n, redistributed = 0n;
   const allocations = rows.map((row) => {
     const base = BigInt(row.baseRaw);
-    const medium = row.tier >= 2 ? ratio(KCOM_CLAIM_MEDIUM_RAW, base, mediumWeight) : 0n;
-    const long = row.tier === 3 ? ratio(KCOM_CLAIM_LONG_RAW, base, longWeight) : 0n;
+    const medium = row.tier >= 2 ? ratio(context.medium, base, mediumWeight) : 0n;
+    const long = row.tier === 3 ? ratio(context.long, base, longWeight) : 0n;
     const unclaimed = row.tier === 3 ? ratio(unclaimedBase, base, longWeight) : 0n;
     const total = base + medium + long + unclaimed;
     check(total > 0n && total <= MAX_RAW, "final allocation outside contract integer range");
@@ -242,23 +278,45 @@ export function settleKcomClaimReference(manifest: KcomClaimEligibilityManifest,
     return { ...row, mediumBoostRaw: medium.toString(), longBoostRaw: long.toString(), unclaimedRedistributionRaw: unclaimed.toString(), finalAllocationRaw: total.toString() };
   });
   const liabilities = allocations.reduce((s, r) => s + BigInt(r.finalAllocationRaw), 0n);
-  const treasuryRaw = KCOM_CLAIM_BUDGET_RAW - liabilities;
+  const treasuryRaw = context.budget - liabilities;
   const report = {
     schema: "kcom-claim-settlement-reference/v1" as const, status: "offline-reference-not-chain-settlement" as const,
+    ...(context.proofPolicy ? { proofPolicy: { ...context.proofPolicy }, campaignBudgetRaw: context.budget.toString() } : {}),
     campaignId: manifest.campaignId, manifestHash: manifest.contentHash, manifestRoot: manifest.root,
     claimedBaseRaw: claimedBase.toString(), mediumWeightRaw: mediumWeight.toString(), longWeightRaw: longWeight.toString(), unclaimedBaseRaw: unclaimedBase.toString(),
     liabilityRaw: liabilities.toString(), treasuryRaw: treasuryRaw.toString(),
     treasuryBreakdown: {
       baseRoundingRaw: manifest.baseRoundingReserveRaw,
-      mediumUnallocatedOrDustRaw: (KCOM_CLAIM_MEDIUM_RAW - mediumPaid).toString(),
-      longUnallocatedOrDustRaw: (KCOM_CLAIM_LONG_RAW - longPaid).toString(),
+      mediumUnallocatedOrDustRaw: (context.medium - mediumPaid).toString(),
+      longUnallocatedOrDustRaw: (context.long - longPaid).toString(),
       unclaimedBaseWithoutLongOrDustRaw: (unclaimedBase - redistributed).toString(),
     },
     allocations,
   };
   check(Object.values(report.treasuryBreakdown).reduce((s, n) => s + BigInt(n), 0n) === treasuryRaw, "surplus/liability reconciliation failed");
-  check(liabilities + treasuryRaw === KCOM_CLAIM_BUDGET_RAW && treasuryRaw >= 0n, "campaign conservation failed");
+  check(liabilities + treasuryRaw === context.budget && treasuryRaw >= 0n, "campaign conservation failed");
   return { ...report, contentHash: kcomClaimContentHash(report) };
+}
+
+/** Explicit offline policy for dedicated TN10 test tokens. Production APIs remain fixed at 100M. */
+export function createKcomClaimTn10ProofPolicy(input: { network: string; tokenId: string; campaignBudgetRaw: string }) {
+  check(input && Object.keys(input).sort().join(",") === "campaignBudgetRaw,network,tokenId", "unexpected proof-policy fields");
+  check(input.network === "testnet-10", "proof policy is TN10-only");
+  const tokenId = hex32(input.tokenId, "proof token ID");
+  const budget = integer(input.campaignBudgetRaw, "proof budget", 20000n);
+  check(budget >= 10n && budget % 10n === 0n, "proof budget must be 10..20000 raw and divisible by 10");
+  const proofPolicy: KcomClaimTn10ProofBudget = Object.freeze({ schema: "kcom-claim-tn10-proof-budget/v1", network: "testnet-10", tokenId, campaignBudgetRaw: budget.toString() });
+  const context: ClaimBudgetContext = Object.freeze({ budget, base: budget / 5n, medium: budget / 10n * 3n, long: budget / 2n, proofPolicy });
+  return Object.freeze({
+    scope: "tn10-test-token-offline-proof" as const,
+    network: "testnet-10" as const, tokenId, campaignBudgetRaw: budget.toString(),
+    poolsRaw: Object.freeze({ base: context.base.toString(), mediumLong: context.medium.toString(), long: context.long.toString() }),
+    buildManifest: (value: ClaimManifestInput) => buildManifestInContext(value, context),
+    verifyManifest: (manifest: KcomClaimEligibilityManifest, expectedContentHash: string) => verifyManifestInContext(manifest, expectedContentHash, context),
+    createProof: (manifest: KcomClaimEligibilityManifest, index: number) => proofInContext(manifest, index, context),
+    createProofs: (manifest: KcomClaimEligibilityManifest) => proofsInContext(manifest, context),
+    settleReference: (manifest: KcomClaimEligibilityManifest, selections: readonly KcomClaimSelection[]) => settleInContext(manifest, selections, context),
+  });
 }
 
 /** Matches the sealed backend-v2 materialization, without introducing another points scorer. */
