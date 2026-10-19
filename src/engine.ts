@@ -9048,6 +9048,13 @@ export function createKcc20PsktBuilderEngine(
     if (requestedMinterUtxos.length === 0) {
       throw new Error("active KCC20 mint-authority UTXO is required");
     }
+    // The caller submits larger updates as sequential batches. Never truncate
+    // this array: every supplied authority must be represented in the result.
+    if (requestedMinterUtxos.length > 5) {
+      throw new Error(
+        "Public mint availability updates support at most 5 authorities per transaction",
+      );
+    }
     if (typeof params.active !== "boolean") {
       throw new Error("active must be a boolean");
     }
