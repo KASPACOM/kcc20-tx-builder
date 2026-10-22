@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS } from "./action-source-resolver.js";
 import { planTokenOwnerWitness } from "./token-authorization.js";
 import { sha256 } from "@noble/hashes/sha256";
 import {
@@ -9418,7 +9419,7 @@ export function createKcc20PsktBuilderEngine(
     const holderUtxos = Array.isArray(params.activeHolderUtxos)
       ? params.activeHolderUtxos
       : [];
-    if (holderUtxos.length < 2 || holderUtxos.length > 3) {
+    if (holderUtxos.length < 2 || holderUtxos.length > KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS) {
       throw new Error("between two and three KCC20 holder UTXOs are required");
     }
 
@@ -9500,10 +9501,8 @@ export function createKcc20PsktBuilderEngine(
       const txid = requireHex32(utxo.txidHex, `holder ${index} txid`);
       const vout = parseVout(utxo.vout, `holder ${index} vout`);
       const address = requireKaspaAddress(utxo.address);
-      const script = buildNativeKcc20ScriptForState(
-        artifact.script,
-        states[index],
-      );
+      // Resolution already authenticated this profile's complete state layout.
+      const script = resolvedArtifacts[index].script;
       assertScriptAddress(
         kw,
         script,

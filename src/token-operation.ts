@@ -2,6 +2,7 @@ import {
   ownerNativeHolderUtxos,
   selectActiveMinterUtxo,
   selectConsolidationBatch,
+  KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS,
   selectOwnerNativeHolderUtxo,
   summarizeHolderUtxos,
   type Kcc20IndexedCovenantUtxo,
@@ -307,7 +308,7 @@ export function buildKcc20NativeConsolidationOperation(
   const selected = selectConsolidationBatch(
     compatible,
     input.sourceOutpoints,
-    8,
+    KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS,
   );
   if (selected.length < 2)
     throw new Error(
@@ -365,7 +366,7 @@ export function buildKcc20NativeConsolidationOperation(
         },
       ],
       warnings: [
-        "Consolidation merges between two and eight wallet-owned holder UTXOs into one larger holder UTXO.",
+        "Consolidation merges between two and three wallet-owned holder UTXOs into one larger holder UTXO.",
         "Repeat consolidation when more compatible holder UTXOs remain.",
       ],
     },

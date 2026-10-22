@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2
+
+- Reuse authenticated profile scripts during native holder consolidation, including the independent Argent implementation.
+- Limit native consolidation plans to the three inputs supported by PSKT construction. Wrapped orderbook consolidation retains its eight-input limit.
+
+
 ## 0.6.0
 
 - Remove manual token profile review and funded proof flags from runtime capability checks.
