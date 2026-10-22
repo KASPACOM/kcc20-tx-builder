@@ -1,0 +1,75 @@
+{
+  "schema": "kcom-claim-script-vectors/v1",
+  "source": "kaspa-covenants PR #499 synthetic real-engine tn10-proof-mixed fixture",
+  "graphId": "7d6f7270fa434aa962630988107d38f0d7b05b587f317c3f89318b9185771e3f",
+  "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+  "termsHash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+  "budgetRaw": "1000",
+  "liabilityRaw": "996",
+  "tokenId": "1111111111111111111111111111111111111111111111111111111111111111",
+  "extension": "0000000000000000000000000000000000000000000000000000000000000000",
+  "treasuryScheme": 0,
+  "treasury": "1b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f",
+  "tgeMs": "1797897600000",
+  "outputs": {
+    "initialize": {
+      "outputs": [
+        "aa207766d3139a7df6eb6338444c8cbdcf199b7b896987e29aa9b5e8f426a702c67a87",
+        "aa20c3aaaf30fb573dd1d3b5b9645f35c7a21deee1881e1e442f0c97b0889a4edb7687"
+      ],
+      "computeBudgets": [
+        40
+      ]
+    },
+    "fund-reserve": {
+      "outputs": [
+        "aa20c66373905d733c4292cc86c49d54024fa0adc5bf8a56fb4a1b295a6e291ad92287",
+        "aa2053a6616d65d995a35b53d037dd3798d33db8fa511d1a0833c75ab95c9fb57b2e87"
+      ],
+      "computeBudgets": [
+        52,
+        15
+      ]
+    },
+    "open-funded-campaign": {
+      "outputs": [
+        "aa20035f06d9c97f12596fbfe4f87de8612673e816dcea9fba69f8c6f5f53b78890287",
+        "aa206ebbfa2091ff9d367b03f71d0219ef167bb139c2b755e6727359f4d5614e1fac87"
+      ],
+      "computeBudgets": [
+        47,
+        5
+      ]
+    },
+    "seal-liabilities": {
+      "outputs": [
+        "aa20efe7e3e38736f6a3f659734837360cf21bb54a7a93b90ceb0dfa46e900f8e57387"
+      ],
+      "computeBudgets": [
+        28,
+        15
+      ]
+    },
+    "recover-partial": {
+      "outputs": [
+        "aa205f1fe6e0ed4fe2d56763b1ea0d3baea8b52c4d6efed013c1ca641c087202e47487",
+        "aa20568bf97f27fcf48fabe13f62fd055062d071bbe1ace7bf64837be7debf3a115c87",
+        "aa209ab74dde6c73ec0849aab4c10c82e85d3a61b49d7e6206820c6b1c18ed31555787"
+      ],
+      "computeBudgets": [
+        95,
+        25,
+        10
+      ]
+    },
+    "first-activation": {
+      "outputs": [
+        "aa20197a536aaf17c0a55da735182bc935b65653d96a4af4d18068023cc8f549cdf687",
+        "aa2067902873750781d20605eb400ee27ea40eca26858f66b0c41faaaf6f1785c96d87",
+        "aa20f8def4eb2f1406aa92202b8bffbac237c22f50d1af02de5f504c4227674a857d87",
+        "aa20f2ad380a8e0edf60a755c6ec0046d6437fb7f44435562c5a6032654170f1ca2a87"
+      ]
+    }
+  },
+  "sourceCommit": "bc85a0e"
+}

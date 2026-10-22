@@ -77,6 +77,7 @@ import {
   ownerAuthorizationWitness,
 } from "./abi.js";
 import { createKcomVestingPsktBuilder } from "./kcom-vesting.js";
+import { createKcomClaimPsktBuilder } from "./kcom-claim-builder.js";
 import { KCC20_BUILDER_KEYS } from "./operations.js";
 import { createKcc20SnapshotPsktBuilder } from "./snapshot-operation.js";
 import { splitKcc20MintSupply } from "./protocol.js";
@@ -546,7 +547,12 @@ export function createKcc20PsktBuilderEngine(
     ...options,
     transactionWithMinimumCalculatedFeeChange,
   });
+  const buildKcomClaimPskt = createKcomClaimPsktBuilder({
+    ...options,
+    transactionWithMinimumCalculatedFeeChange,
+  });
   const psktBuilderByKey = Object.freeze({
+    "kcom-claim.fund-vault": buildKcomClaimPskt,
     "kcom-vesting.deploy": buildKcomVestingPskt,
     "kcom-vesting.release": buildKcomVestingPskt,
     "kcom-vesting.finish": buildKcomVestingPskt,

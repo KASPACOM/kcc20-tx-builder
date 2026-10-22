@@ -93,7 +93,8 @@
     "test:snapshot:transactions": "npm run build && node test/snapshot-transactions.mjs && node test/snapshot-claims.mjs",
     "test:kcom-vesting": "npm run build && node test/kcom-vesting.mjs",
     "test:kcom-claim-policy": "npm run build && node --test test/kcom-claim-policy.mjs test/kcom-claim-proof-budget.mjs",
-    "test:kcom-claim-codec": "npm run build && node --test test/kcom-claim-codec.mjs"
+    "test:kcom-claim-codec": "npm run build && node --test test/kcom-claim-codec.mjs",
+    "test:kcom-claim-fund": "npm run build && node test/kcom-claim-fund.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

@@ -1,4 +1,5 @@
 export const KCC20_BUILDER_KEYS = [
+  "kcom-claim.fund-vault",
   "kcom-vesting.deploy",
   "kcom-vesting.release",
   "kcom-vesting.finish",
