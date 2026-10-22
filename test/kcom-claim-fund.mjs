@@ -89,6 +89,12 @@ const alteredFeeBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts, rpcC
     return transaction;
   } });
 await assert.rejects(alteredFeeBuilder(request()), /changed a custody output/);
+const redirectedFeeBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts, rpcClientFactory: () => rpc,
+  transactionWithMinimumCalculatedFeeChange: (_runtime, transaction, changeIndex) => {
+    transaction.outputs[changeIndex].scriptPublicKey = kw.payToScriptHashScript(vaultScript);
+    return transaction;
+  } });
+await assert.rejects(redirectedFeeBuilder(request()), /changed a custody output/);
 await assert.rejects(build(request({ tokenState: { ...tokenState, owner: "ff".repeat(32) } })), /graph owned/);
 await assert.rejects(build(request({ tokenState: { ...tokenState, amount: "999" } })), /graph owned/);
 await assert.rejects(build(request({ vaultState: { ...vaultState, funded: true } })), /awaiting complete funding/);
@@ -101,4 +107,60 @@ await assert.rejects(build(request()), /SOURCE_STALE/);
 entries.set(address(token), [token]);
 entries.set(address(vault), []);
 await assert.rejects(build(request()), /SOURCE_STALE/);
-console.log("ok KCOM claim vault funding PSKT, live-source checks and canonical output reconstruction");
+
+const factoryState = vectors.factoryState;
+const factoryScript = codec.script("KCOMFactory", factoryState);
+assert.equal(kw.payToScriptHashScript(factoryScript).script, vectors.outputs["open-funded-campaign"].outputs[0]);
+const factory = entry(kw.payToScriptHashScript(factoryScript), graphId, 500000000n);
+entries.set(address(factory), [factory]);
+const shardRequest = (extra = {}) => ({
+  schema: "kcc20-in-process-pskt-builder-input/v1",
+  request: { builderKey: "kcom-claim.create-shard", network: "testnet-10", owner: { walletAddress },
+    params: { graphId, factoryState, factory: factory.outpoint, ...extra } },
+});
+const shardBuilt = await build(shardRequest());
+assert.deepEqual(shardBuilt.signInputs, [{ index: 1, sighashType: 1 }]);
+assert.equal(shardBuilt.metadata.shard, "0");
+assert.equal((await engine.build(shardRequest())).metadata.shard, "0");
+const shardTx = kw.Transaction.deserializeFromSafeJSON(shardBuilt.psktTransactionJson);
+assert.deepEqual(shardTx.inputs.map(input => Number(input.computeBudget)), [30, 10]);
+assert.equal(shardTx.outputs.length, 3);
+assert.equal(shardTx.outputs[0].scriptPublicKey.script, vectors.outputs["create-shard"].outputs[0]);
+assert.equal(shardTx.outputs[1].scriptPublicKey.script, vectors.outputs["create-shard"].outputs[1]);
+assert.equal(shardTx.outputs[0].value, 400000000n);
+assert.equal(shardTx.outputs[1].value, 100000000n);
+assert.equal(shardTx.outputs[2].value, funding.amount - 60000000n);
+assert(Number(shardTx.inputs[0].computeBudget) >= vectors.outputs["create-shard"].computeBudgets[0]);
+for (let i = 1; i < vectors.createShardSequence.length; i++) {
+  const state = { ...factoryState, next_shard: String(i) };
+  const sourceScript = codec.script("KCOMFactory", state);
+  const sourceSpk = kw.payToScriptHashScript(sourceScript);
+  assert.equal(sourceSpk.script, vectors.createShardSequence[i - 1].outputs[0]);
+  const source = entry(sourceSpk, graphId, 500000000n - BigInt(i) * 100000000n);
+  entries.set(address(source), [source]);
+  const built = await build(shardRequest({ factoryState: state, factory: source.outpoint }));
+  const transaction = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  const expected = vectors.createShardSequence[i];
+  assert.equal(built.metadata.shard, String(i));
+  assert.deepEqual(transaction.outputs.slice(0, 2).map(o => o.scriptPublicKey.script), expected.outputs);
+  assert.deepEqual(transaction.outputs.slice(0, 2).map(o => String(o.value)), expected.valuesSompi);
+  assert(Number(transaction.inputs[0].computeBudget) >= expected.computeBudgets[0]);
+}
+await assert.rejects(build(shardRequest({ factoryState: { ...factoryState, opened: false } })), /not open/);
+await assert.rejects(build(shardRequest({ factoryState: { ...factoryState, next_shard: "4" } })), /No claim shard/);
+await assert.rejects(build(shardRequest({ factory: { ...factory.outpoint, index: 1 } })), /SOURCE_STALE/);
+entries.set(address(factory), [{ ...factory, scriptPublicKey: kw.payToAddressScript(walletAddress) }]);
+await assert.rejects(build(shardRequest()), /SOURCE_STALE/);
+entries.set(address(factory), [{ ...factory, covenantId: "ff".repeat(32), entry: { covenantId: "ff".repeat(32) } }]);
+await assert.rejects(build(shardRequest()), /SOURCE_STALE/);
+entries.set(address(factory), []);
+await assert.rejects(build(shardRequest()), /SOURCE_STALE/);
+entries.set(address(factory), [factory]);
+const alteredShardFeeBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts, rpcClientFactory: () => rpc,
+  transactionWithMinimumCalculatedFeeChange: (_runtime, transaction) => {
+    transaction.outputs[1].value -= 1n;
+    return transaction;
+  } });
+await assert.rejects(alteredShardFeeBuilder(shardRequest()), /changed a shard output/);
+await assert.rejects(redirectedFeeBuilder(shardRequest()), /changed a shard output/);
+console.log("ok KCOM claim vault funding and shard creation PSKTs, live-source checks and output reconstruction");

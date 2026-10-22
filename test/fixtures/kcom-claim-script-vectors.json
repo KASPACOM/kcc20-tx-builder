@@ -69,7 +69,91 @@
         "aa20f8def4eb2f1406aa92202b8bffbac237c22f50d1af02de5f504c4227674a857d87",
         "aa20f2ad380a8e0edf60a755c6ec0046d6437fb7f44435562c5a6032654170f1ca2a87"
       ]
+    },
+    "create-shard": {
+      "outputs": [
+        "aa205b70907a5c1964c5638311a2997e4c7d1c7fb15712a42ea5164548900226bbb987",
+        "aa2029b998c363f81f55c001e3f8d0b79906beb08f310e928532a4a51fa71c2eb46587"
+      ],
+      "computeBudgets": [
+        22
+      ]
     }
   },
-  "sourceCommit": "bc85a0e"
+  "sourceCommit": "52a24a907a961997ffe507db94663da0cf570479",
+  "factoryState": {
+    "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+    "terms_hash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+    "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+    "budget_raw": "1000",
+    "manifest_total": "198",
+    "eligibility_root": "df2310d9d3145686837e408ac131ccce0b940e7e1c59df128a37f33107b64458",
+    "empty_used_root": "e70ad62a8b2d97c90dcd51f3cff8d18468d9b0224f933f9d9697718d5dba7cfe",
+    "empty_summaries_root": "278c23621ba9cc49c169598eacb6492a7e3f1e2a73902e5c06569adf91424f0c",
+    "leaf_count": "4",
+    "shard_count": "4",
+    "next_shard": "0",
+    "shard_value": "100000000",
+    "first": "62c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7",
+    "second": "f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a",
+    "third": "989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f",
+    "opens_ms": "1794700800000",
+    "closes_ms": "1797292800000",
+    "tge_ms": "1797897600000",
+    "opened": true
+  },
+  "createShardSequence": [
+    {
+      "outputs": [
+        "aa205b70907a5c1964c5638311a2997e4c7d1c7fb15712a42ea5164548900226bbb987",
+        "aa2029b998c363f81f55c001e3f8d0b79906beb08f310e928532a4a51fa71c2eb46587"
+      ],
+      "valuesSompi": [
+        "400000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    },
+    {
+      "outputs": [
+        "aa201b995624ae4077ab3dc040853a4babdaec6b3fba49b33f24fab7f134aed496a487",
+        "aa20bda2895970881a9c4e8e66ae1d6bc69360eba54353e28d53325eb269963eeca187"
+      ],
+      "valuesSompi": [
+        "300000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    },
+    {
+      "outputs": [
+        "aa20ad6a562c9ac406602d0e172114ed8735d85f1cbb85d63591bbb40dd68734c3ea87",
+        "aa20c8bc0db1dd31f7fded8a483e5d38c2ecf48ff0b5e968d6d542b9054f6051486a87"
+      ],
+      "valuesSompi": [
+        "200000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    },
+    {
+      "outputs": [
+        "aa2079836fdd3f552a6dc94348059b1a579aa4acc4290ad977c8c9caabb873c6353687",
+        "aa20b5ab5d597f2d777419a4c55621c828b5816d60977fe2edfcc0e1eb43737cc6c387"
+      ],
+      "valuesSompi": [
+        "100000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    }
+  ]
 }

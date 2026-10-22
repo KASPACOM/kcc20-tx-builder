@@ -16,9 +16,104 @@ import {
   utxoAmountSompi,
 } from "./sale-common.js";
 
-export const KCOM_CLAIM_BUILDER_KEYS = ["kcom-claim.fund-vault"] as const;
+export const KCOM_CLAIM_BUILDER_KEYS = ["kcom-claim.fund-vault", "kcom-claim.create-shard"] as const;
 const ZERO32 = "00".repeat(32);
 const FEE = 60000000n;
+
+async function buildCreateShard({ options, kw, req, p, codec, graphId, address }) {
+  const s = p.factoryState;
+  if (!s?.opened) throw new Error("Campaign factory is not open");
+  const nextShard = BigInt(s.next_shard);
+  const shardCount = BigInt(s.shard_count);
+  const shardValue = BigInt(s.shard_value);
+  if (nextShard < 0n || nextShard >= shardCount || shardValue <= 0n)
+    throw new Error("No claim shard remains to create");
+  const factoryScript = codec.script("KCOMFactory", s);
+  const nextFactoryScript = codec.script("KCOMFactory", { ...s, next_shard: String(nextShard + 1n) });
+  const shardState = {
+    campaign: s.campaign, terms_hash: s.terms_hash, token_id: s.token_id,
+    budget_raw: s.budget_raw, manifest_total: s.manifest_total,
+    eligibility_root: s.eligibility_root, used_root: s.empty_used_root,
+    leaf_count: s.leaf_count, selected_count: "0", all_weight: "0",
+    boosted_weight: "0", long_weight: "0", shard: s.next_shard,
+    shard_count: s.shard_count, first: s.first, second: s.second, third: s.third,
+    opens_ms: s.opens_ms, closes_ms: s.closes_ms, tge_ms: s.tge_ms, closed: false,
+  };
+  const shardScript = codec.script("KCOMClaimShard", shardState);
+  const rpc = options.rpcClientFactory?.({
+    url: options.config?.KASPA_WRPC_URL || "wss://tn10-node.kaspa.com/kaspa/testnet-10/wrpc/borsh",
+    encoding: kw.Encoding.Borsh, networkId: req.network,
+  }) ?? new kw.RpcClient({
+    url: options.config?.KASPA_WRPC_URL || "wss://tn10-node.kaspa.com/kaspa/testnet-10/wrpc/borsh",
+    encoding: kw.Encoding.Borsh, networkId: req.network,
+  });
+  const scriptAddress = (script) => kw.addressFromScriptPublicKey(kw.payToScriptHashScript(script), req.network).toString();
+  const refId = (entry) => String(entry.entry?.covenantId ?? entry.covenantId ?? "");
+  const query = async (addr) => (await rpc.getUtxosByAddresses([addr])).entries;
+  await rpc.connect();
+  try {
+    const ref = p.factory;
+    if (!ref || !Number.isSafeInteger(ref.index) || ref.index < 0)
+      throw new Error("Factory source outpoint required");
+    requireHex32(ref.transactionId, "factory source transaction");
+    const factory = (await query(scriptAddress(factoryScript))).find(e =>
+      String(e.outpoint.transactionId) === ref.transactionId && e.outpoint.index === ref.index);
+    const sourceScript = factory?.scriptPublicKey ?? factory?.entry?.scriptPublicKey ?? factory?.utxoEntry?.scriptPublicKey;
+    if (!factory || refId(factory) !== graphId || !sourceScript ||
+      kw.addressFromScriptPublicKey(sourceScript, req.network).toString() !== scriptAddress(factoryScript))
+      throw new Error("KCOM_CLAIM_SOURCE_STALE: rebuild from current factory UTXO");
+    const factoryValue = utxoAmountSompi(factory);
+    if (factoryValue <= shardValue)
+      throw new Error("Factory has insufficient native KAS for another shard");
+    const funding = selectFundingEntry((await query(address)).filter(e =>
+      !refId(e) && !(String(e.outpoint.transactionId) === ref.transactionId && e.outpoint.index === ref.index)), FEE + 10000n);
+    const outputs = [
+      new kw.TransactionOutput(factoryValue - shardValue, kw.payToScriptHashScript(nextFactoryScript), new kw.CovenantBinding(0, new kw.Hash(graphId))),
+      new kw.TransactionOutput(shardValue, kw.payToScriptHashScript(shardScript), new kw.CovenantBinding(0, new kw.Hash(graphId))),
+      new kw.TransactionOutput(utxoAmountSompi(funding) - FEE, kw.payToAddressScript(address)),
+    ];
+    const inputs = [factory, funding].map((e, i) => ({
+      previousOutpoint: e.outpoint, utxo: e, sequence: 0n,
+      computeBudget: i === 0 ? 30 : 10, sigOpCount: 0,
+    }));
+    const witness = new kw.ScriptBuilder();
+    witness.addData(codec.dispatch("KCOMFactory", "create_shard"));
+    inputs[0].signatureScript = kw.ScriptBuilder.fromScript(factoryScript).encodePayToScriptHashSignatureScript(witness.drain());
+    let tx = new kw.Transaction({
+      version: 1, lockTime: 0n, inputs, outputs,
+      subnetworkId: "00".repeat(20), gas: 0n, payload: "",
+    });
+    setVersionOneInputMassFields(tx, 30);
+    tx.inputs[1].computeBudget = 10;
+    if (options.transactionWithMinimumCalculatedFeeChange)
+      tx = options.transactionWithMinimumCalculatedFeeChange(kw, tx, 1, req.network, req.builderKey);
+    if (tx.outputs.length !== 3 ||
+      tx.outputs[0].scriptPublicKey.script !== kw.payToScriptHashScript(nextFactoryScript).script ||
+      String(tx.outputs[0].covenant?.covenantId) !== graphId ||
+      tx.outputs[0].value !== factoryValue - shardValue ||
+      tx.outputs[1].scriptPublicKey.script !== kw.payToScriptHashScript(shardScript).script ||
+      String(tx.outputs[1].covenant?.covenantId) !== graphId ||
+      tx.outputs[1].value !== shardValue ||
+      tx.outputs[2].scriptPublicKey.script !== kw.payToAddressScript(address).script ||
+      tx.outputs[2].covenant || tx.outputs[2].value <= 10000n ||
+      tx.outputs[2].value >= utxoAmountSompi(funding))
+      throw new Error("KCOM claim fee adjustment changed a shard output");
+    return {
+      schema: "kcc20-in-process-pskt-builder-output/v1",
+      psktTransactionJson: tx.serializeToSafeJSON(),
+      signInputs: [{ index: 1, sighashType: 1 }],
+      submitTransactionSupported: true,
+      metadata: {
+        builderKey: req.builderKey, contract: "KCOMFactory", network: req.network,
+        graphId, shard: String(nextShard), factoryOutpoint: `${ref.transactionId}:${ref.index}`,
+        factoryOutputIndex: 0, shardOutputIndex: 1,
+        graphArtifactId: codec.graphArtifactId, openingArtifactId: codec.openingArtifactId,
+      },
+    };
+  } finally {
+    await rpc.disconnect();
+  }
+}
 
 export function createKcomClaimPsktBuilder(options) {
   const kw = options.wasm;
@@ -28,7 +123,7 @@ export function createKcomClaimPsktBuilder(options) {
       throw new Error("Invalid builder input schema");
     const req = input.request ?? {}, p = req.params ?? {};
     if (req.network !== "testnet-10") throw new Error("KCOM claim builders are TN10-only");
-    if (req.builderKey !== "kcom-claim.fund-vault") throw new Error("Unsupported KCOM claim operation");
+    if (!KCOM_CLAIM_BUILDER_KEYS.includes(req.builderKey)) throw new Error("Unsupported KCOM claim operation");
     const address = req.owner?.walletAddress;
     if (typeof address !== "string" || !address.startsWith("kaspatest:"))
       throw new Error("TN10 funding wallet required");
@@ -37,6 +132,8 @@ export function createKcomClaimPsktBuilder(options) {
       graph: await load("KCOMClaimGraph.artifact.json"),
       opening: await load("KCOMClaimOpen.artifact.json"),
     });
+    if (req.builderKey === "kcom-claim.create-shard")
+      return buildCreateShard({ options, kw, req, p, codec, graphId, address });
     const canonical = normalizeSilverScriptArtifact(await load("KCC20.placeholder.json"));
     assertKcc20ArtifactScriptHash("KCC20.placeholder.json", canonical);
     const parts = templateParts(canonical);
@@ -126,7 +223,10 @@ export function createKcomClaimPsktBuilder(options) {
         tx.outputs[0].value !== utxoAmountSompi(vault) ||
         tx.outputs[1].scriptPublicKey.script !== kw.payToScriptHashScript(tokenScript).script ||
         String(tx.outputs[1].covenant?.covenantId) !== tokenId ||
-        tx.outputs[1].value !== utxoAmountSompi(reserve))
+        tx.outputs[1].value !== utxoAmountSompi(reserve) ||
+        tx.outputs[2].scriptPublicKey.script !== kw.payToAddressScript(address).script ||
+        tx.outputs[2].covenant || tx.outputs[2].value <= 10000n ||
+        tx.outputs[2].value >= utxoAmountSompi(funding))
         throw new Error("KCOM claim fee adjustment changed a custody output");
       return {
         schema: "kcc20-in-process-pskt-builder-output/v1",
