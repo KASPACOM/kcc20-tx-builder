@@ -1,0 +1,1769 @@
+{
+  "schema_version": 1,
+  "id": "179f28ce8e24aac5e8babc83417fcf4300f3c85b8a61009d892b81f0aaee8337",
+  "generator": {
+    "name": "argentc",
+    "version": "0.1.0"
+  },
+  "app": "KCOMEntitlementInitialization",
+  "dependencies": [
+    {
+      "app": "KCOMEntitlementGraph",
+      "artifact_id": "531a05b1c137c2141c71618366fbd8d52a30fe5834667bcf07495914fea875ae"
+    }
+  ],
+  "root": "contracts/argent/kcom-claim-capabilities/campaign-entitlements-open.ag",
+  "modules": [
+    "contracts/argent/kcom-claim-capabilities/campaign-entitlements-open.ag",
+    "contracts/argent/kcom-claim-capabilities/campaign-entitlements.ag",
+    "contracts/argent/kcom-vesting/vesting.ag"
+  ],
+  "argent": {
+    "templates": [
+      {
+        "id": "template/kcom_initialize",
+        "actor": "KCOMInitialize",
+        "symbol": "gen__kcom_initialize_template"
+      }
+    ],
+    "template_plan": {
+      "templates": [
+        {
+          "id": "template/kcom_initialize",
+          "actor": "KCOMInitialize",
+          "contract": "KCOMInitialize",
+          "symbol": "gen__kcom_initialize_template",
+          "sil_template_hash": [224, 0, 102, 122, 233, 198, 189, 168, 172, 2, 160, 102, 123, 220, 85, 72, 127, 191, 217, 6, 75, 56, 197, 123, 187, 63, 94, 254, 17, 35, 217, 18],
+          "actor_type_handle": {
+            "state": "CampaignInitState",
+            "context_fields": [],
+            "template": {
+              "prefix": [107],
+              "suffix": [
+                108, 118, 4, 212, 106, 199, 190, 135, 99, 117, 1, 27, 121, 130, 1, 65, 157, 117, 1, 26, 121, 130, 1, 32, 157, 117, 1, 25, 121, 130, 1, 65, 157, 117, 1, 24, 121, 130, 1, 32, 157, 117, 1, 23, 121, 130, 81, 151, 0, 157, 117, 1, 22, 121, 130, 81, 151, 0, 157, 117, 1, 21, 121, 130,
+                81, 151, 0, 157, 117, 1, 20, 121, 130, 81, 151, 0, 157, 117, 1, 19, 121, 130, 81, 151, 0, 157, 117, 1, 18, 121, 130, 89, 159, 105, 117, 1, 17, 121, 130, 89, 159, 105, 117, 32, 2, 214, 205, 193, 239, 125, 194, 194, 57, 245, 253, 51, 178, 16, 220, 47, 135, 249, 103, 1, 26, 29, 224, 8,
+                50, 148, 9, 76, 159, 204, 237, 102, 32, 125, 246, 47, 178, 237, 68, 6, 78, 13, 136, 81, 211, 164, 114, 130, 230, 17, 105, 190, 222, 251, 253, 103, 221, 254, 153, 64, 132, 181, 46, 57, 82, 185, 203, 0, 156, 105, 185, 186, 185, 187, 88, 205, 0, 84, 127, 126, 82, 88, 205, 126, 1, 21, 121, 88,
+                205, 0, 84, 127, 126, 1, 21, 121, 194, 88, 205, 126, 2, 0, 0, 126, 1, 35, 88, 205, 126, 1, 21, 121, 82, 1, 37, 200, 126, 1, 20, 121, 88, 205, 0, 84, 127, 126, 1, 20, 121, 194, 88, 205, 126, 2, 0, 0, 126, 1, 35, 88, 205, 126, 1, 20, 121, 82, 1, 37, 200, 126, 118, 10,
+                67, 111, 118, 101, 110, 97, 110, 116, 73, 68, 167, 1, 22, 121, 213, 120, 135, 105, 1, 18, 121, 208, 0, 156, 105, 1, 27, 121, 130, 124, 117, 81, 150, 2, 21, 1, 156, 105, 1, 27, 121, 217, 1, 20, 121, 135, 105, 1, 27, 121, 0, 1, 20, 127, 20, 107, 99, 111, 109, 46, 99, 108, 97, 105,
+                109, 46, 116, 101, 114, 109, 115, 47, 118, 50, 0, 135, 105, 1, 27, 121, 1, 20, 1, 52, 127, 1, 21, 121, 135, 105, 1, 27, 121, 1, 52, 1, 84, 127, 96, 121, 135, 105, 1, 27, 121, 1, 84, 1, 92, 127, 1, 18, 121, 88, 205, 135, 105, 1, 27, 121, 1, 92, 1, 100, 127, 1, 17, 121,
+                88, 205, 135, 105, 1, 18, 121, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 135, 145, 105, 1, 27, 121, 1, 100, 2, 132, 0, 127, 1, 19, 121, 135, 105, 1, 27, 121, 2, 164, 0, 2,
+                196, 0, 127, 32, 93, 108, 172, 223, 87, 199, 52, 83, 111, 203, 138, 156, 131, 63, 3, 24, 103, 18, 38, 114, 126, 199, 124, 80, 58, 152, 252, 91, 229, 159, 158, 41, 135, 105, 1, 27, 121, 2, 196, 0, 2, 200, 0, 127, 4, 1, 0, 0, 0, 135, 105, 1, 27, 121, 2, 200, 0, 2, 204, 0,
+                127, 4, 176, 98, 0, 0, 135, 105, 84, 121, 86, 121, 160, 85, 121, 7, 0, 128, 250, 202, 115, 249, 31, 161, 154, 105, 1, 27, 121, 2, 204, 0, 2, 212, 0, 127, 85, 121, 88, 205, 135, 105, 1, 27, 121, 2, 212, 0, 2, 213, 0, 127, 1, 0, 135, 1, 28, 121, 2, 212, 0, 2, 213, 0,
+                127, 1, 1, 135, 155, 1, 28, 121, 2, 212, 0, 2, 213, 0, 127, 1, 2, 135, 155, 1, 28, 121, 2, 212, 0, 2, 213, 0, 127, 1, 3, 135, 155, 1, 28, 121, 2, 212, 0, 2, 213, 0, 127, 1, 4, 135, 155, 105, 1, 27, 121, 2, 213, 0, 2, 245, 0, 127, 32, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 135, 145, 105, 1, 27, 121, 2, 245, 0, 2, 21, 1, 127, 32, 234, 33, 178, 130, 204, 50, 7, 148, 13, 134, 216, 231, 144, 98, 109, 184, 153, 140, 229, 107, 153, 108, 134,
+                223, 93, 49, 113, 142, 189, 3, 124, 91, 135, 105, 1, 17, 121, 7, 0, 0, 193, 111, 242, 134, 35, 156, 1, 18, 121, 90, 162, 1, 19, 121, 2, 32, 78, 161, 154, 1, 19, 121, 90, 151, 0, 156, 154, 155, 105, 96, 121, 0, 160, 1, 17, 121, 1, 19, 121, 85, 150, 161, 154, 105, 92, 121, 0,
+                160, 93, 121, 3, 0, 0, 16, 161, 154, 105, 1, 17, 121, 85, 150, 1, 17, 121, 148, 93, 121, 159, 105, 91, 121, 81, 156, 92, 121, 82, 156, 155, 92, 121, 84, 156, 155, 92, 121, 88, 156, 155, 92, 121, 96, 156, 155, 92, 121, 1, 32, 156, 155, 92, 121, 1, 64, 156, 155, 92, 121, 2, 128, 0,
+                156, 155, 92, 121, 2, 0, 1, 156, 155, 92, 121, 2, 0, 2, 156, 155, 92, 121, 2, 0, 4, 156, 155, 92, 121, 2, 0, 8, 156, 155, 92, 121, 2, 0, 16, 156, 155, 92, 121, 2, 0, 32, 156, 155, 92, 121, 2, 0, 64, 156, 155, 92, 121, 3, 0, 128, 0, 156, 155, 92, 121, 3, 0, 0,
+                1, 156, 155, 92, 121, 3, 0, 0, 2, 156, 155, 92, 121, 3, 0, 0, 4, 156, 155, 92, 121, 3, 0, 0, 8, 156, 155, 92, 121, 3, 0, 0, 16, 156, 155, 105, 90, 121, 0, 160, 91, 121, 8, 254, 30, 10, 250, 255, 255, 255, 127, 94, 121, 150, 161, 154, 105, 185, 190, 91, 121, 93, 121, 149,
+                4, 0, 225, 245, 5, 147, 160, 105, 86, 121, 5, 0, 136, 82, 106, 116, 162, 87, 121, 8, 255, 55, 129, 101, 255, 255, 255, 127, 161, 154, 105, 85, 121, 87, 121, 5, 0, 200, 126, 154, 0, 147, 156, 105, 89, 121, 89, 121, 135, 145, 90, 121, 89, 121, 135, 145, 154, 89, 121, 89, 121, 135, 145, 154,
+                105, 1, 30, 121, 1, 29, 121, 120, 120, 135, 145, 105, 120, 92, 121, 135, 82, 121, 92, 121, 135, 155, 82, 121, 91, 121, 135, 155, 105, 118, 92, 121, 135, 120, 92, 121, 135, 155, 120, 91, 121, 135, 155, 105, 1, 33, 121, 130, 124, 117, 81, 150, 1, 65, 156, 1, 32, 121, 130, 124, 117, 81, 150, 1,
+                65, 156, 154, 105, 1, 33, 121, 1, 64, 1, 65, 127, 1, 1, 135, 105, 1, 31, 121, 1, 64, 1, 65, 127, 1, 1, 135, 105, 1, 33, 121, 1, 33, 121, 172, 105, 1, 31, 121, 1, 31, 121, 172, 105, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22,
+                121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 0, 1, 23, 121, 1, 23, 121, 1, 23, 121, 1, 23, 121, 1, 23, 121, 1, 23, 121, 1, 23, 121, 0, 1, 0, 1, 49, 121, 2, 212, 0, 2, 213, 0, 127, 1, 1, 135, 99, 1, 1, 119, 104, 1, 49, 121, 2, 212, 0, 2, 213, 0, 127, 1,
+                2, 135, 99, 1, 2, 119, 104, 1, 49, 121, 2, 212, 0, 2, 213, 0, 127, 1, 3, 135, 99, 1, 3, 119, 104, 1, 49, 121, 2, 212, 0, 2, 213, 0, 127, 1, 4, 135, 99, 1, 4, 119, 104, 1, 42, 121, 1, 42, 121, 1, 42, 121, 1, 29, 121, 1, 43, 121, 1, 54, 121, 2, 132, 0,
+                2, 164, 0, 127, 86, 121, 1, 56, 121, 2, 213, 0, 2, 245, 0, 127, 1, 39, 121, 1, 39, 121, 1, 39, 121, 0, 0, 0, 0, 0, 0, 1, 61, 121, 194, 185, 190, 4, 0, 225, 245, 5, 148, 156, 105, 1, 60, 121, 194, 4, 0, 225, 245, 5, 156, 105, 1, 42, 121, 1, 66, 121, 130, 124,
+                117, 81, 150, 88, 205, 1, 67, 121, 126, 1, 66, 121, 130, 124, 117, 81, 150, 88, 205, 1, 67, 121, 126, 126, 217, 136, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 32, 1, 37,
+                121, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126,
+                1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 1, 1, 37, 121, 146, 81, 205, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 1, 66, 121, 124, 126, 1, 65, 121, 126, 170, 2, 0, 0,
+                1, 170, 126, 1, 32, 126, 124, 126, 1, 135, 126, 1, 62, 121, 195, 136, 1, 41, 121, 1, 64, 121, 130, 124, 117, 81, 150, 88, 205, 1, 65, 121, 126, 1, 64, 121, 130, 124, 117, 81, 150, 88, 205, 1, 65, 121, 126, 126, 217, 136, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32,
+                1, 17, 121, 126, 1, 8, 1, 17, 121, 88, 205, 126, 1, 8, 1, 17, 121, 88, 205, 126, 1, 32, 1, 17, 121, 126, 1, 1, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 1, 1, 17, 121, 146, 81, 205,
+                126, 1, 1, 1, 17, 121, 146, 81, 205, 126, 1, 1, 1, 17, 121, 146, 81, 205, 126, 1, 1, 1, 17, 121, 146, 81, 205, 126, 1, 8, 1, 17, 121, 88, 205, 126, 1, 8, 1, 17, 121, 88, 205, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 1, 64, 121, 124,
+                126, 1, 63, 121, 126, 170, 2, 0, 0, 1, 170, 126, 1, 32, 126, 124, 126, 1, 135, 126, 1, 61, 121, 195, 136, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,
+                117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 81, 103, 106, 104
+              ],
+              "hash": [224, 0, 102, 122, 233, 198, 189, 168, 172, 2, 160, 102, 123, 220, 85, 72, 127, 191, 217, 6, 75, 56, 197, 123, 187, 63, 94, 254, 17, 35, 217, 18]
+            }
+          }
+        }
+      ],
+      "runtime_states": [],
+      "route_tables": [],
+      "route_proofs": [],
+      "route_families": [],
+      "witness_recipes": [
+        {
+          "id": "witness/kcom_entitlement_graph__kcom_factory/template_prefix_bytes",
+          "subject": {
+            "kind": "actor",
+            "actor": "KCOMEntitlementGraph::KCOMFactory"
+          },
+          "param": "gen__kcom_entitlement_graph__kcom_factory_prefix",
+          "purpose": {
+            "kind": "template_prefix_bytes"
+          }
+        },
+        {
+          "id": "witness/kcom_entitlement_graph__kcom_factory/template_suffix_bytes",
+          "subject": {
+            "kind": "actor",
+            "actor": "KCOMEntitlementGraph::KCOMFactory"
+          },
+          "param": "gen__kcom_entitlement_graph__kcom_factory_suffix",
+          "purpose": {
+            "kind": "template_suffix_bytes"
+          }
+        },
+        {
+          "id": "witness/kcom_entitlement_graph__kcom_vault/template_prefix_bytes",
+          "subject": {
+            "kind": "actor",
+            "actor": "KCOMEntitlementGraph::KCOMVault"
+          },
+          "param": "gen__kcom_entitlement_graph__kcom_vault_prefix",
+          "purpose": {
+            "kind": "template_prefix_bytes"
+          }
+        },
+        {
+          "id": "witness/kcom_entitlement_graph__kcom_vault/template_suffix_bytes",
+          "subject": {
+            "kind": "actor",
+            "actor": "KCOMEntitlementGraph::KCOMVault"
+          },
+          "param": "gen__kcom_entitlement_graph__kcom_vault_suffix",
+          "purpose": {
+            "kind": "template_suffix_bytes"
+          }
+        },
+        {
+          "id": "witness/KCOMInitialize/initialize/spawn/graph/factory/spawn_output_index",
+          "subject": {
+            "kind": "spawn_actor",
+            "spawn": "graph",
+            "handle": "factory",
+            "actor": "KCOMEntitlementGraph::KCOMFactory"
+          },
+          "param": "gen__graph_factory_output_idx",
+          "purpose": {
+            "kind": "spawn_output_index"
+          }
+        },
+        {
+          "id": "witness/KCOMInitialize/initialize/spawn/graph/vault/spawn_output_index",
+          "subject": {
+            "kind": "spawn_actor",
+            "spawn": "graph",
+            "handle": "vault",
+            "actor": "KCOMEntitlementGraph::KCOMVault"
+          },
+          "param": "gen__graph_vault_output_idx",
+          "purpose": {
+            "kind": "spawn_output_index"
+          }
+        }
+      ]
+    },
+    "interfaces": {
+      "exports": [
+        {
+          "id": "interface/actor/KCOMInitialize",
+          "app": "KCOMEntitlementInitialization",
+          "actor": "KCOMInitialize",
+          "state": "CampaignInitState",
+          "fingerprint_hex": "2cfe4441d6e55cef7eb6269759244795128ff3f832de0dd7fa2293e889aa0c24"
+        }
+      ],
+      "imports": [
+        {
+          "id": "interface/actor/KCOMFactory",
+          "app": "KCOMEntitlementGraph",
+          "actor": "KCOMFactory",
+          "state": "FactoryState",
+          "fingerprint_hex": "ef4e71b4632798c74825f08ec61535ec9a690f1479f3ebb35b9cd1b1e43a2f57"
+        },
+        {
+          "id": "interface/actor/KCOMVault",
+          "app": "KCOMEntitlementGraph",
+          "actor": "KCOMVault",
+          "state": "VaultState",
+          "fingerprint_hex": "176c54339254d41e9f52d504d5420eaf532afabc54814b82a468f34bdca36ad4"
+        }
+      ]
+    },
+    "states": [
+      {
+        "name": "CampaignInitState",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "manifest_total",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "eligibility_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "empty_used_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "empty_summaries_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "leaf_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_value",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "first",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "second",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "third",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "opens_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "closes_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactoryState",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "manifest_total",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "eligibility_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "empty_used_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "empty_summaries_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "leaf_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "next_shard",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_value",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "first",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "second",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "third",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "opens_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "closes_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "opened",
+            "type": {
+              "kind": "bool"
+            }
+          }
+        ]
+      },
+      {
+        "name": "VaultState",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "extension",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "treasury_scheme",
+            "type": {
+              "kind": "byte"
+            }
+          },
+          {
+            "name": "treasury",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "first",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "second",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "third",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "funded",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "opened",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "settled",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "recovered",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "liability_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "activated_raw",
+            "type": {
+              "kind": "int"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ClaimCommitmentState",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "manifest_total",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "eligibility_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "leaf_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "index",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "original_authority",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "identity",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "weight",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "tier",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "beneficiary_scheme",
+            "type": {
+              "kind": "byte"
+            }
+          },
+          {
+            "name": "beneficiary",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "shard",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_count",
+            "type": {
+              "kind": "int"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ClaimShardState",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "manifest_total",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "eligibility_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "used_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "leaf_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "selected_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "all_weight",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "boosted_weight",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "long_weight",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "first",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "second",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "third",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "opens_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "closes_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "closed",
+            "type": {
+              "kind": "bool"
+            }
+          }
+        ]
+      },
+      {
+        "name": "EntitlementState",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "manifest_total",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "eligibility_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "index",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "original_authority",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "beneficiary",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "beneficiary_scheme",
+            "type": {
+              "kind": "byte"
+            }
+          },
+          {
+            "name": "tier",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "total",
+            "type": {
+              "kind": "int"
+            }
+          }
+        ]
+      },
+      {
+        "name": "SettlementState",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "manifest_total",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "eligibility_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "summaries_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "leaf_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "next_shard",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "selected_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "all_weight",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "boosted_weight",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "long_weight",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "first",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "second",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "third",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "opens_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "closes_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "collection_complete",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "settled_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "liability_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "settlement_complete",
+            "type": {
+              "kind": "bool"
+            }
+          }
+        ]
+      }
+    ],
+    "actor_enums": [],
+    "actors": [
+      {
+        "name": "KCOMInitialize",
+        "state": "CampaignInitState",
+        "abi": {
+          "contract": "KCOMInitialize"
+        },
+        "entries": [
+          {
+            "name": "initialize",
+            "kind": "leader",
+            "abi": {
+              "contract": "KCOMInitialize",
+              "entry": "initialize"
+            },
+            "route_plan": {
+              "active_input": {
+                "name": "self",
+                "actor": "KCOMInitialize",
+                "cov_index": 0
+              },
+              "leader_input": {
+                "name": "self",
+                "actor": "KCOMInitialize",
+                "cov_index": 0
+              },
+              "consumes": [],
+              "outputs": [],
+              "witness_recipe_ids": [
+                "witness/kcom_entitlement_graph__kcom_factory/template_prefix_bytes",
+                "witness/kcom_entitlement_graph__kcom_factory/template_suffix_bytes",
+                "witness/kcom_entitlement_graph__kcom_vault/template_prefix_bytes",
+                "witness/kcom_entitlement_graph__kcom_vault/template_suffix_bytes",
+                "witness/KCOMInitialize/initialize/spawn/graph/factory/spawn_output_index",
+                "witness/KCOMInitialize/initialize/spawn/graph/vault/spawn_output_index"
+              ]
+            },
+            "hidden_params": [
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_factory/template_prefix_bytes",
+                "name": "gen__kcom_entitlement_graph__kcom_factory_prefix",
+                "type": {
+                  "kind": "bytes"
+                },
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMFactory"
+                },
+                "purpose": {
+                  "kind": "template_prefix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_factory/template_suffix_bytes",
+                "name": "gen__kcom_entitlement_graph__kcom_factory_suffix",
+                "type": {
+                  "kind": "bytes"
+                },
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMFactory"
+                },
+                "purpose": {
+                  "kind": "template_suffix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_vault/template_prefix_bytes",
+                "name": "gen__kcom_entitlement_graph__kcom_vault_prefix",
+                "type": {
+                  "kind": "bytes"
+                },
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMVault"
+                },
+                "purpose": {
+                  "kind": "template_prefix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_vault/template_suffix_bytes",
+                "name": "gen__kcom_entitlement_graph__kcom_vault_suffix",
+                "type": {
+                  "kind": "bytes"
+                },
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMVault"
+                },
+                "purpose": {
+                  "kind": "template_suffix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/KCOMInitialize/initialize/spawn/graph/factory/spawn_output_index",
+                "name": "gen__graph_factory_output_idx",
+                "type": {
+                  "kind": "int"
+                },
+                "subject": {
+                  "kind": "spawn_actor",
+                  "spawn": "graph",
+                  "handle": "factory",
+                  "actor": "KCOMEntitlementGraph::KCOMFactory"
+                },
+                "purpose": {
+                  "kind": "spawn_output_index"
+                }
+              },
+              {
+                "recipe_id": "witness/KCOMInitialize/initialize/spawn/graph/vault/spawn_output_index",
+                "name": "gen__graph_vault_output_idx",
+                "type": {
+                  "kind": "int"
+                },
+                "subject": {
+                  "kind": "spawn_actor",
+                  "spawn": "graph",
+                  "handle": "vault",
+                  "actor": "KCOMEntitlementGraph::KCOMVault"
+                },
+                "purpose": {
+                  "kind": "spawn_output_index"
+                }
+              }
+            ],
+            "template_selectors": [],
+            "spawns": [
+              {
+                "name": "graph",
+                "covenant": "graph_id",
+                "outputs": [
+                  {
+                    "name": "factory",
+                    "actor": "KCOMEntitlementGraph::KCOMFactory",
+                    "state": "FactoryState",
+                    "group_index": 0,
+                    "target": {
+                      "kind": "static_actor",
+                      "app": "KCOMEntitlementGraph",
+                      "actor": "KCOMFactory"
+                    }
+                  },
+                  {
+                    "name": "vault",
+                    "actor": "KCOMEntitlementGraph::KCOMVault",
+                    "state": "VaultState",
+                    "group_index": 1,
+                    "target": {
+                      "kind": "static_actor",
+                      "app": "KCOMEntitlementGraph",
+                      "actor": "KCOMVault"
+                    }
+                  }
+                ]
+              }
+            ],
+            "witnesses": [
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_factory/template_prefix_bytes",
+                "param": "gen__kcom_entitlement_graph__kcom_factory_prefix",
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMFactory"
+                },
+                "purpose": {
+                  "kind": "template_prefix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_factory/template_suffix_bytes",
+                "param": "gen__kcom_entitlement_graph__kcom_factory_suffix",
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMFactory"
+                },
+                "purpose": {
+                  "kind": "template_suffix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_vault/template_prefix_bytes",
+                "param": "gen__kcom_entitlement_graph__kcom_vault_prefix",
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMVault"
+                },
+                "purpose": {
+                  "kind": "template_prefix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/kcom_entitlement_graph__kcom_vault/template_suffix_bytes",
+                "param": "gen__kcom_entitlement_graph__kcom_vault_suffix",
+                "subject": {
+                  "kind": "actor",
+                  "actor": "KCOMEntitlementGraph::KCOMVault"
+                },
+                "purpose": {
+                  "kind": "template_suffix_bytes"
+                }
+              },
+              {
+                "recipe_id": "witness/KCOMInitialize/initialize/spawn/graph/factory/spawn_output_index",
+                "param": "gen__graph_factory_output_idx",
+                "subject": {
+                  "kind": "spawn_actor",
+                  "spawn": "graph",
+                  "handle": "factory",
+                  "actor": "KCOMEntitlementGraph::KCOMFactory"
+                },
+                "purpose": {
+                  "kind": "spawn_output_index"
+                }
+              },
+              {
+                "recipe_id": "witness/KCOMInitialize/initialize/spawn/graph/vault/spawn_output_index",
+                "param": "gen__graph_vault_output_idx",
+                "subject": {
+                  "kind": "spawn_actor",
+                  "spawn": "graph",
+                  "handle": "vault",
+                  "actor": "KCOMEntitlementGraph::KCOMVault"
+                },
+                "purpose": {
+                  "kind": "spawn_output_index"
+                }
+              }
+            ],
+            "consumes": [],
+            "emits": {
+              "kind": "outputs",
+              "outputs": []
+            },
+            "routes": []
+          }
+        ]
+      }
+    ]
+  },
+  "sil_abi": {
+    "schema_version": 1,
+    "compiler_version": "0.1.0",
+    "structs": {
+      "FactoryState": {
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "manifest_total",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "eligibility_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "empty_used_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "empty_summaries_root",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "leaf_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_count",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "next_shard",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "shard_value",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "first",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "second",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "third",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "opens_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "closes_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "opened",
+            "type": {
+              "kind": "bool"
+            }
+          }
+        ]
+      },
+      "VaultState": {
+        "fields": [
+          {
+            "name": "campaign",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "token_id",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "tge_ms",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "budget_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "extension",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "treasury_scheme",
+            "type": {
+              "kind": "byte"
+            }
+          },
+          {
+            "name": "treasury",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "first",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "second",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "third",
+            "type": {
+              "kind": "fixed_bytes",
+              "len": 32
+            }
+          },
+          {
+            "name": "funded",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "opened",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "settled",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "recovered",
+            "type": {
+              "kind": "bool"
+            }
+          },
+          {
+            "name": "liability_raw",
+            "type": {
+              "kind": "int"
+            }
+          },
+          {
+            "name": "activated_raw",
+            "type": {
+              "kind": "int"
+            }
+          }
+        ]
+      }
+    },
+    "contracts": {
+      "KCOMInitialize": {
+        "source_path": "sil/KCOMInitialize.sil",
+        "runtime_state": {
+          "source": "State",
+          "fields": [
+            {
+              "name": "campaign",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "terms_hash",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "token_id",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "budget_raw",
+              "type": {
+                "kind": "int"
+              }
+            },
+            {
+              "name": "manifest_total",
+              "type": {
+                "kind": "int"
+              }
+            },
+            {
+              "name": "eligibility_root",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "empty_used_root",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "empty_summaries_root",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "leaf_count",
+              "type": {
+                "kind": "int"
+              }
+            },
+            {
+              "name": "shard_count",
+              "type": {
+                "kind": "int"
+              }
+            },
+            {
+              "name": "shard_value",
+              "type": {
+                "kind": "int"
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "second",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "third",
+              "type": {
+                "kind": "fixed_bytes",
+                "len": 32
+              }
+            },
+            {
+              "name": "opens_ms",
+              "type": {
+                "kind": "int"
+              }
+            },
+            {
+              "name": "closes_ms",
+              "type": {
+                "kind": "int"
+              }
+            },
+            {
+              "name": "tge_ms",
+              "type": {
+                "kind": "int"
+              }
+            }
+          ]
+        },
+        "entries": {
+          "initialize": {
+            "dispatch_tag": "d46ac7be",
+            "params": [
+              {
+                "name": "signature_a",
+                "type": {
+                  "kind": "sig"
+                }
+              },
+              {
+                "name": "key_a",
+                "type": {
+                  "kind": "pubkey"
+                }
+              },
+              {
+                "name": "signature_b",
+                "type": {
+                  "kind": "sig"
+                }
+              },
+              {
+                "name": "key_b",
+                "type": {
+                  "kind": "pubkey"
+                }
+              },
+              {
+                "name": "terms",
+                "type": {
+                  "kind": "bytes"
+                }
+              },
+              {
+                "name": "gen__kcom_entitlement_graph__kcom_factory_prefix",
+                "type": {
+                  "kind": "bytes"
+                }
+              },
+              {
+                "name": "gen__kcom_entitlement_graph__kcom_factory_suffix",
+                "type": {
+                  "kind": "bytes"
+                }
+              },
+              {
+                "name": "gen__kcom_entitlement_graph__kcom_vault_prefix",
+                "type": {
+                  "kind": "bytes"
+                }
+              },
+              {
+                "name": "gen__kcom_entitlement_graph__kcom_vault_suffix",
+                "type": {
+                  "kind": "bytes"
+                }
+              },
+              {
+                "name": "gen__graph_factory_output_idx",
+                "type": {
+                  "kind": "int"
+                }
+              },
+              {
+                "name": "gen__graph_vault_output_idx",
+                "type": {
+                  "kind": "int"
+                }
+              }
+            ]
+          }
+        },
+        "compiled": {
+          "bytecode": [
+            107, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 108, 118, 4, 212, 106, 199, 190, 135, 99, 117, 1, 27, 121, 130,
+            1, 65, 157, 117, 1, 26, 121, 130, 1, 32, 157, 117, 1, 25, 121, 130, 1, 65, 157, 117, 1, 24, 121, 130, 1, 32, 157, 117, 1, 23, 121, 130, 81, 151, 0, 157, 117, 1, 22, 121, 130, 81, 151, 0, 157, 117, 1, 21, 121, 130, 81, 151, 0, 157, 117, 1, 20, 121, 130, 81, 151, 0, 157, 117,
+            1, 19, 121, 130, 81, 151, 0, 157, 117, 1, 18, 121, 130, 89, 159, 105, 117, 1, 17, 121, 130, 89, 159, 105, 117, 32, 2, 214, 205, 193, 239, 125, 194, 194, 57, 245, 253, 51, 178, 16, 220, 47, 135, 249, 103, 1, 26, 29, 224, 8, 50, 148, 9, 76, 159, 204, 237, 102, 32, 125, 246, 47, 178, 237,
+            68, 6, 78, 13, 136, 81, 211, 164, 114, 130, 230, 17, 105, 190, 222, 251, 253, 103, 221, 254, 153, 64, 132, 181, 46, 57, 82, 185, 203, 0, 156, 105, 185, 186, 185, 187, 88, 205, 0, 84, 127, 126, 82, 88, 205, 126, 1, 21, 121, 88, 205, 0, 84, 127, 126, 1, 21, 121, 194, 88, 205, 126, 2, 0,
+            0, 126, 1, 35, 88, 205, 126, 1, 21, 121, 82, 1, 37, 200, 126, 1, 20, 121, 88, 205, 0, 84, 127, 126, 1, 20, 121, 194, 88, 205, 126, 2, 0, 0, 126, 1, 35, 88, 205, 126, 1, 20, 121, 82, 1, 37, 200, 126, 118, 10, 67, 111, 118, 101, 110, 97, 110, 116, 73, 68, 167, 1, 22, 121,
+            213, 120, 135, 105, 1, 18, 121, 208, 0, 156, 105, 1, 27, 121, 130, 124, 117, 81, 150, 2, 21, 1, 156, 105, 1, 27, 121, 217, 1, 20, 121, 135, 105, 1, 27, 121, 0, 1, 20, 127, 20, 107, 99, 111, 109, 46, 99, 108, 97, 105, 109, 46, 116, 101, 114, 109, 115, 47, 118, 50, 0, 135, 105, 1,
+            27, 121, 1, 20, 1, 52, 127, 1, 21, 121, 135, 105, 1, 27, 121, 1, 52, 1, 84, 127, 96, 121, 135, 105, 1, 27, 121, 1, 84, 1, 92, 127, 1, 18, 121, 88, 205, 135, 105, 1, 27, 121, 1, 92, 1, 100, 127, 1, 17, 121, 88, 205, 135, 105, 1, 18, 121, 32, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 135, 145, 105, 1, 27, 121, 1, 100, 2, 132, 0, 127, 1, 19, 121, 135, 105, 1, 27, 121, 2, 164, 0, 2, 196, 0, 127, 32, 93, 108, 172, 223, 87, 199, 52, 83, 111, 203,
+            138, 156, 131, 63, 3, 24, 103, 18, 38, 114, 126, 199, 124, 80, 58, 152, 252, 91, 229, 159, 158, 41, 135, 105, 1, 27, 121, 2, 196, 0, 2, 200, 0, 127, 4, 1, 0, 0, 0, 135, 105, 1, 27, 121, 2, 200, 0, 2, 204, 0, 127, 4, 176, 98, 0, 0, 135, 105, 84, 121, 86, 121, 160, 85,
+            121, 7, 0, 128, 250, 202, 115, 249, 31, 161, 154, 105, 1, 27, 121, 2, 204, 0, 2, 212, 0, 127, 85, 121, 88, 205, 135, 105, 1, 27, 121, 2, 212, 0, 2, 213, 0, 127, 1, 0, 135, 1, 28, 121, 2, 212, 0, 2, 213, 0, 127, 1, 1, 135, 155, 1, 28, 121, 2, 212, 0, 2, 213, 0,
+            127, 1, 2, 135, 155, 1, 28, 121, 2, 212, 0, 2, 213, 0, 127, 1, 3, 135, 155, 1, 28, 121, 2, 212, 0, 2, 213, 0, 127, 1, 4, 135, 155, 105, 1, 27, 121, 2, 213, 0, 2, 245, 0, 127, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 135, 145, 105, 1, 27, 121, 2, 245, 0, 2, 21, 1, 127, 32, 234, 33, 178, 130, 204, 50, 7, 148, 13, 134, 216, 231, 144, 98, 109, 184, 153, 140, 229, 107, 153, 108, 134, 223, 93, 49, 113, 142, 189, 3, 124, 91, 135, 105, 1, 17, 121,
+            7, 0, 0, 193, 111, 242, 134, 35, 156, 1, 18, 121, 90, 162, 1, 19, 121, 2, 32, 78, 161, 154, 1, 19, 121, 90, 151, 0, 156, 154, 155, 105, 96, 121, 0, 160, 1, 17, 121, 1, 19, 121, 85, 150, 161, 154, 105, 92, 121, 0, 160, 93, 121, 3, 0, 0, 16, 161, 154, 105, 1, 17, 121, 85,
+            150, 1, 17, 121, 148, 93, 121, 159, 105, 91, 121, 81, 156, 92, 121, 82, 156, 155, 92, 121, 84, 156, 155, 92, 121, 88, 156, 155, 92, 121, 96, 156, 155, 92, 121, 1, 32, 156, 155, 92, 121, 1, 64, 156, 155, 92, 121, 2, 128, 0, 156, 155, 92, 121, 2, 0, 1, 156, 155, 92, 121, 2, 0, 2,
+            156, 155, 92, 121, 2, 0, 4, 156, 155, 92, 121, 2, 0, 8, 156, 155, 92, 121, 2, 0, 16, 156, 155, 92, 121, 2, 0, 32, 156, 155, 92, 121, 2, 0, 64, 156, 155, 92, 121, 3, 0, 128, 0, 156, 155, 92, 121, 3, 0, 0, 1, 156, 155, 92, 121, 3, 0, 0, 2, 156, 155, 92, 121, 3,
+            0, 0, 4, 156, 155, 92, 121, 3, 0, 0, 8, 156, 155, 92, 121, 3, 0, 0, 16, 156, 155, 105, 90, 121, 0, 160, 91, 121, 8, 254, 30, 10, 250, 255, 255, 255, 127, 94, 121, 150, 161, 154, 105, 185, 190, 91, 121, 93, 121, 149, 4, 0, 225, 245, 5, 147, 160, 105, 86, 121, 5, 0, 136, 82,
+            106, 116, 162, 87, 121, 8, 255, 55, 129, 101, 255, 255, 255, 127, 161, 154, 105, 85, 121, 87, 121, 5, 0, 200, 126, 154, 0, 147, 156, 105, 89, 121, 89, 121, 135, 145, 90, 121, 89, 121, 135, 145, 154, 89, 121, 89, 121, 135, 145, 154, 105, 1, 30, 121, 1, 29, 121, 120, 120, 135, 145, 105, 120, 92,
+            121, 135, 82, 121, 92, 121, 135, 155, 82, 121, 91, 121, 135, 155, 105, 118, 92, 121, 135, 120, 92, 121, 135, 155, 120, 91, 121, 135, 155, 105, 1, 33, 121, 130, 124, 117, 81, 150, 1, 65, 156, 1, 32, 121, 130, 124, 117, 81, 150, 1, 65, 156, 154, 105, 1, 33, 121, 1, 64, 1, 65, 127, 1, 1,
+            135, 105, 1, 31, 121, 1, 64, 1, 65, 127, 1, 1, 135, 105, 1, 33, 121, 1, 33, 121, 172, 105, 1, 31, 121, 1, 31, 121, 172, 105, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 1, 22, 121, 0, 1, 23, 121,
+            1, 23, 121, 1, 23, 121, 1, 23, 121, 1, 23, 121, 1, 23, 121, 1, 23, 121, 0, 1, 0, 1, 49, 121, 2, 212, 0, 2, 213, 0, 127, 1, 1, 135, 99, 1, 1, 119, 104, 1, 49, 121, 2, 212, 0, 2, 213, 0, 127, 1, 2, 135, 99, 1, 2, 119, 104, 1, 49, 121, 2, 212, 0, 2,
+            213, 0, 127, 1, 3, 135, 99, 1, 3, 119, 104, 1, 49, 121, 2, 212, 0, 2, 213, 0, 127, 1, 4, 135, 99, 1, 4, 119, 104, 1, 42, 121, 1, 42, 121, 1, 42, 121, 1, 29, 121, 1, 43, 121, 1, 54, 121, 2, 132, 0, 2, 164, 0, 127, 86, 121, 1, 56, 121, 2, 213, 0, 2, 245,
+            0, 127, 1, 39, 121, 1, 39, 121, 1, 39, 121, 0, 0, 0, 0, 0, 0, 1, 61, 121, 194, 185, 190, 4, 0, 225, 245, 5, 148, 156, 105, 1, 60, 121, 194, 4, 0, 225, 245, 5, 156, 105, 1, 42, 121, 1, 66, 121, 130, 124, 117, 81, 150, 88, 205, 1, 67, 121, 126, 1, 66, 121, 130, 124,
+            117, 81, 150, 88, 205, 1, 67, 121, 126, 126, 217, 136, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126,
+            1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 32, 1, 37, 121, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 8, 1, 37, 121, 88,
+            205, 126, 1, 8, 1, 37, 121, 88, 205, 126, 1, 1, 1, 37, 121, 146, 81, 205, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 1, 66, 121, 124, 126, 1, 65, 121, 126, 170, 2, 0, 0, 1, 170, 126, 1, 32, 126, 124, 126, 1, 135, 126, 1, 62, 121,
+            195, 136, 1, 41, 121, 1, 64, 121, 130, 124, 117, 81, 150, 88, 205, 1, 65, 121, 126, 1, 64, 121, 130, 124, 117, 81, 150, 88, 205, 1, 65, 121, 126, 126, 217, 136, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 8, 1, 17, 121, 88, 205, 126, 1, 8,
+            1, 17, 121, 88, 205, 126, 1, 32, 1, 17, 121, 126, 1, 1, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 32, 1, 17, 121, 126, 1, 1, 1, 17, 121, 146, 81, 205, 126, 1, 1, 1, 17, 121, 146, 81, 205, 126, 1, 1, 1, 17,
+            121, 146, 81, 205, 126, 1, 1, 1, 17, 121, 146, 81, 205, 126, 1, 8, 1, 17, 121, 88, 205, 126, 1, 8, 1, 17, 121, 88, 205, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 1, 64, 121, 124, 126, 1, 63, 121, 126, 170, 2, 0, 0, 1, 170, 126, 1, 32,
+            126, 124, 126, 1, 135, 126, 1, 61, 121, 195, 136, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,
+            117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 81, 103, 106, 104
+          ],
+          "template_hash": [224, 0, 102, 122, 233, 198, 189, 168, 172, 2, 160, 102, 123, 220, 85, 72, 127, 191, 217, 6, 75, 56, 197, 123, 187, 63, 94, 254, 17, 35, 217, 18],
+          "state_span": {
+            "offset": 1,
+            "len": 369
+          }
+        }
+      }
+    }
+  }
+}
