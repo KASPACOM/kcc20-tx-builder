@@ -555,6 +555,7 @@ export function createKcc20PsktBuilderEngine(
     "kcom-claim.fund-vault": buildKcomClaimPskt,
     "kcom-claim.create-shard": buildKcomClaimPskt,
     "kcom-claim.finish-initialization": buildKcomClaimPskt,
+    "kcom-claim.activate": buildKcomClaimPskt,
     "kcom-vesting.deploy": buildKcomVestingPskt,
     "kcom-vesting.release": buildKcomVestingPskt,
     "kcom-vesting.finish": buildKcomVestingPskt,
