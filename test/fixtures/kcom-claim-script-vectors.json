@@ -284,5 +284,52 @@
     ],
     "positionId": "58b2a6a6dfbc69409e96da61e541f91de91db2c5099f19c0a16661fae8a9db09",
     "allocationRaw": "168"
+  },
+  "seal": {
+    "collectorState": {
+      "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+      "eligibility_root": "df2310d9d3145686837e408ac131ccce0b940e7e1c59df128a37f33107b64458",
+      "leaf_count": "4",
+      "selected_count": "4",
+      "all_weight": "198",
+      "boosted_weight": "171",
+      "long_weight": "110",
+      "shard_count": "4",
+      "next_shard": "4",
+      "summaries_root": "f4958a6b1554e90115bec6a3b9142daf841788a4b497c1ee6212d1077144ff4b",
+      "collection_complete": true,
+      "terms_hash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+      "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "tge_ms": "1797897600000",
+      "budget_raw": "1000",
+      "manifest_total": "198",
+      "settled_count": "4",
+      "liability_raw": "996",
+      "settlement_complete": true,
+      "first": "62c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7",
+      "second": "f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a",
+      "third": "989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f",
+      "opens_ms": "1794700800000",
+      "closes_ms": "1797292800000"
+    },
+    "inputs": [
+      {
+        "computeBudget": 28,
+        "index": 1,
+        "transactionId": "9b13c4f5af64362073dc21b40122b56bcb460ef5d29b1456f91b883edaacbb4f"
+      },
+      {
+        "computeBudget": 15,
+        "index": 0,
+        "transactionId": "7a7fcd51986fa823926da86c8f6907a0dab21f61f6d1bc25bd94fe28417a2086"
+      }
+    ],
+    "outputs": [
+      {
+        "covenantId": "7d6f7270fa434aa962630988107d38f0d7b05b587f317c3f89318b9185771e3f",
+        "scriptPublicKeyHex": "aa20efe7e3e38736f6a3f659734837360cf21bb54a7a93b90ceb0dfa46e900f8e57387",
+        "valueSompi": "600000000"
+      }
+    ]
   }
 }

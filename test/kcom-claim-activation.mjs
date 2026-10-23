@@ -141,4 +141,42 @@ assert.deepEqual(finalTx.outputs.slice(0, 3).map(out => String(out.covenant?.cov
 assert.equal(finalTx.outputs[3].value, sponsor.amount - 60000000n);
 assert.equal(finalTx.inputs[0].computeBudget >= fv.computeBudget, true);
 assert.equal(finalTx.inputs[2].computeBudget >= ft.computeBudget, true);
-console.log("ok KCOM claim partial/final activation PSKTs match Argent outputs and position IDs");
+
+const seal = vectors.seal;
+const openVaultState = { ...vaultState, settled: false, recovered: false, liability_raw: "0" };
+const [sv, sc] = seal.inputs;
+const openVault = source(sv, 100000000n, kw.payToScriptHashScript(codec.script("KCOMVault", openVaultState)), graphId);
+const collector = source(sc, 500000000n, kw.payToScriptHashScript(codec.script("KCOMSettlement", seal.collectorState)), graphId);
+entries.set(addr(openVault), [openVault]);
+entries.set(addr(collector), [collector]);
+const sealRequest = (extra = {}) => ({
+  schema: "kcc20-in-process-pskt-builder-input/v1",
+  request: { builderKey: "kcom-claim.seal", network: "testnet-10", owner: { walletAddress },
+    params: { graphId, vaultState: openVaultState, collectorState: seal.collectorState,
+      vault: openVault.outpoint, collector: collector.outpoint, ...extra } },
+});
+const sealed = await build(sealRequest());
+assert.equal((await engine.build(sealRequest())).metadata.liabilityRaw, vectors.liabilityRaw);
+assert.deepEqual(sealed.signInputs, [{ index: 2, sighashType: 1 }]);
+const sealTx = kw.Transaction.deserializeFromSafeJSON(sealed.psktTransactionJson);
+assert.deepEqual(sealTx.outputs.slice(0, 1).map(out => out.scriptPublicKey.script), seal.outputs.map(out => out.scriptPublicKeyHex));
+assert.equal(sealTx.outputs[0].value, 600000000n);
+assert.equal(sealTx.outputs[1].value, sponsor.amount - 60000000n);
+assert.equal(sealTx.inputs[0].computeBudget >= sv.computeBudget, true);
+assert.equal(sealTx.inputs[1].computeBudget >= sc.computeBudget, true);
+await assert.rejects(build(sealRequest({ collectorState: { ...seal.collectorState, liability_raw: "997" } })), /SOURCE_STALE/);
+await assert.rejects(build(sealRequest({ collectorState: { ...seal.collectorState, settlement_complete: false } })), /incomplete/);
+await assert.rejects(build(sealRequest({ collector: { ...collector.outpoint, index: 5 } })), /SOURCE_STALE/);
+const alteredSealFee = createKcomClaimPsktBuilder({
+  wasm: kw, artifacts: {
+    "KCOMClaimGraph.artifact.json": graph, "KCOMClaimOpen.artifact.json": opening,
+    "KCC20.placeholder.json": canonical, "KCOMVesting.artifact.json": vesting,
+  }, rpcClientFactory: () => rpc,
+  transactionWithMinimumCalculatedFeeChange: (_runtime, transaction, changeIndex) => {
+    assert.equal(changeIndex, 1);
+    transaction.outputs[0].value -= 1n;
+    return transaction;
+  },
+});
+await assert.rejects(alteredSealFee(sealRequest()), /changed a custody output/);
+console.log("ok KCOM claim seal and partial/final activation PSKTs match Argent outputs and position IDs");

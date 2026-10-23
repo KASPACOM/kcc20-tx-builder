@@ -124,6 +124,8 @@ export async function buildKcomClaimActivation({ options, kw, req, p, codec, gra
         new kw.CovenantBinding(2, new kw.Hash(tokenId)))),
       new kw.TransactionOutput(utxoAmountSompi(funding) - topup - FEE, kw.payToAddressScript(address)),
     ];
+    // Preserve primitives before the fee callback; WASM output wrappers may share mutable backing state.
+    const expectedOutputs = outputs.map(out => ({ value: out.value, script: out.scriptPublicKey.script }));
     const budgets = final ? [70, 15, 25, 10] : [100, 15, 35, 10];
     const inputs = [vault, entitlement, token, funding].map((entry, i) => ({
       previousOutpoint: entry.outpoint, utxo: entry, sequence: 0n,
@@ -155,10 +157,10 @@ export async function buildKcomClaimActivation({ options, kw, req, p, codec, gra
     const expectedIds = [graphId, positionId, ...tokenStates.map(() => tokenId), ""];
     if (tx.outputs.length !== outputs.length || String(tx.outputs[1].covenant?.covenantId) !== positionId ||
         tx.outputs.some((out, i) =>
-          (out.value !== outputs[i].value && i !== outputs.length - 1) ||
-          out.scriptPublicKey.script !== outputs[i].scriptPublicKey.script ||
+          (out.value !== expectedOutputs[i].value && i !== outputs.length - 1) ||
+          out.scriptPublicKey.script !== expectedOutputs[i].script ||
           String(out.covenant?.covenantId ?? "") !== expectedIds[i]) ||
-        tx.outputs.at(-1).value <= 10000n || tx.outputs.at(-1).value > outputs.at(-1).value ||
+        tx.outputs.at(-1).value <= 10000n || tx.outputs.at(-1).value > expectedOutputs.at(-1).value ||
         tx.inputs.length !== 4 ||
         [vault, entitlement, token, funding].some((entry, i) =>
           String(tx.inputs[i].previousOutpoint.transactionId) !== String(entry.outpoint.transactionId) ||
