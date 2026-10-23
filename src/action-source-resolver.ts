@@ -52,8 +52,6 @@ export interface Kcc20FeeTicketOutpointLike {
 }
 
 export const KCC20_MIN_CONSOLIDATION_INPUTS = 2;
-// Native PSKT construction currently admits at most three token inputs.
-export const KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS = 3;
 export const KCC20_MAX_CONSOLIDATION_INPUTS = 8;
 
 export function kcc20IndexedUtxoOutpoint(

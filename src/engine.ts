@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS } from "./action-source-resolver.js";
 import { planTokenOwnerWitness } from "./token-authorization.js";
 import { sha256 } from "@noble/hashes/sha256";
 import {
@@ -9419,8 +9418,25 @@ export function createKcc20PsktBuilderEngine(
     const holderUtxos = Array.isArray(params.activeHolderUtxos)
       ? params.activeHolderUtxos
       : [];
-    if (holderUtxos.length < 2 || holderUtxos.length > KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS) {
-      throw new Error("between two and three KCC20 holder UTXOs are required");
+    if (holderUtxos.length < 2) {
+      throw new Error("at least two KCC20 holder UTXOs are required");
+    }
+
+    const maximumProfileInputs = Math.max(
+      0,
+      ...tokenProfiles.profiles.map((p) => p.maxTokenInputs),
+    );
+    if (holderUtxos.length > maximumProfileInputs) {
+      throw new Error(
+        `consolidation exceeds the token profile input bound (${maximumProfileInputs})`,
+      );
+    }
+    const sourceOutpoints = holderUtxos.map(
+      (u) =>
+        `${requireHex32(u.txidHex, "holder txid")}:${parseVout(u.vout, "holder vout")}`,
+    );
+    if (new Set(sourceOutpoints).size !== holderUtxos.length) {
+      throw new Error("consolidation requires distinct holder outpoints");
     }
 
     const covenantId = requireHex32(
@@ -9478,7 +9494,9 @@ export function createKcc20PsktBuilderEngine(
     }
     const profile = resolvedArtifacts[0].profile;
     if (holderUtxos.length > profile.maxTokenInputs) {
-      throw new Error("consolidation exceeds the token profile input bound");
+      throw new Error(
+        `consolidation exceeds the token profile input bound (${profile.maxTokenInputs})`,
+      );
     }
     const artifact = resolvedArtifacts[0].artifact;
     for (const peerState of states.slice(1)) {

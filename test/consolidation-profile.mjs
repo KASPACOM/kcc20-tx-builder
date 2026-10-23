@@ -7,7 +7,6 @@ import {
   BUNDLED_TOKEN_PROFILES,
   buildKcc20ScriptForState,
 } from "../dist/index.js";
-import { KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS } from "../dist/action-source-resolver.js";
 kw.initSync(
   await readFile(
     new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url),
@@ -22,7 +21,10 @@ const wallet = kw
   .toString();
 const reachedRpc = new Error("validated scripts reached RPC");
 for (const profile of BUNDLED_TOKEN_PROFILES.profiles) {
-  for (const count of [2, 3])
+  for (const count of Array.from(
+    { length: profile.maxTokenInputs - 1 },
+    (_, i) => i + 2,
+  ))
     test(`${profile.id}: ${count} non-default holder states preserve authenticated scripts`, async () => {
       const artifact = JSON.parse(
         await readFile(
@@ -91,41 +93,65 @@ for (const profile of BUNDLED_TOKEN_PROFILES.profiles) {
       );
     });
 }
-test("native consolidation advertises the same three-input limit enforced by the engine", () => {
-  assert.equal(KCC20_MAX_NATIVE_CONSOLIDATION_INPUTS, 3);
-});
+for (const profile of BUNDLED_TOKEN_PROFILES.profiles)
+  test(`${profile.id}: planner uses the profile limit and rejects oversized explicit selection`, async () => {
+    const { buildKcc20NativeConsolidationOperation } = await import(
+      "../dist/token-operation.js"
+    );
+    const activeUtxos = Array.from({ length: 9 }, (_, i) => ({
+      txidHex: (i + 1).toString(16).padStart(64, "0"),
+      vout: 0,
+      address: "kaspatest:holder",
+      amountSompi: "100000000",
+      covenantId: "aa".repeat(32),
+      state: {
+        ownerIdentifier: owner,
+        ownerScheme: 0,
+        amount: "100",
+        isMintAuthority: false,
+      },
+    }));
+    const walletInfo = { walletAddress: wallet, kcc20Owner: owner };
+    const input = {
+      token: { covenantId: "aa".repeat(32), decimals: 0 },
+      tokenProfileId: profile.id,
+      activeUtxos,
+    };
+    const operation = buildKcc20NativeConsolidationOperation(walletInfo, input);
+    assert.equal(
+      operation.payload.params.activeHolderUtxos.length,
+      profile.maxTokenInputs,
+    );
+    assert.equal(
+      operation.payload.params.tokenAmount,
+      String(profile.maxTokenInputs * 100),
+    );
+    assert.throws(
+      () =>
+        buildKcc20NativeConsolidationOperation(walletInfo, {
+          ...input,
+          sourceOutpoints: activeUtxos
+            .slice(0, profile.maxTokenInputs + 1)
+            .map((u) => `${u.txidHex}:0`),
+        }),
+      /too many|maximum|at most/i,
+    );
+  });
 
-test("native planner selects a three-source batch and rejects oversized explicit selection", async () => {
+test("planner refuses unknown profile IDs instead of defaulting to platform limits", async () => {
   const { buildKcc20NativeConsolidationOperation } = await import(
     "../dist/token-operation.js"
   );
-  const activeUtxos = Array.from({ length: 8 }, (_, i) => ({
-    txidHex: (i + 1).toString(16).padStart(64, "0"),
-    vout: 0,
-    address: "kaspatest:holder",
-    amountSompi: "100000000",
-    covenantId: "aa".repeat(32),
-    state: {
-      ownerIdentifier: owner,
-      ownerScheme: 0,
-      amount: "100",
-      isMintAuthority: false,
-    },
-  }));
-  const walletInfo = { walletAddress: wallet, kcc20Owner: owner };
-  const input = {
-    token: { covenantId: "aa".repeat(32), decimals: 0 },
-    activeUtxos,
-  };
-  const operation = buildKcc20NativeConsolidationOperation(walletInfo, input);
-  assert.equal(operation.payload.params.activeHolderUtxos.length, 3);
-  assert.equal(operation.payload.params.tokenAmount, "300");
   assert.throws(
     () =>
-      buildKcc20NativeConsolidationOperation(walletInfo, {
-        ...input,
-        sourceOutpoints: activeUtxos.slice(0, 4).map((u) => `${u.txidHex}:0`),
-      }),
-    /3|three|too many|maximum|at most/i,
+      buildKcc20NativeConsolidationOperation(
+        { walletAddress: wallet, kcc20Owner: owner },
+        {
+          token: { covenantId: "aa".repeat(32) },
+          activeUtxos: [],
+          tokenProfileId: "unreviewed-template",
+        },
+      ),
+    /token profile is unavailable/,
   );
 });
