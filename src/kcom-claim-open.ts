@@ -1,9 +1,8 @@
 // @ts-nocheck
-import { sha256 } from "@noble/hashes/sha256";
-import { bytesToHex, hexToBytes, requireHex32, selectFundingEntry, setVersionOneInputMassFields, utxoAmountSompi } from "./sale-common.js";
+import { requireHex32, selectFundingEntry, setVersionOneInputMassFields, utxoAmountSompi } from "./sale-common.js";
+import { ADMIN_SIGNATURE_PLACEHOLDER, checkedKcomAdminPair, finishKcomAdminIntent, kcomAdminWitness } from "./kcom-claim-admin.js";
 
 const FEE = 60000000n;
-const PLACEHOLDER_SIGNATURE = Uint8Array.from([...new Uint8Array(64), 1]);
 
 export async function buildKcomClaimOpen({ options, kw, req, p, codec, graphId, address }) {
   const factoryState = p.factoryState, vaultState = p.vaultState;
@@ -14,19 +13,7 @@ export async function buildKcomClaimOpen({ options, kw, req, p, codec, graphId, 
   for (const key of ["campaign", "terms_hash", "token_id", "budget_raw", "first", "second", "third", "tge_ms"])
     if (String(factoryState[key]) !== String(vaultState[key]))
       throw new Error(`Factory ${key} differs from funded vault`);
-  const authorities = [factoryState.first, factoryState.second, factoryState.third]
-    .map((value, i) => requireHex32(value, `administrator ${i + 1}`));
-  if (new Set(authorities).size !== 3) throw new Error("Frozen administrators are not distinct");
-  const publicKeys = p.adminPublicKeys;
-  if (!Array.isArray(publicKeys) || publicKeys.length !== 2 ||
-      publicKeys.some(key => typeof key !== "string" || !authorities.includes(key)) ||
-      publicKeys[0] === publicKeys[1])
-    throw new Error("Two distinct frozen administrator public keys required");
-  const approvals = p.adminApprovals;
-  if (approvals !== undefined && (!Array.isArray(approvals) || approvals.length !== 2 ||
-      approvals.some((approval, i) => approval?.publicKey !== publicKeys[i] ||
-        typeof approval.signature !== "string" || !/^[0-9a-f]{128}01$/.test(approval.signature))))
-    throw new Error("Two ordered SIGHASH_ALL administrator signatures required");
+  const { publicKeys, approvals } = checkedKcomAdminPair(p, factoryState);
   const factoryScript = codec.script("KCOMFactory", factoryState);
   const vaultScript = codec.script("KCOMVault", vaultState);
   const nextFactoryScript = codec.script("KCOMFactory", { ...factoryState, opened: true });
@@ -79,18 +66,8 @@ export async function buildKcomClaimOpen({ options, kw, req, p, codec, graphId, 
       previousOutpoint: e.outpoint, utxo: e, sequence: 0n,
       computeBudget: budgets[i], sigOpCount: 0,
     }));
-    function factoryWitness(signatures) {
-      const witness = new kw.ScriptBuilder();
-      for (let i = 0; i < 2; i++) {
-        witness.addData(signatures[i]);
-        witness.addData(hexToBytes(publicKeys[i]));
-      }
-      codec.appendHiddenWitness(kw, witness, "KCOMFactory", "open");
-      witness.addData(codec.dispatch("KCOMFactory", "open"));
-      return kw.ScriptBuilder.fromScript(factoryScript)
-        .encodePayToScriptHashSignatureScript(witness.drain());
-    }
-    inputs[0].signatureScript = factoryWitness([PLACEHOLDER_SIGNATURE, PLACEHOLDER_SIGNATURE]);
+    inputs[0].signatureScript = kcomAdminWitness(kw, codec, factoryScript, "KCOMFactory", "open",
+      publicKeys, [ADMIN_SIGNATURE_PLACEHOLDER, ADMIN_SIGNATURE_PLACEHOLDER]);
     const delegate = new kw.ScriptBuilder();
     codec.appendHiddenWitness(kw, delegate, "KCOMVault", "open");
     delegate.addData(codec.dispatch("KCOMVault", "open"));
@@ -121,12 +98,8 @@ export async function buildKcomClaimOpen({ options, kw, req, p, codec, graphId, 
         tx.outputs[2].covenant || tx.outputs[2].scriptPublicKey.script !== sponsorSpkHex ||
         tx.outputs[2].value <= 10000n || tx.outputs[2].value > change)
       throw new Error("KCOM open fee adjustment changed a custody output or source");
-    const signingCommitment = bytesToHex(sha256(new TextEncoder().encode(tx.serializeToSafeJSON())));
-    if (approvals) {
-      if (p.expectedSigningCommitment !== signingCommitment)
-        throw new Error("KCOM_OPEN_SIGNING_INTENT_STALE: rebuild and collect fresh administrator signatures");
-      tx.inputs[0].signatureScript = factoryWitness(approvals.map(approval => hexToBytes(approval.signature)));
-    }
+    const { adminSigning } = finishKcomAdminIntent({ kw, tx, params: p, codec,
+      sourceScript: factoryScript, actor: "KCOMFactory", entry: "open", publicKeys, approvals });
     return {
       schema: "kcc20-in-process-pskt-builder-output/v1",
       psktTransactionJson: tx.serializeToSafeJSON(),
@@ -138,8 +111,7 @@ export async function buildKcomClaimOpen({ options, kw, req, p, codec, graphId, 
         factoryOutpoint: `${p.factory.transactionId}:${p.factory.index}`,
         vaultOutpoint: `${p.vault.transactionId}:${p.vault.index}`,
         factoryOutputIndex: 0, vaultOutputIndex: 1,
-        adminSigning: { inputIndex: 0, sighashType: 1, publicKeys,
-          signingCommitment, status: approvals ? "collected" : "awaiting-two-signatures" },
+        adminSigning,
         graphArtifactId: codec.graphArtifactId,
       },
     };

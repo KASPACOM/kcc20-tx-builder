@@ -85,4 +85,53 @@ const alteredFee = createKcomClaimPsktBuilder({ ...options,
   },
 });
 await assert.rejects(alteredFee(request()), /changed a custody output/);
-console.log("ok KCOM opening prepares distinct admin signing, locks its intent and guards both actor outputs");
+const shardState = {
+  campaign: vector.campaign, terms_hash: vector.termsHash, token_id: vector.tokenId,
+  budget_raw: vector.budgetRaw, manifest_total: "198",
+  eligibility_root: vector.seal.collectorState.eligibility_root,
+  used_root: "12".repeat(32), leaf_count: "4", selected_count: "0",
+  all_weight: "0", boosted_weight: "0", long_weight: "0",
+  shard: "0", shard_count: "1",
+  first: publicKeys[0], second: publicKeys[1], third: publicKeys[2],
+  opens_ms: "1700000000000", closes_ms: "1702592000000", tge_ms: "1703196800000",
+  closed: false,
+};
+const shard = source("f6".repeat(32), 100000000n,
+  kw.payToScriptHashScript(codec.script("KCOMClaimShard", shardState)), vector.graphId);
+entries.set(address(shard), [shard]);
+const closeRequest = (extra = {}) => ({
+  schema: "kcc20-in-process-pskt-builder-input/v1",
+  request: { builderKey: "kcom-claim.close", network: "testnet-10", owner: { walletAddress: sponsorAddress },
+    params: { graphId: vector.graphId, shardState, shard: shard.outpoint,
+      adminPublicKeys: publicKeys.slice(0, 2), ...extra } },
+});
+const preparedClose = await build(closeRequest());
+assert.equal(preparedClose.submitTransactionSupported, false);
+assert.deepEqual(preparedClose.signInputs, []);
+const unsignedClose = kw.Transaction.deserializeFromSafeJSON(preparedClose.psktTransactionJson);
+assert.equal(unsignedClose.lockTime, BigInt(shardState.closes_ms) + 1n);
+assert.equal(unsignedClose.outputs[0].value, shard.amount);
+assert.equal(unsignedClose.outputs[0].scriptPublicKey.script,
+  kw.payToScriptHashScript(codec.script("KCOMClaimShard", { ...shardState, closed: true })).script);
+const closeApprovals = keys.slice(0, 2).map((key, i) => {
+  const script = Buffer.from(String(kw.createInputSignature(unsignedClose, 0, key, kw.SighashType.All)), "hex");
+  assert.equal(script[0], 65);
+  return { publicKey: publicKeys[i], signature: script.subarray(1).toString("hex") };
+});
+const finalizedClose = await build(closeRequest({ adminApprovals: closeApprovals,
+  expectedSigningCommitment: preparedClose.metadata.adminSigning.signingCommitment }));
+assert.equal(finalizedClose.submitTransactionSupported, true);
+assert.deepEqual(finalizedClose.signInputs, [{ index: 1, sighashType: 1 }]);
+await assert.rejects(build(closeRequest({ shardState: { ...shardState, closed: true } })), /not ready/);
+await assert.rejects(build(closeRequest({ adminApprovals: closeApprovals,
+  expectedSigningCommitment: "ff".repeat(32) })), /SIGNING_INTENT_STALE/);
+await assert.rejects(build(closeRequest({ shard: { ...shard.outpoint, index: 1 } })), /SOURCE_STALE/);
+const alteredCloseFee = createKcomClaimPsktBuilder({ ...options,
+  transactionWithMinimumCalculatedFeeChange: (_runtime, tx, index) => {
+    assert.equal(index, 1);
+    tx.outputs[0].value -= 1n;
+    return tx;
+  },
+});
+await assert.rejects(alteredCloseFee(closeRequest()), /changed a custody output/);
+console.log("ok KCOM opening and frozen-window close prepare distinct admin signing and guard actor outputs");
