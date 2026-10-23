@@ -10,6 +10,7 @@ export const KCC20_BUILDER_KEYS = [
   "kcom-claim.seal",
   "kcom-claim.finish-settlement",
   "kcom-claim.activate",
+  "kcom-claim.recover",
   "kcom-vesting.deploy",
   "kcom-vesting.release",
   "kcom-vesting.finish",

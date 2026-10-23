@@ -21,25 +21,26 @@ export function checkedKcomAdminPair(params, state) {
   return { publicKeys, approvals };
 }
 
-export function kcomAdminWitness(kw, codec, sourceScript, actor, entry, publicKeys, signatures) {
+export function kcomAdminWitness(kw, codec, sourceScript, actor, entry, publicKeys, signatures, appendExplicit) {
   const witness = new kw.ScriptBuilder();
   for (let i = 0; i < 2; i++) {
     witness.addData(signatures[i]);
     witness.addData(hexToBytes(publicKeys[i]));
   }
+  appendExplicit?.(witness);
   codec.appendHiddenWitness(kw, witness, actor, entry);
   witness.addData(codec.dispatch(actor, entry));
   return kw.ScriptBuilder.fromScript(sourceScript)
     .encodePayToScriptHashSignatureScript(witness.drain());
 }
 
-export function finishKcomAdminIntent({ kw, tx, params, codec, sourceScript, actor, entry, publicKeys, approvals }) {
+export function finishKcomAdminIntent({ kw, tx, params, codec, sourceScript, actor, entry, publicKeys, approvals, appendExplicit }) {
   const signingCommitment = bytesToHex(sha256(new TextEncoder().encode(tx.serializeToSafeJSON())));
   if (approvals) {
     if (params.expectedSigningCommitment !== signingCommitment)
       throw new Error("KCOM_ADMIN_SIGNING_INTENT_STALE: rebuild and collect fresh administrator signatures");
     tx.inputs[0].signatureScript = kcomAdminWitness(kw, codec, sourceScript, actor, entry,
-      publicKeys, approvals.map(approval => hexToBytes(approval.signature)));
+      publicKeys, approvals.map(approval => hexToBytes(approval.signature)), appendExplicit);
   }
   return {
     signingCommitment,

@@ -563,6 +563,7 @@ export function createKcc20PsktBuilderEngine(
     "kcom-claim.seal": buildKcomClaimPskt,
     "kcom-claim.finish-settlement": buildKcomClaimPskt,
     "kcom-claim.activate": buildKcomClaimPskt,
+    "kcom-claim.recover": buildKcomClaimPskt,
     "kcom-vesting.deploy": buildKcomVestingPskt,
     "kcom-vesting.release": buildKcomVestingPskt,
     "kcom-vesting.finish": buildKcomVestingPskt,
