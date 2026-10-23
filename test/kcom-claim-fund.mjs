@@ -162,6 +162,46 @@ const alteredShardFeeBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts,
     transaction.outputs[1].value -= 1n;
     return transaction;
   } });
-await assert.rejects(alteredShardFeeBuilder(shardRequest()), /changed a shard output/);
-await assert.rejects(redirectedFeeBuilder(shardRequest()), /changed a shard output/);
-console.log("ok KCOM claim vault funding and shard creation PSKTs, live-source checks and output reconstruction");
+await assert.rejects(alteredShardFeeBuilder(shardRequest()), /changed a factory output/);
+await assert.rejects(redirectedFeeBuilder(shardRequest()), /changed a factory output/);
+
+const finishedFactoryState = { ...factoryState, next_shard: "4" };
+const finishedFactoryScript = codec.script("KCOMFactory", finishedFactoryState);
+assert.equal(kw.payToScriptHashScript(finishedFactoryScript).script, vectors.createShardSequence[3].outputs[0]);
+const finishedFactory = entry(kw.payToScriptHashScript(finishedFactoryScript), graphId, 100000000n);
+entries.set(address(finishedFactory), [finishedFactory]);
+const finishRequest = (extra = {}) => ({
+  schema: "kcc20-in-process-pskt-builder-input/v1",
+  request: { builderKey: "kcom-claim.finish-initialization", network: "testnet-10", owner: { walletAddress },
+    params: { graphId, factoryState: finishedFactoryState, factory: finishedFactory.outpoint, ...extra } },
+});
+const finishBuilt = await build(finishRequest());
+assert.deepEqual(finishBuilt.signInputs, [{ index: 1, sighashType: 1 }]);
+assert.equal(finishBuilt.metadata.collectorOutputIndex, 0);
+assert.equal((await engine.build(finishRequest())).metadata.collectorOutputIndex, 0);
+const finishTx = kw.Transaction.deserializeFromSafeJSON(finishBuilt.psktTransactionJson);
+assert.deepEqual(finishTx.inputs.map(input => Number(input.computeBudget)), [40, 10]);
+assert.equal(finishTx.outputs.length, 2);
+assert.equal(finishTx.outputs[0].scriptPublicKey.script, vectors.outputs["finish-initialization"].outputs[0]);
+assert.equal(finishTx.outputs[0].value, 100000000n);
+assert.equal(finishTx.outputs[1].value, funding.amount - 60000000n);
+assert(Number(finishTx.inputs[0].computeBudget) >= vectors.outputs["finish-initialization"].computeBudgets[0]);
+await assert.rejects(build(finishRequest({ factoryState: { ...factoryState, next_shard: "3" } })), /not created every claim shard/);
+await assert.rejects(build(finishRequest({ factory: { ...finishedFactory.outpoint, index: 1 } })), /SOURCE_STALE/);
+entries.set(address(finishedFactory), [{ ...finishedFactory, covenantId: "ff".repeat(32), entry: { covenantId: "ff".repeat(32) } }]);
+await assert.rejects(build(finishRequest()), /SOURCE_STALE/);
+entries.set(address(finishedFactory), [finishedFactory]);
+const alteredCollectorBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts, rpcClientFactory: () => rpc,
+  transactionWithMinimumCalculatedFeeChange: (_runtime, transaction) => {
+    transaction.outputs[0].value -= 1n;
+    return transaction;
+  } });
+await assert.rejects(alteredCollectorBuilder(finishRequest()), /changed a factory output/);
+const redirectedFinishChangeBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts, rpcClientFactory: () => rpc,
+  transactionWithMinimumCalculatedFeeChange: (_runtime, transaction, changeIndex) => {
+    assert.equal(changeIndex, 1, "collector fee must adjust sponsor change");
+    transaction.outputs[changeIndex].scriptPublicKey = kw.payToScriptHashScript(vaultScript);
+    return transaction;
+  } });
+await assert.rejects(redirectedFinishChangeBuilder(finishRequest()), /changed a factory output/);
+console.log("ok KCOM claim vault funding, shard creation and collector PSKTs, source checks and output reconstruction");

@@ -78,6 +78,17 @@
       "computeBudgets": [
         22
       ]
+    },
+    "finish-initialization": {
+      "outputs": [
+        "aa20e45e1bc950de0bc3b4fce96058c808d68aef8d7a4f5addc9e419d7fe4c644b3987"
+      ],
+      "valuesSompi": [
+        "100000000"
+      ],
+      "computeBudgets": [
+        29
+      ]
     }
   },
   "sourceCommit": "52a24a907a961997ffe507db94663da0cf570479",
