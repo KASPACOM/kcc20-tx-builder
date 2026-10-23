@@ -15,6 +15,7 @@ import { buildKcomClaimCollect } from "./kcom-claim-collect.js";
 import { buildKcomClaimOpen } from "./kcom-claim-open.js";
 import { buildKcomClaimClose } from "./kcom-claim-close.js";
 import { buildKcomClaimSelect } from "./kcom-claim-select.js";
+import { buildKcomClaimSettle } from "./kcom-claim-settle.js";
 import {
   hexToBytes,
   requireHex32,
@@ -23,7 +24,7 @@ import {
   utxoAmountSompi,
 } from "./sale-common.js";
 
-export const KCOM_CLAIM_BUILDER_KEYS = ["kcom-claim.fund-vault", "kcom-claim.open", "kcom-claim.create-shard", "kcom-claim.finish-initialization", "kcom-claim.select", "kcom-claim.close", "kcom-claim.collect", "kcom-claim.finish-settlement", "kcom-claim.seal", "kcom-claim.activate"] as const;
+export const KCOM_CLAIM_BUILDER_KEYS = ["kcom-claim.fund-vault", "kcom-claim.open", "kcom-claim.create-shard", "kcom-claim.finish-initialization", "kcom-claim.select", "kcom-claim.close", "kcom-claim.collect", "kcom-claim.settle", "kcom-claim.finish-settlement", "kcom-claim.seal", "kcom-claim.activate"] as const;
 const ZERO32 = "00".repeat(32);
 const FEE = 60000000n;
 
@@ -173,6 +174,8 @@ export function createKcomClaimPsktBuilder(options) {
       return buildKcomClaimClose({ options, kw, req, p, codec, graphId, address });
     if (req.builderKey === "kcom-claim.select")
       return buildKcomClaimSelect({ options, kw, req, p, codec, graphId, address });
+    if (req.builderKey === "kcom-claim.settle")
+      return buildKcomClaimSettle({ options, kw, req, p, codec, graphId, address });
     if (req.builderKey === "kcom-claim.create-shard" || req.builderKey === "kcom-claim.finish-initialization")
       return buildFactoryStep({ options, kw, req, p, codec, graphId, address });
     const canonical = normalizeSilverScriptArtifact(await load("KCC20.placeholder.json"));

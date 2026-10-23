@@ -2,6 +2,7 @@ export const KCC20_BUILDER_KEYS = [
   "kcom-claim.fund-vault",
   "kcom-claim.open",
   "kcom-claim.select",
+  "kcom-claim.settle",
   "kcom-claim.create-shard",
   "kcom-claim.finish-initialization",
   "kcom-claim.close",
