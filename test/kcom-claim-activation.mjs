@@ -197,4 +197,16 @@ assert.equal(finishTx.outputs[0].value, unfinished.amount);
 assert.equal(String(finishTx.outputs[0].covenant?.covenantId), graphId);
 await assert.rejects(build(finishRequest({ collectorState: { ...unfinishedState, settled_count: "3" } })), /not ready to finalize/);
 await assert.rejects(build(finishRequest({ collector: { ...unfinished.outpoint, index: 5 } })), /SOURCE_STALE/);
+const alteredFinishFee = createKcomClaimPsktBuilder({
+  wasm: kw, artifacts: {
+    "KCOMClaimGraph.artifact.json": graph, "KCOMClaimOpen.artifact.json": opening,
+    "KCC20.placeholder.json": canonical, "KCOMVesting.artifact.json": vesting,
+  }, rpcClientFactory: () => rpc,
+  transactionWithMinimumCalculatedFeeChange: (_runtime, transaction, changeIndex) => {
+    assert.equal(changeIndex, 1);
+    transaction.outputs[0].value -= 1n;
+    return transaction;
+  },
+});
+await assert.rejects(alteredFinishFee(finishRequest()), /changed a custody output/);
 console.log("ok KCOM claim settlement finish, seal and partial/final activation PSKTs match Argent outputs and position IDs");
