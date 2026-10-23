@@ -179,4 +179,22 @@ const alteredSealFee = createKcomClaimPsktBuilder({
   },
 });
 await assert.rejects(alteredSealFee(sealRequest()), /changed a custody output/);
-console.log("ok KCOM claim seal and partial/final activation PSKTs match Argent outputs and position IDs");
+const unfinishedState = { ...seal.collectorState, settlement_complete: false };
+const unfinished = source({ transactionId: "e3".repeat(32), index: 0 }, 500000000n,
+  kw.payToScriptHashScript(codec.script("KCOMSettlement", unfinishedState)), graphId);
+entries.set(addr(unfinished), [unfinished]);
+const finishRequest = (extra = {}) => ({
+  schema: "kcc20-in-process-pskt-builder-input/v1",
+  request: { builderKey: "kcom-claim.finish-settlement", network: "testnet-10", owner: { walletAddress },
+    params: { graphId, collectorState: unfinishedState, collector: unfinished.outpoint, ...extra } },
+});
+const finished = await build(finishRequest());
+assert.deepEqual(finished.signInputs, [{ index: 1, sighashType: 1 }]);
+const finishTx = kw.Transaction.deserializeFromSafeJSON(finished.psktTransactionJson);
+assert.equal(finishTx.outputs[0].scriptPublicKey.script,
+  kw.payToScriptHashScript(codec.script("KCOMSettlement", seal.collectorState)).script);
+assert.equal(finishTx.outputs[0].value, unfinished.amount);
+assert.equal(String(finishTx.outputs[0].covenant?.covenantId), graphId);
+await assert.rejects(build(finishRequest({ collectorState: { ...unfinishedState, settled_count: "3" } })), /not ready to finalize/);
+await assert.rejects(build(finishRequest({ collector: { ...unfinished.outpoint, index: 5 } })), /SOURCE_STALE/);
+console.log("ok KCOM claim settlement finish, seal and partial/final activation PSKTs match Argent outputs and position IDs");

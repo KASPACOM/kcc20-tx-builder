@@ -3,6 +3,7 @@ export const KCC20_BUILDER_KEYS = [
   "kcom-claim.create-shard",
   "kcom-claim.finish-initialization",
   "kcom-claim.seal",
+  "kcom-claim.finish-settlement",
   "kcom-claim.activate",
   "kcom-vesting.deploy",
   "kcom-vesting.release",
