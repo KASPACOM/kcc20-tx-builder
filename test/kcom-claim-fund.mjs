@@ -91,6 +91,7 @@ const alteredFeeBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts, rpcC
 await assert.rejects(alteredFeeBuilder(request()), /changed a custody output/);
 const redirectedFeeBuilder = createKcomClaimPsktBuilder({ wasm: kw, artifacts, rpcClientFactory: () => rpc,
   transactionWithMinimumCalculatedFeeChange: (_runtime, transaction, changeIndex) => {
+    assert.equal(changeIndex, 2, "campaign fee must adjust sponsor change");
     transaction.outputs[changeIndex].scriptPublicKey = kw.payToScriptHashScript(vaultScript);
     return transaction;
   } });

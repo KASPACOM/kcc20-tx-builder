@@ -86,7 +86,7 @@ async function buildCreateShard({ options, kw, req, p, codec, graphId, address }
     setVersionOneInputMassFields(tx, 30);
     tx.inputs[1].computeBudget = 10;
     if (options.transactionWithMinimumCalculatedFeeChange)
-      tx = options.transactionWithMinimumCalculatedFeeChange(kw, tx, 1, req.network, req.builderKey);
+      tx = options.transactionWithMinimumCalculatedFeeChange(kw, tx, 2, req.network, req.builderKey);
     if (tx.outputs.length !== 3 ||
       tx.outputs[0].scriptPublicKey.script !== kw.payToScriptHashScript(nextFactoryScript).script ||
       String(tx.outputs[0].covenant?.covenantId) !== graphId ||
