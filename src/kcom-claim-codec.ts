@@ -75,7 +75,9 @@ export function kcomClaimCodec({ graph: rawGraph, opening: rawOpening }) {
       const plan = plans.find((entry) => entry.actor === name);
       if (!plan || bytesToHex(parts.hash) !== bytesToHex(Uint8Array.from(plan.sil_template_hash)))
         throw new Error(`KCOM claim ${name} template plan mismatch`);
-      actors.set(name, { contract, normalized, parts });
+      const argentActor = raw.argent.actors.find((entry) => entry.name === name);
+      if (!argentActor) throw new Error(`Missing ${name} Argent actor`);
+      actors.set(name, { contract, normalized, parts, argentActor });
     }
   }
   function actor(name) {
@@ -107,5 +109,47 @@ export function kcomClaimCodec({ graph: rawGraph, opening: rawOpening }) {
   function templateHash(name) {
     return bytesToHex(actor(name).parts.hash);
   }
-  return { script, dispatch, templateHash, graphArtifactId: graph.id, openingArtifactId: opening.id };
+  /** Append compiler-generated arguments in ABI order; callers must add explicit arguments first. */
+  function appendHiddenWitness(kw, witness, name, entry, { externalTemplates = {}, spawnOutputIndex } = {}) {
+    const source = actor(name);
+    const argentEntry = source.argentActor.entries.find((item) => item.name === entry);
+    const abiEntry = source.contract.entries[entry];
+    if (!argentEntry || !abiEntry) throw new Error(`Missing ${name}.${entry} ABI entry`);
+    const hidden = argentEntry.hidden_params ?? [];
+    const tail = abiEntry.params.slice(-hidden.length || abiEntry.params.length);
+    if (hidden.length > abiEntry.params.length || hidden.some((item, i) =>
+      tail[i]?.name !== item.name || tail[i]?.type?.kind !== item.type.kind))
+      throw new Error(`KCOM claim ${name}.${entry} hidden ABI mismatch`);
+    for (const item of hidden) {
+      const subject = item.subject?.actor;
+      const parts = subject && (actors.get(subject)?.parts ?? externalTemplates[subject]);
+      switch (item.purpose?.kind) {
+        case "template_prefix_len":
+          if (!parts) throw new Error(`Missing ${subject} template`);
+          witness.addI64(BigInt(parts.prefix.length));
+          break;
+        case "template_suffix_len":
+          if (!parts) throw new Error(`Missing ${subject} template`);
+          witness.addI64(BigInt(parts.suffix.length));
+          break;
+        case "template_prefix_bytes":
+          if (!parts) throw new Error(`Missing ${subject} template`);
+          witness.addData(parts.prefix);
+          break;
+        case "template_suffix_bytes":
+          if (!parts) throw new Error(`Missing ${subject} template`);
+          witness.addData(parts.suffix);
+          break;
+        case "spawn_output_index":
+          if (item.subject?.kind !== "spawn_actor" || !Number.isSafeInteger(spawnOutputIndex) || spawnOutputIndex < 0)
+            throw new Error(`Missing ${name}.${entry} spawn output index`);
+          witness.addI64(BigInt(spawnOutputIndex));
+          break;
+        default:
+          throw new Error(`Unsupported ${name}.${entry} hidden witness ${item.name}`);
+      }
+    }
+  }
+  return { script, dispatch, templateHash, appendHiddenWitness,
+    graphArtifactId: graph.id, openingArtifactId: opening.id };
 }

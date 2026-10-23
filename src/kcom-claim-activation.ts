@@ -135,9 +135,14 @@ export async function buildKcomClaimActivation({ options, kw, req, p, codec, gra
     vaultWitness.addI64(2n); vaultWitness.addI64(2n);
     if (!final) vaultWitness.addI64(3n);
     vaultWitness.addData(parts.prefix); vaultWitness.addData(parts.suffix);
+    codec.appendHiddenWitness(kw, vaultWitness, "KCOMVault", final ? "activate_final" : "activate_partial", {
+      externalTemplates: { "KCOMClaimVesting::KCOMVesting": templateParts(vestingArtifact.sil_abi) },
+      spawnOutputIndex: 1,
+    });
     vaultWitness.addData(codec.dispatch("KCOMVault", final ? "activate_final" : "activate_partial"));
     inputs[0].signatureScript = kw.ScriptBuilder.fromScript(vaultScript).encodePayToScriptHashSignatureScript(vaultWitness.drain());
     const entitlementWitness = new kw.ScriptBuilder();
+    codec.appendHiddenWitness(kw, entitlementWitness, "KCOMEntitlement", final ? "activate_final" : "activate_partial");
     entitlementWitness.addData(codec.dispatch("KCOMEntitlement", final ? "activate_final" : "activate_partial"));
     inputs[1].signatureScript = kw.ScriptBuilder.fromScript(entitlementScript).encodePayToScriptHashSignatureScript(entitlementWitness.drain());
     inputs[2].signatureScript = kw.ScriptBuilder.fromScript(sourceTokenScript).encodePayToScriptHashSignatureScript(

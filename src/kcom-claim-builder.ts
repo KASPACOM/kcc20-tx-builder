@@ -98,6 +98,7 @@ async function buildFactoryStep({ options, kw, req, p, codec, graphId, address }
       computeBudget: i === 0 ? budget : 10, sigOpCount: 0,
     }));
     const witness = new kw.ScriptBuilder();
+    codec.appendHiddenWitness(kw, witness, "KCOMFactory", finishing ? "finish_initialization" : "create_shard");
     witness.addData(codec.dispatch("KCOMFactory", finishing ? "finish_initialization" : "create_shard"));
     inputs[0].signatureScript = kw.ScriptBuilder.fromScript(factoryScript).encodePayToScriptHashSignatureScript(witness.drain());
     let tx = new kw.Transaction({

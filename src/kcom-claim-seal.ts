@@ -75,6 +75,7 @@ export async function buildKcomClaimSeal({ options, kw, req, p, codec, graphId, 
     }));
     for (const [i, script, actor] of [[0, vaultScript, "KCOMVault"], [1, collectorScript, "KCOMSettlement"]]) {
       const witness = new kw.ScriptBuilder();
+      codec.appendHiddenWitness(kw, witness, actor, "seal");
       witness.addData(codec.dispatch(actor, "seal"));
       inputs[i].signatureScript = kw.ScriptBuilder.fromScript(script).encodePayToScriptHashSignatureScript(witness.drain());
     }
