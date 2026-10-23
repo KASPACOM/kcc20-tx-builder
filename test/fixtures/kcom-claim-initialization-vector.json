@@ -1,0 +1,39 @@
+{
+  "schema": "kcom-claim-initialization-vector/v1",
+  "source": "kaspa-covenants tn10-proof-mixed synthetic fixture",
+  "termsPreimageHex": "6b636f6d2e636c61696d2e7465726d732f7632006161616161616161616161616161616161616161616161616161616161616161df2310d9d3145686837e408ac131ccce0b940e7e1c59df128a37f33107b64458e803000000000000c600000000000000111111111111111111111111111111111111111111111111111111111111111100000000000000000000000000000000000000000000000000000000000000005d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e2901000000b0620000003c0c9ba2010000001b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fea21b282cc3207940d86d8e790626db8998ce56b996c86df5d31718ebd037c5b",
+  "leaves": [
+    {
+      "index": 0,
+      "authority": {
+        "scheme": 0,
+        "identifier": "1b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f"
+      },
+      "baseEntitlementRaw": "27"
+    },
+    {
+      "index": 1,
+      "authority": {
+        "scheme": 0,
+        "identifier": "462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b"
+      },
+      "baseEntitlementRaw": "38"
+    },
+    {
+      "index": 2,
+      "authority": {
+        "scheme": 0,
+        "identifier": "4d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766"
+      },
+      "baseEntitlementRaw": "61"
+    },
+    {
+      "index": 3,
+      "authority": {
+        "scheme": 0,
+        "identifier": "531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337"
+      },
+      "baseEntitlementRaw": "72"
+    }
+  ]
+}

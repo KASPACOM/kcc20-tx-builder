@@ -553,6 +553,8 @@ export function createKcc20PsktBuilderEngine(
   });
   const psktBuilderByKey = Object.freeze({
     "kcom-claim.fund-vault": buildKcomClaimPskt,
+    "kcom-claim.deploy-initializer": buildKcomClaimPskt,
+    "kcom-claim.initialize": buildKcomClaimPskt,
     "kcom-claim.open": buildKcomClaimPskt,
     "kcom-claim.select": buildKcomClaimPskt,
     "kcom-claim.settle": buildKcomClaimPskt,

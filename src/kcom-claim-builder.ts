@@ -17,6 +17,7 @@ import { buildKcomClaimClose } from "./kcom-claim-close.js";
 import { buildKcomClaimSelect } from "./kcom-claim-select.js";
 import { buildKcomClaimSettle } from "./kcom-claim-settle.js";
 import { buildKcomClaimRecovery } from "./kcom-claim-recovery.js";
+import { buildKcomClaimDeployInitializer, buildKcomClaimInitialize } from "./kcom-claim-initialize.js";
 import {
   hexToBytes,
   requireHex32,
@@ -25,7 +26,7 @@ import {
   utxoAmountSompi,
 } from "./sale-common.js";
 
-export const KCOM_CLAIM_BUILDER_KEYS = ["kcom-claim.fund-vault", "kcom-claim.open", "kcom-claim.create-shard", "kcom-claim.finish-initialization", "kcom-claim.select", "kcom-claim.close", "kcom-claim.collect", "kcom-claim.settle", "kcom-claim.finish-settlement", "kcom-claim.seal", "kcom-claim.activate", "kcom-claim.recover"] as const;
+export const KCOM_CLAIM_BUILDER_KEYS = ["kcom-claim.deploy-initializer", "kcom-claim.initialize", "kcom-claim.fund-vault", "kcom-claim.open", "kcom-claim.create-shard", "kcom-claim.finish-initialization", "kcom-claim.select", "kcom-claim.close", "kcom-claim.collect", "kcom-claim.settle", "kcom-claim.finish-settlement", "kcom-claim.seal", "kcom-claim.activate", "kcom-claim.recover"] as const;
 const ZERO32 = "00".repeat(32);
 const FEE = 60000000n;
 
@@ -156,11 +157,15 @@ export function createKcomClaimPsktBuilder(options) {
     const address = req.owner?.walletAddress;
     if (typeof address !== "string" || !address.startsWith("kaspatest:"))
       throw new Error("TN10 funding wallet required");
-    const graphId = requireHex32(p.graphId, "graph covenant id");
     const codec = kcomClaimCodec({
       graph: await load("KCOMClaimGraph.artifact.json"),
       opening: await load("KCOMClaimOpen.artifact.json"),
     });
+    if (req.builderKey === "kcom-claim.deploy-initializer")
+      return buildKcomClaimDeployInitializer({ options, kw, req, p, codec, address });
+    if (req.builderKey === "kcom-claim.initialize")
+      return buildKcomClaimInitialize({ options, kw, req, p, codec, address });
+    const graphId = requireHex32(p.graphId, "graph covenant id");
     if (req.builderKey === "kcom-claim.activate")
       return buildKcomClaimActivation({ options, kw, req, p, codec, graphId, address, canonicalArtifact: await load("KCC20.placeholder.json"), vestingArtifact: await load("KCOMVesting.artifact.json") });
     if (req.builderKey === "kcom-claim.recover")

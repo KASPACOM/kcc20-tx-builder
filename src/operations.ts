@@ -1,4 +1,6 @@
 export const KCC20_BUILDER_KEYS = [
+  "kcom-claim.deploy-initializer",
+  "kcom-claim.initialize",
   "kcom-claim.fund-vault",
   "kcom-claim.open",
   "kcom-claim.select",

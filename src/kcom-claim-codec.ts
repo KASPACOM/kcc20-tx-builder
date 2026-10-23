@@ -6,6 +6,7 @@ import {
   normalizeSilverScriptArtifact,
   pushExplicit,
   signedI64Payload,
+  templateHash as calculateTemplateHash,
   templateParts,
 } from "./abi.js";
 import { bytesToHex, hexToBytes } from "./sale-common.js";
@@ -20,6 +21,10 @@ export const KCOM_CLAIM_OPEN_ARTIFACT_ID =
   "179f28ce8e24aac5e8babc83417fcf4300f3c85b8a61009d892b81f0aaee8337";
 
 const MAX_I64 = 9223372036854775807n;
+const LINKED_GENESIS_HASHES = {
+  KCOMFactory: "02d6cdc1ef7dc2c239f5fd33b210dc2f87f967011a1de0083294094c9fcced66",
+  KCOMVault: "7df62fb2ed44064e0d8851d3a47282e61169bedefbfd67ddfe994084b52e3952",
+};
 function digest(value) {
   return bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(value))));
 }
@@ -109,8 +114,29 @@ export function kcomClaimCodec({ graph: rawGraph, opening: rawOpening }) {
   function templateHash(name) {
     return bytesToHex(actor(name).parts.hash);
   }
+  function linkedTemplateParts(name) {
+    const receipt = graph.argent.template_plan.templates.find(item => item.actor === name);
+    const raw = receipt?.actor_type_handle?.template;
+    if (!raw || !Array.isArray(raw.prefix) || !Array.isArray(raw.suffix) || !Array.isArray(raw.hash))
+      throw new Error(`Missing reviewed linked ${name} template`);
+    const prefix = Uint8Array.from(raw.prefix), suffix = Uint8Array.from(raw.suffix);
+    const hash = Uint8Array.from(raw.hash);
+    if (hash.length !== 32 || bytesToHex(hash) !== LINKED_GENESIS_HASHES[name] ||
+        bytesToHex(calculateTemplateHash(prefix, suffix)) !== bytesToHex(hash))
+      throw new Error(`Invalid linked ${name} template hash`);
+    return { prefix, suffix, hash };
+  }
+  function linkedScript(name, state) {
+    const ordinary = script(name, state);
+    const { prefix, suffix } = linkedTemplateParts(name);
+    const fields = actor(name).contract.runtime_state.fields.filter(field => !field.name.startsWith("gen__"));
+    const linked = concatBytes(prefix, ...fields.map(field => pushExplicit(encodedField(field, state[field.name]))), suffix);
+    if (bytesToHex(linked) !== bytesToHex(ordinary))
+      throw new Error(`Linked ${name} genesis script differs from reviewed graph script`);
+    return linked;
+  }
   /** Append compiler-generated arguments in ABI order; callers must add explicit arguments first. */
-  function appendHiddenWitness(kw, witness, name, entry, { externalTemplates = {}, spawnOutputIndex } = {}) {
+  function appendHiddenWitness(kw, witness, name, entry, { externalTemplates = {}, spawnOutputIndex, spawnOutputIndices = {} } = {}) {
     const source = actor(name);
     const argentEntry = source.argentActor.entries.find((item) => item.name === entry);
     const abiEntry = source.contract.entries[entry];
@@ -141,15 +167,17 @@ export function kcomClaimCodec({ graph: rawGraph, opening: rawOpening }) {
           witness.addData(parts.suffix);
           break;
         case "spawn_output_index":
-          if (item.subject?.kind !== "spawn_actor" || !Number.isSafeInteger(spawnOutputIndex) || spawnOutputIndex < 0)
+          const index = spawnOutputIndices[item.subject?.handle] ?? spawnOutputIndex;
+          if (item.subject?.kind !== "spawn_actor" || !Number.isSafeInteger(index) || index < 0)
             throw new Error(`Missing ${name}.${entry} spawn output index`);
-          witness.addI64(BigInt(spawnOutputIndex));
+          witness.addI64(BigInt(index));
           break;
         default:
           throw new Error(`Unsupported ${name}.${entry} hidden witness ${item.name}`);
       }
     }
   }
-  return { script, dispatch, templateHash, appendHiddenWitness,
+  return { script, dispatch, templateHash, templateParts: name => actor(name).parts,
+    linkedTemplateParts, linkedScript, appendHiddenWitness,
     graphArtifactId: graph.id, openingArtifactId: opening.id };
 }
