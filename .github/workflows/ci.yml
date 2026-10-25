@@ -36,3 +36,22 @@ jobs:
         run: npm run test:kcom-claim-fund
         env:
           SNAPSHOT_TEST_WASM: ${{ github.workspace }}/examples/vendor/kaspa
+
+  consolidation-consensus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup override set 1.95.0
+      - name: Execute signed consolidation transactions against pinned consensus
+        run: npm run test:consolidation:consensus
+        env:
+          CARGO_PROFILE_DEV_DEBUG: 0
+          CARGO_INCREMENTAL: 0

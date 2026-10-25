@@ -9445,8 +9445,25 @@ export function createKcc20PsktBuilderEngine(
     const holderUtxos = Array.isArray(params.activeHolderUtxos)
       ? params.activeHolderUtxos
       : [];
-    if (holderUtxos.length < 2 || holderUtxos.length > 3) {
-      throw new Error("between two and three KCC20 holder UTXOs are required");
+    if (holderUtxos.length < 2) {
+      throw new Error("at least two KCC20 holder UTXOs are required");
+    }
+
+    const maximumProfileInputs = Math.max(
+      0,
+      ...tokenProfiles.profiles.map((p) => p.maxTokenInputs),
+    );
+    if (holderUtxos.length > maximumProfileInputs) {
+      throw new Error(
+        `consolidation exceeds the token profile input bound (${maximumProfileInputs})`,
+      );
+    }
+    const sourceOutpoints = holderUtxos.map(
+      (u) =>
+        `${requireHex32(u.txidHex, "holder txid")}:${parseVout(u.vout, "holder vout")}`,
+    );
+    if (new Set(sourceOutpoints).size !== holderUtxos.length) {
+      throw new Error("consolidation requires distinct holder outpoints");
     }
 
     const covenantId = requireHex32(
@@ -9504,7 +9521,9 @@ export function createKcc20PsktBuilderEngine(
     }
     const profile = resolvedArtifacts[0].profile;
     if (holderUtxos.length > profile.maxTokenInputs) {
-      throw new Error("consolidation exceeds the token profile input bound");
+      throw new Error(
+        `consolidation exceeds the token profile input bound (${profile.maxTokenInputs})`,
+      );
     }
     const artifact = resolvedArtifacts[0].artifact;
     for (const peerState of states.slice(1)) {
@@ -9527,10 +9546,8 @@ export function createKcc20PsktBuilderEngine(
       const txid = requireHex32(utxo.txidHex, `holder ${index} txid`);
       const vout = parseVout(utxo.vout, `holder ${index} vout`);
       const address = requireKaspaAddress(utxo.address);
-      const script = buildNativeKcc20ScriptForState(
-        artifact.script,
-        states[index],
-      );
+      // Resolution already authenticated this profile's complete state layout.
+      const script = resolvedArtifacts[index].script;
       assertScriptAddress(
         kw,
         script,

@@ -1,3 +1,8 @@
+import { resolveAuthenticatedTokenProfile } from "./token-profiles.js";
+import {
+  BUNDLED_TOKEN_PROFILES,
+  BUNDLED_TOKEN_PROFILE_DIGEST,
+} from "./token-profiles.generated.js";
 import {
   ownerNativeHolderUtxos,
   selectActiveMinterUtxo,
@@ -293,6 +298,8 @@ export function buildKcc20NativeConsolidationOperation(
   wallet: Kcc20ActionWalletInfo,
   input: {
     token: Kcc20ActionTokenInfo;
+    /** From authenticated token readiness; construction rechecks every source script. */
+    tokenProfileId: string;
     activeUtxos: readonly Kcc20IndexedCovenantUtxo[];
     sourceOutpoints?: readonly string[];
   },
@@ -303,11 +310,17 @@ export function buildKcc20NativeConsolidationOperation(
     wallet.kcc20Owner,
     "wallet owner",
   );
+  const profile = resolveAuthenticatedTokenProfile(
+    { manifest: BUNDLED_TOKEN_PROFILES, sha256: BUNDLED_TOKEN_PROFILE_DIGEST },
+    input.tokenProfileId,
+  );
+  if (profile.maxTokenInputs < 2 || !profile.operations.includes("transfer"))
+    throw new Error("token profile does not support consolidation");
   const compatible = ownerNativeHolderUtxos(input.activeUtxos, owner);
   const selected = selectConsolidationBatch(
     compatible,
     input.sourceOutpoints,
-    8,
+    profile.maxTokenInputs,
   );
   if (selected.length < 2)
     throw new Error(
@@ -365,7 +378,7 @@ export function buildKcc20NativeConsolidationOperation(
         },
       ],
       warnings: [
-        "Consolidation merges between two and eight wallet-owned holder UTXOs into one larger holder UTXO.",
+        `Consolidation merges between two and ${profile.maxTokenInputs} wallet-owned holder UTXOs into one larger holder UTXO.`,
         "Repeat consolidation when more compatible holder UTXOs remain.",
       ],
     },
