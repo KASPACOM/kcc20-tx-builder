@@ -1,4 +1,5 @@
 import { blake3 } from "@noble/hashes/blake3";
+import { blake2b } from "@noble/hashes/blake2b";
 import { calculateKcc20FeeClaim, type Kcc20FeeReceiptAmounts } from "./escrow-fee.js";
 
 /** Wire format for KCC20OrderbookFeeV1. Decoding is not artifact authentication. */
@@ -74,6 +75,26 @@ export function kcc20EscrowPolicyId(input: {
   if (typeof input.priceScale !== "bigint" || input.priceScale <= 0n) throw new Error("priceScale must be positive");
   return hex(blake3(concat(hex32(input.tokenId), hex32(input.feeTicketId, true),
     int64(input.priceScale), encodeKcc20EscrowPolicy(input.policy))));
+}
+
+/** Public consent can be reused only for this TN10 market and fixed fee policy.
+ * Send `message` to the wallet's standard personal-message signing API. A wallet
+ * signature is still required; creating this payload does not establish authority.
+ */
+export function kcc20CreatorFeeConsent(input: {
+  tokenId: string; marketId: string; feeTicketId: string; priceScale: bigint; policy: Kcc20EscrowPolicy;
+}): { commitment: string; message: string; personalMessageHash: string } {
+  if (typeof input.priceScale !== "bigint" || input.priceScale <= 0n) throw new Error("priceScale must be positive");
+  const policy = encodeKcc20EscrowPolicy(input.policy);
+  if (input.policy.creatorFeeBps === 0) throw new Error("creator consent is only used when creator fees are enabled");
+  const commitment = hex(blake3(concat(Uint8Array.of(0xc1), hex32(input.tokenId), hex32(input.marketId),
+    hex32(input.feeTicketId, true), int64(input.priceScale), policy)));
+  const message = `KCC20 creator fee consent v1 (TN10)\n${commitment}`;
+  const encoder = new TextEncoder();
+  const personalMessageHash = hex(blake2b(encoder.encode(message), {
+    dkLen: 32, key: encoder.encode("PersonalMessageSigningHash"),
+  }));
+  return { commitment, message, personalMessageHash };
 }
 
 function outpoint(value: { transactionId: string; index: number }): Uint8Array {

@@ -36,3 +36,11 @@ harness uses the same fixed commitment vector.
 Release requires authenticated artifact resolution, settlement and claim
 construction, complete signed-transaction mass checks, application integration,
 funded TN10 lifecycle proof and independent review of the final artifacts.
+# Creator consent
+
+`kcc20CreatorFeeConsent` produces the public message and personal-message hash
+for the new TN10 wrapper. The authenticated creator signs `message` using the
+wallet's standard message-signing API. The commitment covers the native token,
+market, FeeTicket, scale and exact immutable fee policy, including account IDs.
+The helper only constructs the message; it does not authenticate metadata,
+verify a signature, grant creator rights or enable a market.
