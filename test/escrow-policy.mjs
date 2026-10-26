@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { encodeKcc20EscrowPolicy, decodeKcc20EscrowPolicy, kcc20EscrowPolicyId, kcc20FeeClaimCommitment } from "../dist/index.js";
+import { encodeKcc20EscrowPolicy, decodeKcc20EscrowPolicy, kcc20EscrowPolicyId, kcc20FeeClaimCommitment, kcc20CreatorFeeConsent } from "../dist/index.js";
 
 const policy = { version: 1, creatorFeeBps: 100,
   protocolAccountId: "04".repeat(32), creatorAccountId: "05".repeat(32),
@@ -10,6 +10,23 @@ const receipt = { outpoint: { transactionId: "0a".repeat(32), index: 0 },
   tokenId: "01".repeat(32), marketId: "02".repeat(32), policyId: "03".repeat(32),
   protocolAccountId: policy.protocolAccountId, creatorAccountId: policy.creatorAccountId,
   valueSompi: 100000000n, protocolSompi: 50000000n, creatorSompi: 50000000n };
+
+test("creator consent matches the wallet personal-message hash and binds immutable market terms", () => {
+  const input = { tokenId: receipt.tokenId, marketId: receipt.marketId, feeTicketId: "00".repeat(32), priceScale: 1n, policy };
+  const consent = kcc20CreatorFeeConsent(input);
+  assert.deepEqual(consent, {
+    commitment: "7f4426ce3e424668acac0bd353303990e85c715a2dc4407e7591e8354fc3b322",
+    message: "KCC20 creator fee consent v1 (TN10)\n7f4426ce3e424668acac0bd353303990e85c715a2dc4407e7591e8354fc3b322",
+    personalMessageHash: "c4a225cafba3ddbeb439b8e18e0a09c58b2274a42dfb72c2fa12c3aa6a54f541",
+  });
+  for (const change of [{ tokenId: "08".repeat(32) }, { marketId: "09".repeat(32) }, { feeTicketId: "0a".repeat(32) },
+    { priceScale: 100n }, { policy: { ...policy, creatorFeeBps: 500 } },
+    { policy: { ...policy, creatorAccountId: "0b".repeat(32) } }]) {
+    assert.notEqual(kcc20CreatorFeeConsent({ ...input, ...change }).personalMessageHash, consent.personalMessageHash);
+  }
+  assert.throws(() => kcc20CreatorFeeConsent({ ...input, priceScale: 0n }));
+  assert.throws(() => kcc20CreatorFeeConsent({ ...input, policy: { ...policy, creatorFeeBps: 0 } }));
+});
 
 test("fixed policy encoding and identity vector", () => {
   const bytes = encodeKcc20EscrowPolicy(policy);
