@@ -79,7 +79,7 @@ them with current decoded state and RPC entries for live use; see the
 | `transfer`         | `buildKcc20TransferTokenOperation`       | Token identity/decimals, display amount, recipient owner, current holder UTXOs. |
 | `mint`             | `buildKcc20MintTokenOperation`           | Token mint policy, amount, active authority UTXOs, optional recipient.          |
 | `mintAvailability` | `buildKcc20MintAvailabilityOperation`    | Token, active mint-authority state, requested enabled state.                    |
-| `consolidate`      | `buildKcc20NativeConsolidationOperation` | Token, owner holder UTXOs, optional target amount.                              |
+| `consolidate`      | `buildKcc20NativeConsolidationOperation` | Token, authenticated `tokenProfileId`, owner holder UTXOs, optional source outpoints.                              |
 | `reveal`           | `buildKcc20VerifyTokenOperation`         | Token identity and a spendable holder/authority snapshot.                       |
 
 ```ts
@@ -173,3 +173,5 @@ operator configuration. Never enable it in the frontend, expose operator
 credentials through a client configuration object, or forward all of `process.env`
 to the engine. Public minting, transfer, and user order actions do not require
 this matcher or KaspaCom's backend.
+
+Native consolidation uses the bundled profile's `maxTokenInputs`; no universal three-input cap applies. Supply `tokenProfileId` from the backend consolidation status. Unknown profiles fail closed. The transaction engine independently matches source scripts to authenticated artifacts, rejects mixed templates and oversized batches, and keeps the network mass checks.

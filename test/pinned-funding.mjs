@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import ts from "typescript";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { selectFundingEntry } from "../dist/sale-common.js";
@@ -22,9 +23,18 @@ assert.throws(
 );
 
 const engineSource = readFileSync(new URL("../src/engine.ts", import.meta.url), "utf8");
-const selections = engineSource.match(/selectFundingEntry\(/g) ?? [];
-const pins = engineSource.match(/(?:request\.params\?|params)\.fundingOutpoint/g) ?? [];
-assert.equal(pins.length, selections.length, "every engine funding selection must honor the requested outpoint");
+const source = ts.createSourceFile('engine.ts', engineSource, ts.ScriptTarget.Latest, true);
+let selectionCount = 0;
+function checkPins(node) {
+  if (ts.isCallExpression(node) && node.expression.getText(source) === 'selectFundingEntry') {
+    selectionCount++;
+    assert.equal(node.arguments.length, 4, `funding selection at ${source.getLineAndCharacterOfPosition(node.pos).line + 1} must forward its pin`);
+    assert.match(node.arguments[3].getText(source).replace(/\s/g, ''), /^(?:request\.params\?|params)\.fundingOutpoint$/);
+  }
+  ts.forEachChild(node, checkPins);
+}
+checkPins(source);
+assert.ok(selectionCount > 0, 'must inspect actual engine funding calls');
 
 // Exercise a full engine build with two eligible UTXOs. The larger first
 // output must not be selected when the second output is pinned.
@@ -86,3 +96,30 @@ const feeTicketTransaction = JSON.parse(feeTicket.psktTransactionJson);
 assert.equal(feeTicketTransaction.inputs[0].transactionId.toLowerCase(), "b".repeat(64));
 assert.equal(feeTicketTransaction.inputs[0].index, 1);
 console.log("pinned wallet funding selection passed");
+
+// Ordinary callers keep the existing largest-sufficient-output selection.
+for (const pin of [undefined, null]) {
+  assert.equal(selectFundingEntry(entries, 100000n, [], pin), first);
+}
+assert.equal(selectFundingEntry(entries, 100000n, [], second.outpoint), second);
+assert.equal(selectFundingEntry(entries, 100000n, [], secondOutpoint.toUpperCase()), second);
+assert.throws(() => selectFundingEntry(entries, 100000n, [], 'bad-pin'), /invalid/);
+assert.throws(() => selectFundingEntry(entries, 100000n, [secondOutpoint], secondOutpoint), /unavailable/);
+assert.equal(selectFundingEntry(entries, 100000n, [`${'a'.repeat(64)}:0`]), second);
+
+const feeTicketRequest = (pin) => ({
+  schema: 'kcc20-in-process-pskt-builder-input/v1',
+  request: {
+    builderKey: 'fee-ticket.deploy-root', network: 'testnet-10',
+    owner: { walletAddress, kcc20Owner: '8'.repeat(64) },
+    params: { utilityTokenId: '7'.repeat(64), utilityTokenAmount: '1000', ...(pin === undefined ? {} : { fundingOutpoint: pin }) },
+  },
+});
+const normalBefore = await engine.build(feeTicketRequest());
+assert.equal(JSON.parse(normalBefore.psktTransactionJson).inputs[0].transactionId, 'a'.repeat(64));
+await engine.build(feeTicketRequest(second.outpoint));
+const normalAfter = await engine.build(feeTicketRequest());
+assert.equal(normalAfter.psktTransactionJson, normalBefore.psktTransactionJson, 'a pinned request must not change later unpinned requests');
+await assert.rejects(engine.build(feeTicketRequest(`${'c'.repeat(64)}:0`)), /pinned funding UTXO.*unavailable/);
+await assert.rejects(engine.build(feeTicketRequest('invalid')), /pinned funding outpoint is invalid/);
+console.log('unpinned funding behavior and strict pin failures passed');

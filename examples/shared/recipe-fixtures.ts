@@ -402,6 +402,7 @@ export async function recipeFixtures(
       wallet,
       {
         token: { covenantId: tokenId, decimals: 2 },
+        tokenProfileId: "kaspacom-kcc20-last-call-v1",
         activeUtxos: holders,
         sourceOutpoints: holders.map((x) => x.outpoint!),
       },

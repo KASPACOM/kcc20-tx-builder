@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2
+
+- Reuse authenticated profile scripts during native holder consolidation, including the independent Argent implementation.
+- Use each authenticated token profile's consolidation input limit: eight for platform KCC20 and three for Argent. Keep transaction mass and signature checks. Wrapped orderbook limits are unchanged.
+- Native consolidation planning now requires `tokenProfileId` from authenticated token readiness; unknown profiles fail before signing. The engine independently authenticates source scripts and does not trust requested limits.
+
+
 ## 0.6.0
 
 - Remove manual token profile review and funded proof flags from runtime capability checks.

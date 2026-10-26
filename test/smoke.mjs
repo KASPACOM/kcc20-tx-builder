@@ -999,6 +999,7 @@ const nativeConsolidation = buildKcc20NativeConsolidationOperation(
   wallet,
   {
     token: { covenantId: canonicalId, decimals: 8 },
+    tokenProfileId: "kaspacom-kcc20-last-call-v1",
     activeUtxos: nativeConsolidationSnapshot,
     sourceOutpoints: [`${"8".repeat(64)}:1`, `${"9".repeat(64)}:3`],
   },
