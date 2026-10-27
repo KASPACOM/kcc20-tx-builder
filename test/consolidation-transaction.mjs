@@ -84,7 +84,8 @@ async function fixture(profile, count, mutate = () => {}) {
     },
   };
   let calls = 0;
-  mutate({ request, sources, states, funding });
+  const fundingEntries = [funding];
+  mutate({ request, sources, states, funding, fundingEntries });
   const engine = createKcc20PsktBuilderEngine({
     wasm: kw,
     artifacts: {},
@@ -96,7 +97,7 @@ async function fixture(profile, count, mutate = () => {}) {
         calls++;
         return {
           entries: addresses.includes(wallet)
-            ? [funding]
+            ? fundingEntries
             : sources
                 .filter((s) => addresses.includes(s.indexed.address))
                 .map((s) => s.entry),
@@ -114,6 +115,24 @@ async function fixture(profile, count, mutate = () => {}) {
     calls: () => calls,
   };
 }
+test('native consolidation pins the smaller funding output without changing unpinned requests', async () => {
+  const f = await fixture(BUNDLED_TOKEN_PROFILES.profiles.find(p => p.maxTokenInputs === 8), 8, ({ fundingEntries, funding }) => {
+    fundingEntries.push({ ...funding, outpoint: outpoint(101), amount: 500_000_000n });
+  });
+  const normal = await f.engine.build(f.request);
+  assert.equal(JSON.parse(normal.psktTransactionJson).inputs[8].transactionId, outpoint(100).transactionId);
+  f.request.request.params.fundingOutpoint = `${outpoint(101).transactionId}:0`;
+  const pinned = await f.engine.build(f.request);
+  const pinnedJson = JSON.parse(pinned.psktTransactionJson);
+  assert.equal(pinnedJson.inputs[8].transactionId, outpoint(101).transactionId);
+  assert.deepEqual(pinned.signInputs, [{ index: 8, sighashType: 1 }]);
+  assert.deepEqual(pinnedJson.inputs.slice(0, 8), JSON.parse(normal.psktTransactionJson).inputs.slice(0, 8));
+  f.request.request.params.fundingOutpoint = `${outpoint(102).transactionId}:0`;
+  await assert.rejects(f.engine.build(f.request), /pinned funding UTXO.*unavailable/);
+  delete f.request.request.params.fundingOutpoint;
+  assert.equal((await f.engine.build(f.request)).psktTransactionJson, normal.psktTransactionJson);
+});
+
 for (const profile of BUNDLED_TOKEN_PROFILES.profiles) {
   for (const count of Array.from(
     { length: profile.maxTokenInputs - 1 },
