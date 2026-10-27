@@ -56,14 +56,17 @@ for (const [dir, name] of [
       sha(Uint8Array.from(after.script)),
     )
     .replaceAll(sha(old), sha(raw));
-  if (name.startsWith("KCC20Snapshot"))
+  if (name.startsWith("KCC20Snapshot")) {
     pins = pins.replace(
       `scriptLength: ${before.script.length}`,
       `scriptLength: ${after.script.length}`,
     );
+    pins = pins.replace(
+      `stateLength: ${before.state_layout.len}`,
+      `stateLength: ${after.state_layout.len}`,
+    );
+  }
   await writeFile(destination, raw);
-  if (name.startsWith("KCC20Snapshot"))
-    await writeFile(new URL(`artifacts/${dir}/${filename}`, root), raw);
 }
 const native = registry.profiles.find((p) => p.nativeExtensions);
 if (!native) throw Error("native profile is missing");

@@ -8,9 +8,9 @@ export const KCC20_CURRENT_NATIVE_ARTIFACT_KEY =
 
 export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
   "KCC20SnapshotBootstrap.placeholder.json":
-    "3d64211a2b3c5ac24009b9ce59d4e8ecb8f2114dbf0c43b5a060b2ed91704e02",
+    "a22b93b0d8cd04096d83d25bbb6c38f0c07ac025b70226677db484fa93fe09ef",
   "KCC20SnapshotController.placeholder.json":
-    "fdc2e396a66a1f708522d68f879ec67d71bd0070c7417b1e7f5dd3a6c8cfda88",
+    "8a73c57e309860ff799a71ca9352afa84f71638061cfa427cc5e8d36d1b8b025",
   [KCC20_CURRENT_NATIVE_ARTIFACT_KEY]:
     "dd9cb334cd9e9220b15644782f271ef3ecdba34fd0762010e3d6bc18176837ae",
   "KCC20FeeTicket.placeholder.json":
@@ -33,17 +33,17 @@ export const KCC20_SNAPSHOT_ARTIFACT_PINS = Object.freeze({
     key: "KCC20SnapshotBootstrap.placeholder.json",
     contractName: "KCC20SnapshotBootstrap",
     artifactSha256:
-      "5f0caea9818f5bd6110023a7f089a0d26f87d3fd0901cb52e24a32bd1853b302",
-    scriptLength: 33718,
+      "daddabe50454e1c6c187c0b027cc8887f79f0f0086a14f26c6a2a56054991ebb",
+    scriptLength: 35913,
     stateStart: 1,
-    stateLength: 405,
+    stateLength: 414,
   }),
   controller: Object.freeze({
     key: "KCC20SnapshotController.placeholder.json",
     contractName: "KCC20SnapshotController",
     artifactSha256:
-      "8c5d2056bb0a445ffc1a6967238fac46378372b5f357524c6795201699bf2b2f",
-    scriptLength: 15297,
+      "a73727cfe03108097e1226566cff9dbbbf42a5dc8526aac3196817ffc642212f",
+    scriptLength: 15350,
     stateStart: 1,
     stateLength: 432,
   }),

@@ -62,12 +62,12 @@
       "abiSha256": "b58ee502376aaf59e0b2d663012b2964a3ae7b30025b2d830e46ea18993e7dc7"
     },
     "KCC20SnapshotBootstrap.placeholder.json": {
-      "fileSha256": "5f0caea9818f5bd6110023a7f089a0d26f87d3fd0901cb52e24a32bd1853b302",
-      "scriptSha256": "3d64211a2b3c5ac24009b9ce59d4e8ecb8f2114dbf0c43b5a060b2ed91704e02"
+      "fileSha256": "daddabe50454e1c6c187c0b027cc8887f79f0f0086a14f26c6a2a56054991ebb",
+      "scriptSha256": "a22b93b0d8cd04096d83d25bbb6c38f0c07ac025b70226677db484fa93fe09ef"
     },
     "KCC20SnapshotController.placeholder.json": {
-      "fileSha256": "8c5d2056bb0a445ffc1a6967238fac46378372b5f357524c6795201699bf2b2f",
-      "scriptSha256": "fdc2e396a66a1f708522d68f879ec67d71bd0070c7417b1e7f5dd3a6c8cfda88"
+      "fileSha256": "a73727cfe03108097e1226566cff9dbbbf42a5dc8526aac3196817ffc642212f",
+      "scriptSha256": "8a73c57e309860ff799a71ca9352afa84f71638061cfa427cc5e8d36d1b8b025"
     }
   },
   "contractsSourceStatus": "unreviewed Last Call candidate; source commit must be pinned before publication",

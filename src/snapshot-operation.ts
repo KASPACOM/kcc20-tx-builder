@@ -618,7 +618,7 @@ export function createKcc20SnapshotPsktBuilder(
         params.holderExtensionCommitment,
         "holder extension commitment",
       ),
-      totalSupply: positiveI64(params.totalSupply, "total supply"),
+      totalSupply: positiveWideAmount(params.totalSupply, "total supply"),
       claimNotBeforeDaaScore: positiveI64(
         params.claimNotBeforeDaaScore,
         "claim-not-before DAA score",
@@ -1826,6 +1826,22 @@ export function createKcc20SnapshotPsktBuilder(
     }
     if (amount <= 0n || amount > MAX_I64) {
       throw new Error(`${label} must be a positive signed 64-bit integer`);
+    }
+    return amount;
+  }
+
+  function positiveWideAmount(value, label) {
+    let amount;
+    try {
+      if (typeof value === "number" && !Number.isSafeInteger(value)) {
+        throw new Error("unsafe integer");
+      }
+      amount = BigInt(value);
+    } catch {
+      throw new Error(`${label} must be a positive unsigned two-limb integer`);
+    }
+    if (amount <= 0n || amount > (1n << 126n) - 1n) {
+      throw new Error(`${label} must be a positive unsigned two-limb integer`);
     }
     return amount;
   }

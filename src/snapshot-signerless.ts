@@ -37,9 +37,9 @@ export function buildSnapshotTokenMetadata({
   protocolFeeRecipient,
   protocolFeeBps = 0n,
 }) {
-  const amount = positiveI64(totalAllocation, "total allocation");
+  const amount = positiveWideAmount(totalAllocation, "total allocation");
   const extension = {
-    kind: 1,
+    kind: amount > MAX_I64 ? 2 : 1,
     creator: bytes32(creator, "creator"),
     ticker: bytes32(ticker, "ticker"),
     name: bytes32(name, "name"),
@@ -164,13 +164,15 @@ export function snapshotStartPlanCommitment({
   shards,
 }) {
   const normalized = normalizeStartShards(shards, false);
+  const supply = wideAmountLimbs(totalSupply, "total supply");
   return hash256(
     Uint8Array.of(0x22),
     bytes32(migrationCommitment, "migration commitment"),
     bytes32(manifestCommitment, "manifest commitment"),
     bytes32(extensionCommitment, "holder extension commitment"),
     nonzeroBytes32(tokenId, "token id"),
-    leI64(positiveI64(totalSupply, "total supply")),
+    leI64(supply.high),
+    leI64(supply.low),
     leI64(claimActivation(claimNotBeforeDaaScore).lockTime),
     leI64(normalized.length),
     ...normalized.flatMap(shardPlanParts),
@@ -202,7 +204,7 @@ export function buildBootstrapGenesisPlan({
     "holder extension commitment",
   );
   const token = nonzeroBytes32(expectedTokenId, "expected token id");
-  const supply = positiveI64(totalSupply, "total supply");
+  const supply = positiveWideAmount(totalSupply, "total supply");
   const activation = claimActivation(claimNotBeforeDaaScore).lockTime;
   const bootstrapTemplate = templateParts(bootstrapArtifact);
   validateStartShards(normalized, {
@@ -816,7 +818,8 @@ export function encodeSnapshotBootstrapState(state) {
     push(value.migrationId),
     push(value.manifestCommitment),
     push(value.holderExtensionCommitment),
-    push(leI64(value.totalSupply)),
+    push(leI64(value.totalSupplyHigh)),
+    push(leI64(value.totalSupplyLow)),
     push(leI64(value.claimNotBeforeDaaScore)),
     push(value.expectedTokenId),
     push(value.kcc20TemplateHash),
@@ -1159,7 +1162,7 @@ function normalizeBootstrapState(state) {
       state.holderExtensionCommitment,
       "holder extension commitment",
     ),
-    totalSupply: positiveI64(state.totalSupply, "total supply"),
+    totalSupply: positiveWideAmount(state.totalSupply, "total supply"),
     claimNotBeforeDaaScore: positiveI64(
       state.claimNotBeforeDaaScore,
       "claim-not-before DAA score",
@@ -1217,6 +1220,9 @@ function normalizeBootstrapState(state) {
       "start plan commitment",
     ),
   };
+  const supplyLimbs = wideAmountLimbs(value.totalSupply, "total supply");
+  value.totalSupplyHigh = supplyLimbs.high;
+  value.totalSupplyLow = supplyLimbs.low;
   if (
     value.claimNotBeforeDaaScore >= LOCK_TIME_THRESHOLD ||
     value.shardCount > BigInt(MAX_SNAPSHOT_SHARDS) ||
@@ -1501,6 +1507,24 @@ function positiveI64(value, label) {
     throw new Error(`${label} must be a positive signed 64-bit integer`);
   }
   return number;
+}
+
+function positiveWideAmount(value, label) {
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    throw new Error(`${label} must not be an unsafe JavaScript number`);
+  }
+  const number = BigInt(value);
+  const maximum = (1n << 126n) - 1n;
+  if (number <= 0n || number > maximum) {
+    throw new Error(`${label} must be a positive unsigned two-limb integer`);
+  }
+  return number;
+}
+
+function wideAmountLimbs(value, label) {
+  const amount = positiveWideAmount(value, label);
+  const base = 1n << 63n;
+  return { high: amount / base, low: amount % base };
 }
 
 function equalBytes(a, b) {
