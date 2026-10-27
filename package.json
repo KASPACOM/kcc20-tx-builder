@@ -1,6 +1,6 @@
 {
   "name": "@kaspacom/kcc20-tx-builder",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "description": "Runtime-independent KCC20 covenant transaction and PSKT construction primitives.",
   "license": "Apache-2.0",
   "author": "KaspaCom",
@@ -42,6 +42,8 @@
         "default": "./dist/cjs/index.js"
       }
     },
+    "./artifacts/kcc20-snapshot-bootstrap/KCC20SnapshotBootstrap.placeholder.json": "./artifacts/KCC20SnapshotBootstrap.placeholder.json",
+    "./artifacts/kcc20-snapshot-controller/KCC20SnapshotController.placeholder.json": "./artifacts/KCC20SnapshotController.placeholder.json",
     "./artifacts/*": "./artifacts/*",
     "./package.json": "./package.json",
     "./*": {

@@ -92,7 +92,7 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Snapshot release gate
 
-The current candidate is version `0.6.0`. Run `test:snapshot:transactions` with
+The current candidate is version `0.7.0`. Run `test:snapshot:transactions` with
 the pinned WASM and close the snapshot artifact reproduction and funded TN10
 construction gates before merging the release PR. The first publish run must
 confirm npm trusted publishing for this workflow.

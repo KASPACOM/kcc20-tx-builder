@@ -2,6 +2,7 @@
 // Run after compiling contracts and generating their registry. Never reads uploads.
 import { readFile, writeFile, copyFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 const contracts = process.argv[2];
 if (!contracts)
@@ -10,6 +11,62 @@ if (!contracts)
   );
 const root = new URL("../", import.meta.url),
   sha = (x) => createHash("sha256").update(x).digest("hex");
+const artifactSources = [
+  ["kcc20", "KCC20"],
+  ["kcc20-snapshot-bootstrap", "KCC20SnapshotBootstrap"],
+  ["kcc20-snapshot-controller", "KCC20SnapshotController"],
+  ["kcc20-orderbook", "KCC20Orderbook"],
+  ["kcc20-wrapper", "KCC20Wrapper"],
+  ["kcc20-fee-ticket", "KCC20FeeTicket"],
+  ["kcc20-vesting", "KCC20Vesting"],
+];
+const sourceMap = Object.fromEntries(
+  artifactSources.map(([stem, name]) => [name, stem]),
+);
+const contractsCommit = execFileSync(
+  "git",
+  [
+    "-c",
+    `safe.directory=${resolve(contracts)}`,
+    "-C",
+    resolve(contracts),
+    "rev-parse",
+    "HEAD",
+  ],
+  { encoding: "utf8" },
+).trim();
+if (!/^[0-9a-f]{40}$/.test(contractsCommit)) {
+  throw Error("contracts repository HEAD is not a full Git commit");
+}
+for (const [stem, name] of artifactSources) {
+  for (const relativePath of [
+    `contracts/${stem}.sil`,
+    `wallet-lab/vendor/${stem}/${name}.generated.args.json`,
+    `wallet-lab/vendor/${stem}/${name}.placeholder.json`,
+  ]) {
+    try {
+      execFileSync(
+        "git",
+        [
+          "-c",
+          `safe.directory=${resolve(contracts)}`,
+          "-C",
+          resolve(contracts),
+          "diff",
+          "--quiet",
+          contractsCommit,
+          "--",
+          relativePath,
+        ],
+        { stdio: "ignore" },
+      );
+    } catch {
+      throw Error(
+        `contracts input ${relativePath} differs from pinned commit ${contractsCommit}`,
+      );
+    }
+  }
+}
 const registryRaw = await readFile(
   resolve(contracts, "wallet-lab/vendor/token-profiles/registry.json"),
   "utf8",
@@ -33,15 +90,7 @@ const canonical = (x) =>
 if (sha(canonical(registry)) !== digest)
   throw Error("contracts registry digest mismatch");
 let pins = await readFile(new URL("src/artifacts.ts", root), "utf8");
-for (const [dir, name] of [
-  ["kcc20", "KCC20"],
-  ["kcc20-snapshot-bootstrap", "KCC20SnapshotBootstrap"],
-  ["kcc20-snapshot-controller", "KCC20SnapshotController"],
-  ["kcc20-orderbook", "KCC20Orderbook"],
-  ["kcc20-wrapper", "KCC20Wrapper"],
-  ["kcc20-fee-ticket", "KCC20FeeTicket"],
-  ["kcc20-vesting", "KCC20Vesting"],
-]) {
+for (const [dir, name] of artifactSources) {
   const filename = name + ".placeholder.json",
     destination = new URL("artifacts/" + filename, root);
   const old = await readFile(destination),
@@ -56,14 +105,17 @@ for (const [dir, name] of [
       sha(Uint8Array.from(after.script)),
     )
     .replaceAll(sha(old), sha(raw));
-  if (name.startsWith("KCC20Snapshot"))
+  if (name.startsWith("KCC20Snapshot")) {
     pins = pins.replace(
       `scriptLength: ${before.script.length}`,
       `scriptLength: ${after.script.length}`,
     );
+    pins = pins.replace(
+      `stateLength: ${before.state_layout.len}`,
+      `stateLength: ${after.state_layout.len}`,
+    );
+  }
   await writeFile(destination, raw);
-  if (name.startsWith("KCC20Snapshot"))
-    await writeFile(new URL(`artifacts/${dir}/${filename}`, root), raw);
 }
 const native = registry.profiles.find((p) => p.nativeExtensions);
 if (!native) throw Error("native profile is missing");
@@ -124,36 +176,58 @@ console.log("Synchronized artifacts and registry " + digest);
 
 const compatibilityPath = new URL("docs/COMPATIBILITY.json", root);
 const compatibility = JSON.parse(await readFile(compatibilityPath, "utf8"));
+const packageMetadata = JSON.parse(
+  await readFile(new URL("package.json", root), "utf8"),
+);
+let compilerGeneration;
 for (const [name, pin] of Object.entries(compatibility.artifacts)) {
   const raw = await readFile(new URL("artifacts/" + name, root));
   const a = JSON.parse(raw);
   pin.fileSha256 = sha(raw);
   pin.scriptSha256 = sha(Uint8Array.from(a.script));
-  // Existing source/constructor commitments are regenerated from repository source below.
-  const sourceMap = {
-    KCC20: "kcc20",
-    KCC20Orderbook: "kcc20-orderbook",
-    KCC20Wrapper: "kcc20-wrapper",
-    KCC20FeeTicket: "kcc20-fee-ticket",
-    KCC20Vesting: "kcc20-vesting",
-  };
   const stem = sourceMap[name.replace(".placeholder.json", "")];
-  if (stem) {
-    pin.sourceSha256 = sha(
-      await readFile(resolve(contracts, "contracts/" + stem + ".sil")),
-    );
-    pin.constructorArgsSha256 = sha(
-      await readFile(
-        resolve(
-          contracts,
-          `wallet-lab/vendor/${stem}/${name.replace(".placeholder.json", ".generated.args.json")}`,
-        ),
-      ),
-    );
+  if (!stem) {
+    throw Error(`compatibility artifact ${name} is outside sourceMap`);
   }
-  if (pin.abiSha256) pin.abiSha256 = sha(JSON.stringify(a.abi));
+  pin.sourceSha256 = sha(
+    await readFile(resolve(contracts, "contracts/" + stem + ".sil")),
+  );
+  pin.constructorArgsSha256 = sha(
+    await readFile(
+      resolve(
+        contracts,
+        `wallet-lab/vendor/${stem}/${name.replace(".placeholder.json", ".generated.args.json")}`,
+      ),
+    ),
+  );
+  pin.abiSha256 = sha(JSON.stringify(a.abi));
+  pin.compilerBuild = a.generation?.compiler_build;
+
+  const generation = {
+    tag: a.generation?.silverscript_tag,
+    commit: a.generation?.silverscript_commit,
+    tree: a.generation?.silverscript_tree,
+  };
+  if (
+    Object.values(generation).some((value) => !value) ||
+    !pin.compilerBuild
+  ) {
+    throw Error(`artifact ${name} is missing compiler provenance`);
+  }
+  if (
+    compilerGeneration &&
+    JSON.stringify(generation) !== JSON.stringify(compilerGeneration)
+  ) {
+    throw Error(`artifact ${name} has inconsistent compiler provenance`);
+  }
+  compilerGeneration ??= generation;
 }
-compatibility.compiler.build = "verified-source";
+compatibility.packageVersion = packageMetadata.version;
+compatibility.contractsCommit = contractsCommit;
+compatibility.contractsSourceStatus =
+  "reviewed source and generated inputs pinned to contractsCommit";
+Object.assign(compatibility.compiler, compilerGeneration);
+delete compatibility.compiler.build;
 delete compatibility.compiler.releaseAsset;
 delete compatibility.compiler.releaseAssetSha256;
 delete compatibility.compiler.releaseAssets;
