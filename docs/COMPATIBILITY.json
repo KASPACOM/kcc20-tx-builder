@@ -1,14 +1,13 @@
 {
   "schema": "kcc20-example-compatibility/v1",
-  "packageVersion": "0.5.0-lastcall.0",
+  "packageVersion": "0.7.0",
   "contractsRepository": "https://github.com/KASPACOM/kaspa-covenants",
-  "contractsCommit": null,
+  "contractsCommit": "5deb1769e69142595576ef7c573af9f433a48a3c",
   "compiler": {
     "repository": "https://github.com/kaspanet/silverscript",
     "tag": "v1.0.0",
     "commit": "3ed973335b59269293564805cc2c58a14595ec03",
-    "tree": "2a30f522768d9b4cae6fe30014326c689a25bd41",
-    "build": "verified-source"
+    "tree": "2a30f522768d9b4cae6fe30014326c689a25bd41"
   },
   "wasm": {
     "version": "1.1.1-toc.1",
@@ -31,45 +30,58 @@
       "scriptSha256": "ef9fe81ff7aa2dc2df118d8d7cc126aca6f2f9c181b9c2d15727a538b23c6f71",
       "sourceSha256": "b4216aa3db10f486b2032fa52eb93ec1768c65ea841415bd2fffb85bdc652bbb",
       "constructorArgsSha256": "a3f32dc91fee760df98d0238d60f65a6d1324bce5ab0740e31f035144a90cc61",
-      "abiSha256": "bc5c24dc0e7ccfdd734981bfa81c806672ae90059fd075e93c9254671b25f155"
+      "abiSha256": "bc5c24dc0e7ccfdd734981bfa81c806672ae90059fd075e93c9254671b25f155",
+      "compilerBuild": "verified-source"
     },
     "KCC20Wrapper.placeholder.json": {
       "fileSha256": "2461e39a285d1f135f4891659cb78b3b6e5d2b28b32e153b61e2e336eab02115",
       "scriptSha256": "23cbd5473860cab4e63890d24ae1bd6732fce5beaa34f594dad01e845e3e9b9f",
       "sourceSha256": "030708f5b9c9e5cf7d1c4c9b9d699a681d11fa197635c3225f321dadb92ae37a",
       "constructorArgsSha256": "085f7457aa6456ef49ea3b3181739943d17b498d82fc2c8b6ab61a6f51f95573",
-      "abiSha256": "d4f2fdfd16cd0cd6b42e863de90a8bae90e5b44d9495b85a32f287f88750df2c"
+      "abiSha256": "d4f2fdfd16cd0cd6b42e863de90a8bae90e5b44d9495b85a32f287f88750df2c",
+      "compilerBuild": "verified-source"
     },
     "KCC20.placeholder.json": {
       "fileSha256": "a45d06e8351421dac1ef73f3595c6f34068e4fa1e13d3f8fa1c88be518c6e56f",
       "scriptSha256": "dd9cb334cd9e9220b15644782f271ef3ecdba34fd0762010e3d6bc18176837ae",
       "sourceSha256": "9ae9b13ebc56cd85f072ea6cc78d3a5e5f050b66dda62677e223bc9c29ec231e",
       "constructorArgsSha256": "c86edb17c8e7a338bf35b519caa3c4f955bcf5ab73476f9c5a3baa34bb73926a",
-      "abiSha256": "c2a169d67682b49ce3501f288e73f18ca96c815fd47db8e614d75b20f3678802"
+      "abiSha256": "c2a169d67682b49ce3501f288e73f18ca96c815fd47db8e614d75b20f3678802",
+      "compilerBuild": "verified-source"
     },
     "KCC20FeeTicket.placeholder.json": {
       "fileSha256": "b104ff07adcfe58a1db134bb44782fa59453dadb7716e0a831447f910efb9526",
       "scriptSha256": "c0e95cb8e5226462674647f86d5760626b5c38b7bd97a6e2ec9ba61fdef8941f",
       "sourceSha256": "980294c10d9af5d79218a5d81100df30da7ca80e3bf5c284adac3c8803b51d49",
       "constructorArgsSha256": "66b2ca443a59de6854f29bf2e8aa9c11a3074707070d653310432ac1c31ec81f",
-      "abiSha256": "8bb5f66f91bc296380eaa6b5bcc7d5045b59c2b4783e8b1bcf394a7e1395a420"
+      "abiSha256": "8bb5f66f91bc296380eaa6b5bcc7d5045b59c2b4783e8b1bcf394a7e1395a420",
+      "compilerBuild": "verified-source"
     },
     "KCC20Vesting.placeholder.json": {
       "fileSha256": "b917c9dcd05237fdedf76ac6b0df5791d5953aca1d057909c5fac075fb17ca43",
       "scriptSha256": "e32d9f5bde124526475a61075ba46eef41955d4662b1422713860cfbd7a59661",
       "sourceSha256": "6f32a53c6212bd985c2fad48b3dc66ee0daffd5ac411e5676268d22eccbfa5b3",
       "constructorArgsSha256": "b1adf7afaf5daa150e7bb54e8ddfdc63fae5a23a9b30ad528435ce6346205b40",
-      "abiSha256": "b58ee502376aaf59e0b2d663012b2964a3ae7b30025b2d830e46ea18993e7dc7"
+      "abiSha256": "b58ee502376aaf59e0b2d663012b2964a3ae7b30025b2d830e46ea18993e7dc7",
+      "compilerBuild": "verified-source"
     },
     "KCC20SnapshotBootstrap.placeholder.json": {
       "fileSha256": "daddabe50454e1c6c187c0b027cc8887f79f0f0086a14f26c6a2a56054991ebb",
-      "scriptSha256": "a22b93b0d8cd04096d83d25bbb6c38f0c07ac025b70226677db484fa93fe09ef"
+      "scriptSha256": "a22b93b0d8cd04096d83d25bbb6c38f0c07ac025b70226677db484fa93fe09ef",
+      "sourceSha256": "6e6e6a8a5d12b68d0bf5a67c4e9a727dbed4605c62896f869c73f1f3e66c0fa8",
+      "constructorArgsSha256": "ccfd363002a8efb2ad8d8c7a3e44be9ad54078c292d294098ec9262326d040ce",
+      "abiSha256": "7cf08a871d29a3fddc988000c6dd0bb01140bcacdf931254c341248e0baa8a3b",
+      "compilerBuild": "verified-release"
     },
     "KCC20SnapshotController.placeholder.json": {
       "fileSha256": "a73727cfe03108097e1226566cff9dbbbf42a5dc8526aac3196817ffc642212f",
-      "scriptSha256": "8a73c57e309860ff799a71ca9352afa84f71638061cfa427cc5e8d36d1b8b025"
+      "scriptSha256": "8a73c57e309860ff799a71ca9352afa84f71638061cfa427cc5e8d36d1b8b025",
+      "sourceSha256": "1d8697fd967af3278e9fceae5a98ef442eaf29037822c963baf4c9d252288edd",
+      "constructorArgsSha256": "1d6b2ac27fa5fea7e6c419543d4968f5b623b3139e880984d2fa5a116a453635",
+      "abiSha256": "f4e503b480fd8c63194fcbe987e3818998bf4c387c360cb0371bebf542c60050",
+      "compilerBuild": "verified-release"
     }
   },
-  "contractsSourceStatus": "unreviewed Last Call candidate; source commit must be pinned before publication",
+  "contractsSourceStatus": "reviewed source and generated inputs pinned to contractsCommit",
   "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17"
 }
