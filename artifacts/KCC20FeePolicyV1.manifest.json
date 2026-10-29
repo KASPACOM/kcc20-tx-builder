@@ -1,0 +1,86 @@
+{
+  "schema": "kcc20-fee-policy-artifacts/v1",
+  "policyHex": "016400000000000000040404040404040404040404040404040404040404040404040404040404040405050505050505050505050505050505050505050505050505050505050505054f76258921097a2c778865573434179b4c37b0f6e1a87865bd09bd22f4dbb12e01000000000000008960000000000000df08b0ad7cabbddd54242ea872c91867f35218e44a410a4989258cd158ec7d210100000000000000680c0000000000002fdd2bd9b94facc8a0bf93e6bb91b8f0b7c2c55ecf4aa759827766ab5117fb9101000000000000000bdc00000000000031130537e7566087149df4bc25f35560941df5c2a18cca14bb33e1e60b7a619f0100000000000000f2ff0000000000002cb02205e581d9b7345a1c89b653fa6567afe8e772e90567ea1b135086db8a6d0100000000000000690f0000000000006f2bea25816f97508801c8ec651a74573cb86a09f5af92edc7632b6855d7dd5001000000000000002114000000000000",
+  "policySha256": "09921dc0728df0d2dd2e443ac87f2545fb609050a5e2b2ed33d9b60622b7b37e",
+  "templates": {
+    "receipt": {
+      "templateHash": "4f76258921097a2c778865573434179b4c37b0f6e1a87865bd09bd22f4dbb12e",
+      "prefixLength": 1,
+      "suffixLength": 24713
+    },
+    "root": {
+      "templateHash": "df08b0ad7cabbddd54242ea872c91867f35218e44a410a4989258cd158ec7d21",
+      "prefixLength": 1,
+      "suffixLength": 3176
+    },
+    "holder": {
+      "templateHash": "2fdd2bd9b94facc8a0bf93e6bb91b8f0b7c2c55ecf4aa759827766ab5117fb91",
+      "prefixLength": 1,
+      "suffixLength": 56331
+    },
+    "ask": {
+      "templateHash": "31130537e7566087149df4bc25f35560941df5c2a18cca14bb33e1e60b7a619f",
+      "prefixLength": 1,
+      "suffixLength": 65522
+    },
+    "bid": {
+      "templateHash": "2cb02205e581d9b7345a1c89b653fa6567afe8e772e90567ea1b135086db8a6d",
+      "prefixLength": 1,
+      "suffixLength": 3945
+    },
+    "ticket": {
+      "templateHash": "6f2bea25816f97508801c8ec651a74573cb86a09f5af92edc7632b6855d7dd50",
+      "prefixLength": 1,
+      "suffixLength": 5153
+    }
+  },
+  "compiler": {
+    "tag": "v1.0.0",
+    "commit": "3ed973335b59269293564805cc2c58a14595ec03",
+    "binarySha256": "4d205f9bb095ae6c9027cebdcf748f7ea472f8785b054e94d8124ee7bafb84cc"
+  },
+  "artifacts": {
+    "root": {
+      "source": "contracts/kcc20-orderbook-fee-root-v1.sil",
+      "sourceSha256": "dd0c1debafd43a7ab277246ec2d4e333266581b9c0467f0e34cac118b3ec57d6",
+      "walletArtifact": "vendor/kcc20-orderbook-fee-root-v1/KCC20OrderbookFeeRootV1.placeholder.json",
+      "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-orderbook-fee-root-v1/KCC20OrderbookFeeRootV1.placeholder.json",
+      "artifactSha256": "25f28f56285bda070d4a6fa6a4733e7c3cf5eebee44531990b6f4c5a9ab254a8"
+    },
+    "holder": {
+      "source": "contracts/kcc20-orderbook-fee-holder-v1.sil",
+      "sourceSha256": "0b1ba21d328408af6b7126100b1be1398b3b847c67fea4b4bb62441388deeaf5",
+      "walletArtifact": "vendor/kcc20-orderbook-fee-holder-v1/KCC20OrderbookFeeHolderV1.placeholder.json",
+      "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-orderbook-fee-holder-v1/KCC20OrderbookFeeHolderV1.placeholder.json",
+      "artifactSha256": "1124365e746ebe108fe8e5a9a7d13ea351bba0768011fd3228567d35de0847d1"
+    },
+    "ask": {
+      "source": "contracts/kcc20-orderbook-fee-ask-v1.sil",
+      "sourceSha256": "df87fd5a18a45f316af7d8583afdf71d02f57c43c89d6ea20264c7fbe29acfd0",
+      "walletArtifact": "vendor/kcc20-orderbook-fee-ask-v1/KCC20OrderbookFeeAskV1.placeholder.json",
+      "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-orderbook-fee-ask-v1/KCC20OrderbookFeeAskV1.placeholder.json",
+      "artifactSha256": "e2f04e79a64acf330ae45ad55bab61f92039c76d1c59e4d9b39d41b1c3296553"
+    },
+    "bid": {
+      "source": "contracts/kcc20-orderbook-fee-bid-v1.sil",
+      "sourceSha256": "5df8b27e88ef753f95fa3113dd94bbc160aecde4970bd398b785222704043374",
+      "walletArtifact": "vendor/kcc20-orderbook-fee-bid-v1/KCC20OrderbookFeeBidV1.placeholder.json",
+      "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-orderbook-fee-bid-v1/KCC20OrderbookFeeBidV1.placeholder.json",
+      "artifactSha256": "4a6150291bb9e459a4ca61609854af7063c5f7314e0f5c2438a7f462627d33d4"
+    },
+    "wrapper": {
+      "source": "contracts/kcc20-wrapper-fee-v1.sil",
+      "sourceSha256": "881e79b28fbff61136b6f424c14043789d75cda7633fa0a96b45880e0b69c0ed",
+      "walletArtifact": "vendor/kcc20-wrapper-fee-v1/KCC20WrapperFeeV1.placeholder.json",
+      "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-wrapper-fee-v1/KCC20WrapperFeeV1.placeholder.json",
+      "artifactSha256": "ef8c1518209577f2c106a65ce267e95b129d62ec2220c72e49427ad92d84ad25"
+    },
+    "argentWrapper": {
+      "source": "contracts/kcc20-wrapper-fee-argent-v1.sil",
+      "sourceSha256": "06a43609b4a80d1d380346f0d96c5c26326398ce3ba4fa312faf97d90f97ca37",
+      "walletArtifact": "vendor/kcc20-wrapper-fee-argent-v1/KCC20WrapperFeeArgentV1.placeholder.json",
+      "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-wrapper-fee-argent-v1/KCC20WrapperFeeArgentV1.placeholder.json",
+      "artifactSha256": "2a03ffa43c9951ac4d17b9ad6698c4c3528d292e2841db195f8a7385855ea578"
+    }
+  }
+}
