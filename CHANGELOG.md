@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-fee.1
+
+- Package the pinned fee v1 contract artifacts and fixed policy manifest for integration work.
+- Verify the raw artifact bytes and policy template tuples in the package test.
+- Signed fee-market trade and claim construction remains unavailable in this prerelease.
+
 ## 0.8.0-fee.0
 
 - Add fee arithmetic, grouped quotes, policy encoding, creator consent and claim commitments for DEV integration tests.

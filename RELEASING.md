@@ -94,7 +94,7 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
-Version `0.8.0-fee.0` exposes accounting and policy helpers for DEV integration
+Version `0.8.0-fee.1` adds pinned fee artifacts to the accounting and policy helpers for DEV integration
 tests. It does not construct fee-market transactions. Run the existing snapshot
 and example tests against the pinned WASM before publishing it under `next`.
 Funded fee-market journeys and signed settlement construction remain required

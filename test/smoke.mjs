@@ -4,6 +4,8 @@ import {
   KCC20_ARTIFACT_SCRIPT_SHA256,
   KCC20_CURRENT_NATIVE_ARTIFACT_KEY,
   KCC20_SNAPSHOT_ARTIFACT_PINS,
+  KCC20_FEE_V1_ARTIFACT_SHA256,
+  KCC20_FEE_V1_POLICY_MANIFEST_SHA256,
   KCC20_SNAPSHOT_BUILDER_KEYS,
   KCC20_SNAPSHOT_TOKEN_TEMPLATE_PIN,
   Kcc20BuilderError,
@@ -333,6 +335,43 @@ for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
     ) {
       throw new Error("the canonical KCC20 artifact metadata changed");
     }
+  }
+}
+
+for (const [key, expected] of Object.entries(KCC20_FEE_V1_ARTIFACT_SHA256)) {
+  const raw = await readFile(new URL(`../artifacts/${key}`, import.meta.url));
+  if (createHash("sha256").update(raw).digest("hex") !== expected) {
+    throw new Error(`fee artifact bytes changed: ${key}`);
+  }
+  const artifact = JSON.parse(raw.toString("utf8"));
+  if (artifact.contract_name !== key.replace(".placeholder.json", "")) {
+    throw new Error(`fee artifact contract name changed: ${key}`);
+  }
+}
+const feeManifestRaw = await readFile(new URL("../artifacts/KCC20FeePolicyV1.manifest.json", import.meta.url));
+if (createHash("sha256").update(feeManifestRaw).digest("hex") !== KCC20_FEE_V1_POLICY_MANIFEST_SHA256) {
+  throw new Error("fee policy manifest bytes changed");
+}
+const feeManifest = JSON.parse(feeManifestRaw.toString("utf8"));
+if (createHash("sha256").update(Buffer.from(feeManifest.policyHex, "hex")).digest("hex") !== feeManifest.policySha256) {
+  throw new Error("fee policy manifest does not match its encoded policy");
+}
+for (const [role, key] of Object.entries({
+  receipt: "KCC20FeeEscrowV1.placeholder.json",
+  root: "KCC20OrderbookFeeRootV1.placeholder.json",
+  holder: "KCC20OrderbookFeeHolderV1.placeholder.json",
+  ask: "KCC20OrderbookFeeAskV1.placeholder.json",
+  bid: "KCC20OrderbookFeeBidV1.placeholder.json",
+  ticket: "KCC20FeeTicket.placeholder.json",
+})) {
+  const artifact = JSON.parse(await readFile(new URL(`../artifacts/${key}`, import.meta.url), "utf8"));
+  const contract = artifact.contracts[artifact.contract_name];
+  const span = contract.compiled.state_span;
+  const tuple = feeManifest.templates[role];
+  if (Buffer.from(contract.compiled.template_hash).toString("hex") !== tuple.templateHash
+      || span.offset !== tuple.prefixLength
+      || artifact.script.length - span.offset - span.len !== tuple.suffixLength) {
+    throw new Error(`fee policy template tuple changed: ${role}`);
   }
 }
 
