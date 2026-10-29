@@ -1,9 +1,13 @@
 # Changelog
 
-- Remove duplicate nested snapshot artifact files while preserving their public package subpaths as aliases to the canonical root artifacts.
+## 0.8.0-fee.0
+
+- Add fee arithmetic, grouped quotes, policy encoding, creator consent and claim commitments for DEV integration tests.
+- Keep transaction construction on the legacy market path; this prerelease does not build or authorize fee-market spends.
 
 ## 0.7.0
 
+- Remove duplicate nested snapshot artifact files while preserving their public package subpaths as aliases to the canonical root artifacts.
 - Support fixed snapshot supplies above one signed-64-bit KCC1 integer while keeping every holder and reserve amount signed-64-bit.
 - Bind wide fixed supplies with the domain-separated `KASPACOM/KCC20/HOLDER/V2` commitment and preserve V1 commitments for ordinary supplies.
 - Package the two-limb snapshot bootstrap/controller artifacts and encode their updated immutable state and start-plan commitments.
