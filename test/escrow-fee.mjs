@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { calculateKcc20EscrowFees as fees, quoteKcc20EscrowSettlement as quote,
-  calculateKcc20FeeClaim as claim, KCC20_ESCROW_MAX_INT as MAX } from '../dist/escrow-fee.js';
+  quoteKcc20EscrowTradeGroup as group, calculateKcc20FeeClaim as claim,
+  KCC20_ESCROW_MAX_INT as MAX } from '../dist/escrow-fee.js';
 
 const KAS = 100_000_000n;
 const hex = n => n.toString(16).padStart(64, '0');
@@ -49,6 +50,37 @@ test('buyer, seller and crossed execution pay exactly once', () => {
 test('each independent fill pays its minimum', () => {
   const input = {grossSompi:10n*KAS, creatorFeeBps:100, protocolWaived:false};
   assert.equal(Array.from({length:5}, () => fees(input).totalFeeSompi).reduce((a,b)=>a+b), 5n*KAS);
+});
+
+test('one grouped receipt sums exact per-fill fees and preserves ticket scope', () => {
+  const sale = group({ kind:'fill-bid', fillGrossSompi:[10n*KAS, 10n*KAS, 100n*KAS],
+    creatorFeeBps:100, protocolWaived:false });
+  assert.deepEqual(sale.feeVector, [
+    {protocolFeeSompi:KAS/2n, creatorFeeSompi:KAS/2n},
+    {protocolFeeSompi:KAS/2n, creatorFeeSompi:KAS/2n},
+    {protocolFeeSompi:KAS, creatorFeeSompi:KAS},
+  ]);
+  assert.equal(sale.receiptValueSompi, 4n*KAS);
+  assert.equal(sale.sellerReceivesSompi, 116n*KAS);
+  const waived = group({ kind:'take-ask', fillGrossSompi:[10n*KAS, 10n*KAS],
+    creatorFeeBps:100, protocolWaived:true });
+  assert.equal(waived.receiptValueSompi, KAS);
+  assert.equal(waived.protocolFeeSompi, 0n);
+  assert.equal(waived.buyerPaysSompi, 21n*KAS);
+  const free = group({ kind:'take-ask', fillGrossSompi:[10n*KAS, 10n*KAS],
+    creatorFeeBps:0, protocolWaived:true });
+  assert.equal(free.requiresFeeOutput, false);
+  assert.equal(free.receiptValueSompi, 0n);
+});
+
+test('trade group rejects crossed tickets and unsupported fill counts', () => {
+  const input = { creatorFeeBps:0, protocolWaived:false };
+  assert.throws(() => group({ ...input, kind:'cross-match', fillGrossSompi:[KAS], protocolWaived:true }));
+  assert.throws(() => group({ ...input, kind:'cross-match', fillGrossSompi:[KAS,KAS] }));
+  assert.throws(() => group({ ...input, kind:'fill-bid', fillGrossSompi:Array(11).fill(KAS) }));
+  assert.throws(() => group({ ...input, kind:'take-ask', fillGrossSompi:Array(17).fill(KAS) }));
+  assert.throws(() => group({ ...input, kind:'take-ask', fillGrossSompi:[] }));
+  assert.throws(() => group({ ...input, kind:'take-ask', fillGrossSompi:[MAX,MAX] }));
 });
 
 test('both claim orders preserve conservation through a second claim', () => {

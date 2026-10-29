@@ -70,6 +70,48 @@ export function quoteKcc20EscrowSettlement(input: {
   };
 }
 
+/** Arithmetic for one atomic trade group. Artifact and UTXO checks belong to
+ * the signed transaction builder; this quote does not authorize a FeeTicket. */
+export function quoteKcc20EscrowTradeGroup(input: {
+  kind: "take-ask" | "fill-bid" | "cross-match";
+  fillGrossSompi: readonly bigint[];
+  creatorFeeBps: number;
+  protocolWaived: boolean;
+}) {
+  const maxFills = input.kind === "take-ask" ? 16 : input.kind === "fill-bid" ? 10 : input.kind === "cross-match" ? 1 : 0;
+  if (!Array.isArray(input.fillGrossSompi) || input.fillGrossSompi.length < 1 || input.fillGrossSompi.length > maxFills) {
+    throw new Error("invalid trade group size");
+  }
+  if (input.kind === "cross-match" && input.protocolWaived) {
+    throw new Error("crossed matches cannot use a FeeTicket");
+  }
+  const feeVector = input.fillGrossSompi.map(grossSompi =>
+    quoteKcc20EscrowSettlement({
+      grossSompi, creatorFeeBps: input.creatorFeeBps,
+      protocolWaived: input.protocolWaived, kind: input.kind,
+    }));
+  const totals = feeVector.reduce((sum, fill) => ({
+    grossSompi: add(sum.grossSompi, fill.grossSompi),
+    protocolFeeSompi: add(sum.protocolFeeSompi, fill.protocolFeeSompi),
+    creatorFeeSompi: add(sum.creatorFeeSompi, fill.creatorFeeSompi),
+    buyerPaysSompi: add(sum.buyerPaysSompi, fill.buyerPaysSompi),
+    sellerReceivesSompi: add(sum.sellerReceivesSompi, fill.sellerReceivesSompi),
+    matcherPaysSompi: add(sum.matcherPaysSompi, fill.matcherPaysSompi),
+  }), {
+    grossSompi: 0n, protocolFeeSompi: 0n, creatorFeeSompi: 0n,
+    buyerPaysSompi: 0n, sellerReceivesSompi: 0n, matcherPaysSompi: 0n,
+  });
+  return {
+    ...totals,
+    feeVector: feeVector.map(fill => ({
+      protocolFeeSompi: fill.protocolFeeSompi,
+      creatorFeeSompi: fill.creatorFeeSompi,
+    })),
+    receiptValueSompi: add(totals.protocolFeeSompi, totals.creatorFeeSompi),
+    requiresFeeOutput: totals.protocolFeeSompi + totals.creatorFeeSompi > 0n,
+  };
+}
+
 /** Accounting description only. The transaction builder must authenticate scripts and live UTXOs. */
 export interface Kcc20FeeReceiptAmounts {
   outpoint: { transactionId: string; index: number };
