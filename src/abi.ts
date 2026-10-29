@@ -207,15 +207,41 @@ export function mintExtensionCommitment(extension) {
 
 export function holderExtensionCommitment(extension) {
   const { kind = 1 } = extension;
+  const kindValue = requireByte(kind, "kind");
+  const maxSupply = BigInt(extension.maxSupply);
+  const fixedPrefix = [
+    Uint8Array.of(kindValue),
+    requireBytes(extension.creator, 32, "creator"),
+    requireBytes(extension.ticker, 32, "ticker"),
+    requireBytes(extension.name, 32, "name"),
+    signedI64Payload(BigInt(extension.displayScale)),
+  ];
+  if (kindValue === 2) {
+    if (Number(extension.mintPolicy) !== 0) {
+      throw new Error("wide holder extension is fixed-supply only");
+    }
+    const { high, low } = unsignedWideAmountLimbs(maxSupply, "maxSupply");
+    return blake3(
+      concatBytes(
+        new TextEncoder().encode("KASPACOM/KCC20/HOLDER/V2"),
+        ...fixedPrefix,
+        signedI64Payload(high),
+        signedI64Payload(low),
+        signedI64Payload(BigInt(extension.mintLaneCount ?? 1)),
+        Uint8Array.of(requireByte(extension.mintPolicy, "mintPolicy")),
+        signedI64Payload(BigInt(extension.mintPriceSompi)),
+        requireBytes(extension.treasury, 32, "treasury"),
+        requireBytes(extension.protocolFeeRecipient, 32, "protocolFeeRecipient"),
+        signedI64Payload(BigInt(extension.protocolFeeBps)),
+      ),
+    );
+  }
+  if (kindValue !== 1) throw new Error("unsupported holder extension kind");
   return blake3(
     concatBytes(
       new TextEncoder().encode("KASPACOM/KCC20/HOLDER/V1"),
-      Uint8Array.of(requireByte(kind, "kind")),
-      requireBytes(extension.creator, 32, "creator"),
-      requireBytes(extension.ticker, 32, "ticker"),
-      requireBytes(extension.name, 32, "name"),
-      signedI64Payload(BigInt(extension.displayScale)),
-      signedI64Payload(BigInt(extension.maxSupply)),
+      ...fixedPrefix,
+      signedI64Payload(maxSupply),
       signedI64Payload(BigInt(extension.mintLaneCount ?? 1)),
       Uint8Array.of(requireByte(extension.mintPolicy, "mintPolicy")),
       signedI64Payload(BigInt(extension.mintPriceSompi)),
@@ -224,6 +250,20 @@ export function holderExtensionCommitment(extension) {
       signedI64Payload(BigInt(extension.protocolFeeBps)),
     ),
   );
+}
+
+function unsignedWideAmountLimbs(value, label) {
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    throw new Error(`${label} must not be an unsafe JavaScript number`);
+  }
+  const amount = BigInt(value);
+  const base = 1n << 63n;
+  const high = amount / base;
+  const low = amount % base;
+  if (amount <= 0n || high > base - 1n) {
+    throw new Error(`${label} is outside the unsigned two-limb range`);
+  }
+  return { high, low };
 }
 
 export function buildKcc20ScriptForState(artifact, state) {

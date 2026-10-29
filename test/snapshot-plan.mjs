@@ -16,9 +16,9 @@ const pins = {
   "KCC20.placeholder.json":
     "a45d06e8351421dac1ef73f3595c6f34068e4fa1e13d3f8fa1c88be518c6e56f",
   "KCC20SnapshotBootstrap.placeholder.json":
-    "5f0caea9818f5bd6110023a7f089a0d26f87d3fd0901cb52e24a32bd1853b302",
+    "daddabe50454e1c6c187c0b027cc8887f79f0f0086a14f26c6a2a56054991ebb",
   "KCC20SnapshotController.placeholder.json":
-    "8c5d2056bb0a445ffc1a6967238fac46378372b5f357524c6795201699bf2b2f",
+    "a73727cfe03108097e1226566cff9dbbbf42a5dc8526aac3196817ffc642212f",
 };
 for (const [name, hash] of Object.entries(pins))
   assert.equal(
@@ -86,6 +86,36 @@ assert.throws(() => claimActivation(100n, 101n, 0n));
 assert.throws(() => claimActivation(100n, 100n, 1n));
 assert.equal(claimActivation(100n).lockTime, 100n);
 assert.throws(() => claimActivation(500000000000n));
+const wideMetadata = buildSnapshotTokenMetadata({
+  migrationId: "nacho-wide-supply",
+  creator: hex("1"),
+  ticker: hex("2"),
+  name: hex("3"),
+  displayScale: "100000000",
+  totalAllocation: "28700000000000000000",
+  protocolFeeRecipient: hex("4"),
+});
+assert.equal(wideMetadata.totalSupply, "28700000000000000000");
+assert.match(wideMetadata.holderExtensionCommitment, /^[0-9a-f]{64}$/);
+const ascii32 = (value) => {
+  const result = new Uint8Array(32);
+  result.set(new TextEncoder().encode(value));
+  return result;
+};
+const nachoMetadata = buildSnapshotTokenMetadata({
+  migrationId: "nacho-holder-v2-vector",
+  creator: hex("1"),
+  ticker: ascii32("NACHO"),
+  name: ascii32("NACHO"),
+  displayScale: "100000000",
+  totalAllocation: "28700000000000000000",
+  treasury: hex("2"),
+  protocolFeeRecipient: hex("3"),
+});
+assert.equal(
+  nachoMetadata.holderExtensionCommitment,
+  "d4ce4bdf083185b68eca5a30bf98aa065ed1cbebc8d366d08c3c79d49d49ad0e",
+);
 console.log(
   "snapshot artifact pins, immutable controller state, shard/depth/supply limits and scheduled claims passed",
 );

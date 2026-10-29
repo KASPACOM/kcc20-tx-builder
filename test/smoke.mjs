@@ -338,7 +338,7 @@ for (const key of Object.keys(KCC20_ARTIFACT_SCRIPT_SHA256)) {
 
 for (const [kind, pin] of Object.entries(KCC20_SNAPSHOT_ARTIFACT_PINS)) {
   const raw = await readFile(
-    new URL(`../artifacts/kcc20-snapshot-${kind}/${pin.key}`, import.meta.url),
+    new URL(`../artifacts/${pin.key}`, import.meta.url),
   );
   const actualArtifactSha256 = createHash("sha256").update(raw).digest("hex");
   if (actualArtifactSha256 !== pin.artifactSha256) {
