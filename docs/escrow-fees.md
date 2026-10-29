@@ -15,6 +15,15 @@ bid sellers receive price minus fees; a crossed matcher funds the fee once.
 The result excludes network fees and storage deposits and is not a complete
 wallet debit/proceeds quote. Fills that cannot cover their fees are rejected.
 
+`quoteKcc20EscrowTradeGroup` takes ordered fills from one atomic trade group.
+It calculates each fill's fee independently, then returns one fee vector and
+one summed receipt value. A ticket waiver applies to every fill in that group;
+crossed matches reject a ticket. The function checks the contract's maximum
+fill counts, but it does not prove a group fits the signed transaction mass
+budget or that all fills share one authenticated market and taker. The builder
+must perform those checks before signing. In the current offline proof, a
+two-ask buy passes the conservative mass target and a three-ask buy does not.
+
 `calculateKcc20FeeClaim` checks the accounting for one through five distinct
 receipts from the same token, market, policy and fee accounts. It returns the
 claim and retained amounts. This does not establish that the receipts exist,
