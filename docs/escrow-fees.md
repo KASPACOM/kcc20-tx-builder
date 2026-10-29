@@ -22,7 +22,8 @@ are unspent or have authenticated scripts. Construction must revalidate all
 inputs against current chain state and the approved artifacts.
 
 `encodeKcc20EscrowPolicy` and `decodeKcc20EscrowPolicy` implement the fixed
-169-byte orderbook policy. They reject unsupported versions, noncanonical
+361-byte role policy, with receipt, root, holder, ask, bid and FeeTicket
+template tuples in that order. They reject unsupported versions, noncanonical
 integers, invalid rates and invalid account identities. `kcc20EscrowPolicyId`
 hashes token ID, FeeTicket ID, price scale and the complete policy encoding.
 The protocol rate and fee floors are constants of this contract version.

@@ -4,8 +4,12 @@ import { encodeKcc20EscrowPolicy, decodeKcc20EscrowPolicy, kcc20EscrowPolicyId, 
 
 const policy = { version: 1, creatorFeeBps: 100,
   protocolAccountId: "04".repeat(32), creatorAccountId: "05".repeat(32),
-  escrowTemplate: { hash: "06".repeat(32), prefixLength: 1, suffixLength: 2 },
-  orderbookTemplate: { hash: "07".repeat(32), prefixLength: 3, suffixLength: 4 } };
+  receiptTemplate: { hash: "06".repeat(32), prefixLength: 1, suffixLength: 2 },
+  rootTemplate: { hash: "07".repeat(32), prefixLength: 3, suffixLength: 4 },
+  holderTemplate: { hash: "08".repeat(32), prefixLength: 5, suffixLength: 6 },
+  askTemplate: { hash: "09".repeat(32), prefixLength: 7, suffixLength: 8 },
+  bidTemplate: { hash: "0a".repeat(32), prefixLength: 9, suffixLength: 10 },
+  ticketTemplate: { hash: "0b".repeat(32), prefixLength: 11, suffixLength: 12 } };
 const receipt = { outpoint: { transactionId: "0a".repeat(32), index: 0 },
   tokenId: "01".repeat(32), marketId: "02".repeat(32), policyId: "03".repeat(32),
   protocolAccountId: policy.protocolAccountId, creatorAccountId: policy.creatorAccountId,
@@ -15,9 +19,9 @@ test("creator consent matches the wallet personal-message hash and binds immutab
   const input = { tokenId: receipt.tokenId, marketId: receipt.marketId, feeTicketId: "00".repeat(32), priceScale: 1n, policy };
   const consent = kcc20CreatorFeeConsent(input);
   assert.deepEqual(consent, {
-    commitment: "7f4426ce3e424668acac0bd353303990e85c715a2dc4407e7591e8354fc3b322",
-    message: "KCC20 creator fee consent v1 (TN10)\n7f4426ce3e424668acac0bd353303990e85c715a2dc4407e7591e8354fc3b322",
-    personalMessageHash: "c4a225cafba3ddbeb439b8e18e0a09c58b2274a42dfb72c2fa12c3aa6a54f541",
+    commitment: "76b8db1c7c0172ca166f6847c3a35b2853ab9d08c8d6ddd8663b339d9c6f592d",
+    message: "KCC20 creator fee consent v1 (TN10)\n76b8db1c7c0172ca166f6847c3a35b2853ab9d08c8d6ddd8663b339d9c6f592d",
+    personalMessageHash: "f04865728540ec01e3b602472dc496e65aed6f400d98357bb72fe5e4246daf5d",
   });
   for (const change of [{ tokenId: "08".repeat(32) }, { marketId: "09".repeat(32) }, { feeTicketId: "0a".repeat(32) },
     { priceScale: 100n }, { policy: { ...policy, creatorFeeBps: 500 } },
@@ -30,25 +34,27 @@ test("creator consent matches the wallet personal-message hash and binds immutab
 
 test("fixed policy encoding and identity vector", () => {
   const bytes = encodeKcc20EscrowPolicy(policy);
-  assert.equal(bytes.length, 169);
+  assert.equal(bytes.length, 361);
   assert.deepEqual(decodeKcc20EscrowPolicy(bytes), policy);
   assert.equal(kcc20EscrowPolicyId({ tokenId: receipt.tokenId, feeTicketId: "00".repeat(32), priceScale: 1n, policy }),
-    "854903f3c639ed60dc6ffbee4f769be32a485e9c2f0e055d3d9c2bed2fc9308d");
-  const shifted = new Uint8Array(175); shifted.set(bytes, 3);
-  assert.deepEqual(decodeKcc20EscrowPolicy(shifted.subarray(3, 172)), policy);
+    "fd95ad05f73f170b75645572aed9013c6356074657e1ae478e6334fd6ed73093");
+  const shifted = new Uint8Array(367); shifted.set(bytes, 3);
+  assert.deepEqual(decodeKcc20EscrowPolicy(shifted.subarray(3, 364)), policy);
 });
 
 test("policy rejects forged encoding, invalid accounts and unsupported rates", () => {
   for (const change of [{ version: 2 }, { creatorFeeBps: 501 }, { creatorFeeBps: -1 },
     { creatorAccountId: "00".repeat(32) }, { protocolAccountId: policy.creatorAccountId },
-    { escrowTemplate: { ...policy.escrowTemplate, prefixLength: 0 } }]) {
+    { receiptTemplate: { ...policy.receiptTemplate, prefixLength: 0 } },
+    { ticketTemplate: { ...policy.ticketTemplate, hash: "00".repeat(32) } }]) {
     assert.throws(() => encodeKcc20EscrowPolicy({ ...policy, ...change }));
   }
   const disabled = { ...policy, creatorFeeBps: 0, creatorAccountId: "00".repeat(32) };
   assert.deepEqual(decodeKcc20EscrowPolicy(encodeKcc20EscrowPolicy(disabled)), disabled);
+  assert.throws(() => encodeKcc20EscrowPolicy({ ...policy, creatorFeeBps: 0 }));
   const negativeZero = encodeKcc20EscrowPolicy(disabled); negativeZero[8] = 0x80;
   assert.throws(() => decodeKcc20EscrowPolicy(negativeZero));
-  assert.throws(() => decodeKcc20EscrowPolicy(new Uint8Array(170)));
+  assert.throws(() => decodeKcc20EscrowPolicy(new Uint8Array(362)));
   assert.throws(() => kcc20EscrowPolicyId({ tokenId: receipt.tokenId, feeTicketId: "00".repeat(32), priceScale: 0n, policy }));
 });
 

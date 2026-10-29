@@ -2,14 +2,18 @@ import { blake3 } from "@noble/hashes/blake3";
 import { blake2b } from "@noble/hashes/blake2b";
 import { calculateKcc20FeeClaim, type Kcc20FeeReceiptAmounts } from "./escrow-fee.js";
 
-/** Wire format for KCC20OrderbookFeeV1. Decoding is not artifact authentication. */
+/** Fixed 361-byte policy for the versioned fee roles. Decoding is not artifact authentication. */
 export interface Kcc20EscrowPolicy {
   version: 1;
   creatorFeeBps: number;
   protocolAccountId: string;
   creatorAccountId: string;
-  escrowTemplate: { hash: string; prefixLength: number; suffixLength: number };
-  orderbookTemplate: { hash: string; prefixLength: number; suffixLength: number };
+  receiptTemplate: { hash: string; prefixLength: number; suffixLength: number };
+  rootTemplate: { hash: string; prefixLength: number; suffixLength: number };
+  holderTemplate: { hash: string; prefixLength: number; suffixLength: number };
+  askTemplate: { hash: string; prefixLength: number; suffixLength: number };
+  bidTemplate: { hash: string; prefixLength: number; suffixLength: number };
+  ticketTemplate: { hash: string; prefixLength: number; suffixLength: number };
 }
 
 const ZERO = "0".repeat(64);
@@ -34,7 +38,7 @@ function concat(...parts: Uint8Array[]): Uint8Array {
   for (const part of parts) { result.set(part, offset); offset += part.length; }
   return result;
 }
-function template(value: Kcc20EscrowPolicy["escrowTemplate"]): Uint8Array {
+function template(value: Kcc20EscrowPolicy["receiptTemplate"]): Uint8Array {
   for (const length of [value.prefixLength, value.suffixLength]) {
     if (!Number.isSafeInteger(length) || length <= 0) throw new Error("template lengths must be positive safe integers");
   }
@@ -47,23 +51,28 @@ export function encodeKcc20EscrowPolicy(policy: Kcc20EscrowPolicy): Uint8Array {
   const protocol = hex32(policy.protocolAccountId);
   const creator = hex32(policy.creatorAccountId, policy.creatorFeeBps === 0);
   if (hex(protocol) === hex(creator)) throw new Error("fee account identities must differ");
+  if ((policy.creatorFeeBps === 0) !== (hex(creator) === ZERO)) throw new Error("creator rate and account do not match");
   return concat(Uint8Array.of(1), int64(BigInt(policy.creatorFeeBps)), protocol, creator,
-    template(policy.escrowTemplate), template(policy.orderbookTemplate));
+    template(policy.receiptTemplate), template(policy.rootTemplate), template(policy.holderTemplate),
+    template(policy.askTemplate), template(policy.bidTemplate), template(policy.ticketTemplate));
 }
 
 export function decodeKcc20EscrowPolicy(bytes: Uint8Array): Kcc20EscrowPolicy {
-  if (!(bytes instanceof Uint8Array) || bytes.length !== 169 || bytes[0] !== 1) throw new Error("invalid fee policy encoding");
+  if (!(bytes instanceof Uint8Array) || bytes.length !== 361 || bytes[0] !== 1) throw new Error("invalid fee policy encoding");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const integer = (offset: number): number => {
     const value = view.getBigUint64(offset, true);
     if (value > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("noncanonical or oversized policy integer");
     return Number(value);
   };
+  const readTemplate = (offset: number) => ({ hash: hex(bytes.slice(offset, offset + 32)),
+    prefixLength: integer(offset + 32), suffixLength: integer(offset + 40) });
   const policy: Kcc20EscrowPolicy = {
     version: 1, creatorFeeBps: integer(1),
     protocolAccountId: hex(bytes.slice(9, 41)), creatorAccountId: hex(bytes.slice(41, 73)),
-    escrowTemplate: { hash: hex(bytes.slice(73, 105)), prefixLength: integer(105), suffixLength: integer(113) },
-    orderbookTemplate: { hash: hex(bytes.slice(121, 153)), prefixLength: integer(153), suffixLength: integer(161) },
+    receiptTemplate: readTemplate(73), rootTemplate: readTemplate(121),
+    holderTemplate: readTemplate(169), askTemplate: readTemplate(217),
+    bidTemplate: readTemplate(265), ticketTemplate: readTemplate(313),
   };
   encodeKcc20EscrowPolicy(policy);
   return policy;
