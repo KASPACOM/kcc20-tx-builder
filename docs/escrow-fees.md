@@ -30,6 +30,13 @@ claim and retained amounts. This does not establish that the receipts exist,
 are unspent or have authenticated scripts. Construction must revalidate all
 inputs against current chain state and the approved artifacts.
 
+`verifyKcc20FeeReceiptForClaim` reconstructs an indexed receipt from the
+pinned escrow artifact and compares its exact script, covenant lineage,
+outpoint and value with a UTXO supplied from the canonical node. The caller
+must authenticate the market policy, obtain a fresh node result and check the
+UTXO again immediately before signing. This helper does not build or authorize
+a claim.
+
 `encodeKcc20EscrowPolicy` and `decodeKcc20EscrowPolicy` implement the fixed
 361-byte role policy, with receipt, root, holder, ask, bid and FeeTicket
 template tuples in that order. They reject unsupported versions, noncanonical
