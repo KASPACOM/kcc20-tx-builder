@@ -15,7 +15,8 @@ Prerelease versions use the `next` tag in both registries; stable versions use
 ## Publishing setup
 
 After a successful `main` CI run, `.github/workflows/publish.yml` compares the
-package version with the first parent of the merged commit. A changed version
+package version with the first parent of the merged commit and checks whether
+the current version is visible on npmjs. A changed or unpublished version
 triggers one job that packs the package once, publishes that tarball to npmjs
 and GitHub Packages, verifies both registries, then creates the matching tag
 and GitHub Release. A manual workflow dispatch retries a partial upload only
