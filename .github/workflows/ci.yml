@@ -28,6 +28,14 @@ jobs:
         run: npm run test:snapshot:transactions
         env:
           SNAPSHOT_TEST_WASM: ${{ github.workspace }}/examples/vendor/kaspa
+      - name: Verify KCOM vesting transactions with pinned WASM
+        run: npm run test:kcom-vesting
+        env:
+          SNAPSHOT_TEST_WASM: ${{ github.workspace }}/examples/vendor/kaspa
+      - name: Verify KCOM claim vault and activation with pinned WASM
+        run: npm run test:kcom-claim-fund
+        env:
+          SNAPSHOT_TEST_WASM: ${{ github.workspace }}/examples/vendor/kaspa
 
   consolidation-consensus:
     runs-on: ubuntu-latest

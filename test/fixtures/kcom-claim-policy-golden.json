@@ -1,0 +1,343 @@
+{
+  "generator": "independent Python blake3/hashlib, not TS implementation",
+  "cases": [
+    {
+      "manifest": {
+        "schema": "kcom-claim-eligibility/v1",
+        "status": "draft-offline-unapproved-contract-format",
+        "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+        "tokenId": "0000000000000000000000000000000000000000000000000000000000000002",
+        "decimals": 8,
+        "basePoolRaw": "2000000000000000",
+        "campaignBudgetRaw": "10000000000000000",
+        "totalBaseEntitlementRaw": "2000000000000000",
+        "baseRoundingReserveRaw": "0",
+        "provenance": {
+          "materializationHash": "000000000000000000000000000000000000000000000000000000000000000a",
+          "membershipSnapshotHash": "000000000000000000000000000000000000000000000000000000000000000b",
+          "integrityManifestHash": "000000000000000000000000000000000000000000000000000000000000000c",
+          "sourceManifestHashes": [
+            "000000000000000000000000000000000000000000000000000000000000000d",
+            "000000000000000000000000000000000000000000000000000000000000000e",
+            "000000000000000000000000000000000000000000000000000000000000000f"
+          ],
+          "cutoffMs": "1794700800000"
+        },
+        "root": "4bf882850da672f1d37688e1f657c8bc0cb660f1aa97acbb0011f04bbeabe7d7",
+        "leaves": [
+          {
+            "index": 0,
+            "authority": {
+              "scheme": 0,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000001"
+            },
+            "baseEntitlementRaw": "2000000000000000"
+          }
+        ],
+        "contentHash": "4f2ab2fed20de23879f7366b5134aee48dc908511826efea222d985c63c975e9"
+      },
+      "leafHashes": [
+        "4bf882850da672f1d37688e1f657c8bc0cb660f1aa97acbb0011f04bbeabe7d7"
+      ],
+      "proofs": [
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 0,
+            "authority": {
+              "scheme": 0,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000001"
+            },
+            "baseEntitlementRaw": "2000000000000000"
+          },
+          "leafCount": 1,
+          "siblings": []
+        }
+      ],
+      "nullifiers": [
+        "510e2df020c83fa1e6e759d016b8edc978bb182f3b70a0277b3976766009f457"
+      ]
+    },
+    {
+      "manifest": {
+        "schema": "kcom-claim-eligibility/v1",
+        "status": "draft-offline-unapproved-contract-format",
+        "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+        "tokenId": "0000000000000000000000000000000000000000000000000000000000000002",
+        "decimals": 8,
+        "basePoolRaw": "2000000000000000",
+        "campaignBudgetRaw": "10000000000000000",
+        "totalBaseEntitlementRaw": "1999999999999998",
+        "baseRoundingReserveRaw": "2",
+        "provenance": {
+          "materializationHash": "000000000000000000000000000000000000000000000000000000000000000a",
+          "membershipSnapshotHash": "000000000000000000000000000000000000000000000000000000000000000b",
+          "integrityManifestHash": "000000000000000000000000000000000000000000000000000000000000000c",
+          "sourceManifestHashes": [
+            "000000000000000000000000000000000000000000000000000000000000000d",
+            "000000000000000000000000000000000000000000000000000000000000000e",
+            "000000000000000000000000000000000000000000000000000000000000000f"
+          ],
+          "cutoffMs": "1794700800000"
+        },
+        "root": "c865ee0bc2acd86360490db5beda8882ca165afdb0614bfa9b68594086f32e50",
+        "leaves": [
+          {
+            "index": 0,
+            "authority": {
+              "scheme": 0,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000001"
+            },
+            "baseEntitlementRaw": "666666666666666"
+          },
+          {
+            "index": 1,
+            "authority": {
+              "scheme": 1,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000002"
+            },
+            "baseEntitlementRaw": "666666666666666"
+          },
+          {
+            "index": 2,
+            "authority": {
+              "scheme": 2,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000003"
+            },
+            "baseEntitlementRaw": "666666666666666"
+          }
+        ],
+        "contentHash": "d2de65cb06cf6dd2f892eef3ad6e1b5ffb47a85cb7c926edf799b2ee5018c06d"
+      },
+      "leafHashes": [
+        "d7eb38cbcbb62c06ab885cbb2a523393b416a554aa4db42c75581d5225f26e5f",
+        "2aabfc742f3cb3016ad4486b64fab48d763d73ae75e043c3227c424386fab87b",
+        "8ef3db190c68af628af7c66020463a05da4dad33a1e012510c5f7efec1fa5d16"
+      ],
+      "proofs": [
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 0,
+            "authority": {
+              "scheme": 0,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000001"
+            },
+            "baseEntitlementRaw": "666666666666666"
+          },
+          "leafCount": 3,
+          "siblings": [
+            "2aabfc742f3cb3016ad4486b64fab48d763d73ae75e043c3227c424386fab87b",
+            "d5cdda2c9fde07fefb6af5662d7702eccb1f314d7977845f1bf713dc851a92d8"
+          ]
+        },
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 1,
+            "authority": {
+              "scheme": 1,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000002"
+            },
+            "baseEntitlementRaw": "666666666666666"
+          },
+          "leafCount": 3,
+          "siblings": [
+            "d7eb38cbcbb62c06ab885cbb2a523393b416a554aa4db42c75581d5225f26e5f",
+            "d5cdda2c9fde07fefb6af5662d7702eccb1f314d7977845f1bf713dc851a92d8"
+          ]
+        },
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 2,
+            "authority": {
+              "scheme": 2,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000003"
+            },
+            "baseEntitlementRaw": "666666666666666"
+          },
+          "leafCount": 3,
+          "siblings": [
+            "5b4fdf700c8c8395c7323b9e7511e97c9067b3267b645b443e8026f92b3ab66f",
+            "40fbe2e8c2f2970cf45ae724e47a832e2eed6d58b711ec7f944274c9ce509add"
+          ]
+        }
+      ],
+      "nullifiers": [
+        "510e2df020c83fa1e6e759d016b8edc978bb182f3b70a0277b3976766009f457",
+        "c8d69ee70581512cfcf9c1cd1ff518c94c1662a9c609c50a59c254be4fdfbfe4",
+        "8aa8b5215c1695a2aaa06af1018559c8d915c0fd249e38c9e3e05b47daf34004"
+      ]
+    },
+    {
+      "manifest": {
+        "schema": "kcom-claim-eligibility/v1",
+        "status": "draft-offline-unapproved-contract-format",
+        "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+        "tokenId": "0000000000000000000000000000000000000000000000000000000000000002",
+        "decimals": 8,
+        "basePoolRaw": "2000000000000000",
+        "campaignBudgetRaw": "10000000000000000",
+        "totalBaseEntitlementRaw": "2000000000000000",
+        "baseRoundingReserveRaw": "0",
+        "provenance": {
+          "materializationHash": "000000000000000000000000000000000000000000000000000000000000000a",
+          "membershipSnapshotHash": "000000000000000000000000000000000000000000000000000000000000000b",
+          "integrityManifestHash": "000000000000000000000000000000000000000000000000000000000000000c",
+          "sourceManifestHashes": [
+            "000000000000000000000000000000000000000000000000000000000000000d",
+            "000000000000000000000000000000000000000000000000000000000000000e",
+            "000000000000000000000000000000000000000000000000000000000000000f"
+          ],
+          "cutoffMs": "1794700800000"
+        },
+        "root": "676b94a7839e8ad363812d0308a5b1cd0128ed6384ce7060eee22e82e4e6ca3c",
+        "leaves": [
+          {
+            "index": 0,
+            "authority": {
+              "scheme": 0,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000001"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          {
+            "index": 1,
+            "authority": {
+              "scheme": 1,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000002"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          {
+            "index": 2,
+            "authority": {
+              "scheme": 2,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000003"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          {
+            "index": 3,
+            "authority": {
+              "scheme": 3,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000004"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          {
+            "index": 4,
+            "authority": {
+              "scheme": 4,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000005"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          }
+        ],
+        "contentHash": "fcfaa4b03e2dc9217510e8f969071afb702f35023c64503df26c732198e9d579"
+      },
+      "leafHashes": [
+        "10db99934fa871c30d335b7337506a3c371001480703076e1688e8ebf8fd3848",
+        "316af534c8656cbfaa60a180b75b5eb1b71075321b0a38df515a7d34c04627b6",
+        "fe0fb002bb1e87428ca59e575f3661072ae6c52366bfd3c1ae89874686532944",
+        "32e98d633a70f44d14a7ec21b0f8c510b2ced8c5b546396f1f5c413269a4bf92",
+        "bc2eeed49d38cc656bb20cf98ade3efc68e48e12f0df19087fc2f853bf8f27da"
+      ],
+      "proofs": [
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 0,
+            "authority": {
+              "scheme": 0,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000001"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          "leafCount": 5,
+          "siblings": [
+            "316af534c8656cbfaa60a180b75b5eb1b71075321b0a38df515a7d34c04627b6",
+            "8ac997f9d0b467d5af8cc6e6f0f26ddbdfaa25fefddf3a04bd82f00b02b134d4",
+            "b0c0d6ad58d7d76cfb43cfab17de173ff988b6ee2766680774498f64348dde68"
+          ]
+        },
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 1,
+            "authority": {
+              "scheme": 1,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000002"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          "leafCount": 5,
+          "siblings": [
+            "10db99934fa871c30d335b7337506a3c371001480703076e1688e8ebf8fd3848",
+            "8ac997f9d0b467d5af8cc6e6f0f26ddbdfaa25fefddf3a04bd82f00b02b134d4",
+            "b0c0d6ad58d7d76cfb43cfab17de173ff988b6ee2766680774498f64348dde68"
+          ]
+        },
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 2,
+            "authority": {
+              "scheme": 2,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000003"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          "leafCount": 5,
+          "siblings": [
+            "32e98d633a70f44d14a7ec21b0f8c510b2ced8c5b546396f1f5c413269a4bf92",
+            "d3cbe2609fc78d970d0b5c5c9b2c141d88884b2b06b9ca3d032539dd43d0bf7b",
+            "b0c0d6ad58d7d76cfb43cfab17de173ff988b6ee2766680774498f64348dde68"
+          ]
+        },
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 3,
+            "authority": {
+              "scheme": 3,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000004"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          "leafCount": 5,
+          "siblings": [
+            "fe0fb002bb1e87428ca59e575f3661072ae6c52366bfd3c1ae89874686532944",
+            "d3cbe2609fc78d970d0b5c5c9b2c141d88884b2b06b9ca3d032539dd43d0bf7b",
+            "b0c0d6ad58d7d76cfb43cfab17de173ff988b6ee2766680774498f64348dde68"
+          ]
+        },
+        {
+          "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "leaf": {
+            "index": 4,
+            "authority": {
+              "scheme": 4,
+              "identifier": "0000000000000000000000000000000000000000000000000000000000000005"
+            },
+            "baseEntitlementRaw": "400000000000000"
+          },
+          "leafCount": 5,
+          "siblings": [
+            "8a1f067d19421e8959940466d62d2f297f376fd89e4f2264b198fe483a41d3d1",
+            "44e9536f6fa2db2c7e96018da5a2c5961660a8572f24bf6d97cf62fa93628d16",
+            "7b3774a9cc43b70068e04158cf251ca89168d4cd24150056a5d68428a0d9e722"
+          ]
+        }
+      ],
+      "nullifiers": [
+        "510e2df020c83fa1e6e759d016b8edc978bb182f3b70a0277b3976766009f457",
+        "c8d69ee70581512cfcf9c1cd1ff518c94c1662a9c609c50a59c254be4fdfbfe4",
+        "8aa8b5215c1695a2aaa06af1018559c8d915c0fd249e38c9e3e05b47daf34004",
+        "b14b3c2dd8ad82eef8728176b2c6c979eaaa76a038cc2f2d8013f65d4d911b27",
+        "c94d1c622def56a3912472b37bf9b85aa6bb3c8ba9388ddc43d30db26418fd01"
+      ]
+    }
+  ]
+}

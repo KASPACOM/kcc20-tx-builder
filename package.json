@@ -1,6 +1,6 @@
 {
   "name": "@kaspacom/kcc20-tx-builder",
-  "version": "0.8.0-fee.2",
+  "version": "0.8.1-kcom.0",
   "description": "Runtime-independent KCC20 covenant transaction and PSKT construction primitives.",
   "license": "Apache-2.0",
   "author": "KaspaCom",
@@ -89,11 +89,15 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:escrow-fee": "npm run build && node --test test/escrow-fee.mjs test/escrow-policy.mjs test/escrow-group.mjs test/escrow-receipt.mjs test/escrow-claim-plan.mjs",
-    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs && node test/token-profiles.mjs && node test/profile-transfer.mjs && node --test test/mint-availability-limit.mjs test/consolidation-profile.mjs test/consolidation-transaction.mjs test/escrow-fee.mjs test/escrow-policy.mjs test/escrow-group.mjs test/escrow-receipt.mjs test/escrow-claim-plan.mjs && node test/pinned-funding.mjs",
+    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs && node test/token-profiles.mjs && node test/profile-transfer.mjs && node --test test/mint-availability-limit.mjs test/consolidation-profile.mjs test/consolidation-transaction.mjs test/escrow-fee.mjs test/escrow-policy.mjs test/escrow-group.mjs test/escrow-receipt.mjs test/escrow-claim-plan.mjs test/kcom-claim-policy.mjs test/kcom-claim-proof-budget.mjs test/kcom-claim-codec.mjs && node test/pinned-funding.mjs",
     "prepack": "npm test",
     "test:examples": "npm run verify:compatibility && node scripts/test-examples.mjs --browser",
     "verify:compatibility": "node scripts/verify-compatibility.mjs",
     "test:snapshot:transactions": "npm run build && node test/snapshot-transactions.mjs && node test/snapshot-claims.mjs",
+    "test:kcom-vesting": "npm run build && node test/kcom-vesting.mjs",
+    "test:kcom-claim-policy": "npm run build && node --test test/kcom-claim-policy.mjs test/kcom-claim-proof-budget.mjs",
+    "test:kcom-claim-codec": "npm run build && node --test test/kcom-claim-codec.mjs",
+    "test:kcom-claim-fund": "npm run build && node test/kcom-claim-initialize.mjs && node test/kcom-claim-fund.mjs && node test/kcom-claim-open.mjs && node test/kcom-claim-select.mjs && node test/kcom-claim-collect.mjs && node test/kcom-claim-settle.mjs && node test/kcom-claim-activation.mjs && node test/kcom-claim-recovery.mjs",
     "test:consolidation:consensus": "npm run build && node scripts/test-consolidation-consensus.mjs"
   },
   "devDependencies": {

@@ -1,0 +1,54 @@
+{
+  "schema": "kcom-claim-selection-vector/v1",
+  "source": "kaspa-covenants campaign-entitlements synthetic fixture",
+  "step": {
+    "before": {
+      "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+      "eligibility_root": "ba3a1dd37b047b22703dc66650d7d1226769734bdcb985cc09612495dea4136e",
+      "used_root": "e70ad62a8b2d97c90dcd51f3cff8d18468d9b0224f933f9d9697718d5dba7cfe",
+      "leaf_count": 4,
+      "selected_count": 0,
+      "all_weight": "0",
+      "boosted_weight": "0",
+      "long_weight": "0",
+      "shard": 0,
+      "shard_count": 4,
+      "terms_hash": "7725be16706208242e13c2feed6664b0ab63b9b26f8b54843e82d87963554089",
+      "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "tge_ms": 1797897600000,
+      "budget_raw": "10000000000000000",
+      "manifest_total": "1999999999999998"
+    },
+    "after": {
+      "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+      "eligibility_root": "ba3a1dd37b047b22703dc66650d7d1226769734bdcb985cc09612495dea4136e",
+      "used_root": "d5bd38253eb744fa70ead7c71872e84e934e8d9c425341b332312043f32833e8",
+      "leaf_count": 4,
+      "selected_count": 1,
+      "all_weight": "388888888888888",
+      "boosted_weight": "388888888888888",
+      "long_weight": "388888888888888",
+      "shard": 0,
+      "shard_count": 4,
+      "terms_hash": "7725be16706208242e13c2feed6664b0ab63b9b26f8b54843e82d87963554089",
+      "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "tge_ms": 1797897600000,
+      "budget_raw": "10000000000000000",
+      "manifest_total": "1999999999999998"
+    },
+    "args": {
+      "index": 1,
+      "weight": 388888888888888,
+      "key": "462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b",
+      "keyNumber": 4,
+      "signerNumber": 4,
+      "tier": 3,
+      "scheme": 3,
+      "beneficiary": "3434343434343434343434343434343434343434343434343434343434343434",
+      "membershipProof": "e9ce8a495b8a6671e737f173be374417c46b539f19bbab12b3d4ffe7089f2166729f54b225ad04f5ffd7785ffa7f724949dcc854b51eca1c8018b5ceb980d547",
+      "unusedProof": "4f18ed03cf9d37aa88f2213de9722ec190b05e386bbf0cead3a938aebb2717ae849884f41b00fc12274ff5e48e8782d7ec77df09f0f03232641ce4496055ffe4",
+      "depth": 2,
+      "route": 4082314624
+    }
+  }
+}

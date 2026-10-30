@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1-kcom.0 (unpublished)
+
+- Combine the reviewed fee builder baseline with the KCOM vesting and claim transaction builders for branch integration tests.
+- Keep package publication and runtime enablement pending independent review and funded campaign evidence.
+
 ## 0.8.0-fee.2
 
 - Verify fee receipts and fee accounts against the pinned escrow artifact and fresh node UTXOs before claim construction.
