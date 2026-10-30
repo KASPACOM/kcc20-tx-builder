@@ -37,6 +37,18 @@ must authenticate the market policy, obtain a fresh node result and check the
 UTXO again immediately before signing. This helper does not build or authorize
 a claim.
 
+`verifyKcc20FeeAccountForClaim` makes the equivalent check for the fee account,
+including its owner scheme, guard, principal and exact script. Pass the pinned
+receipt template to the claim planner and preserve the selected receipts' order
+as the transaction's covenant input order. Both helpers trust the caller to
+obtain canonical fresh UTXOs; they cannot establish source quality themselves.
+
+`planKcc20FeeClaimTransition` calculates the claimant payout, unchanged
+account principal, account continuation and any receipt left for the other
+party. Its inputs still require live UTXO checks and account authorization.
+The plan does not select funding, sign or estimate transaction mass. It rejects
+an account whose program template differs from the verified receipt template.
+
 `encodeKcc20EscrowPolicy` and `decodeKcc20EscrowPolicy` implement the fixed
 361-byte role policy, with receipt, root, holder, ask, bid and FeeTicket
 template tuples in that order. They reject unsupported versions, noncanonical
