@@ -49,7 +49,8 @@ export function prepareSnapshotDeployment(kw: any, definition: SnapshotDeploymen
     throw new Error("shard allocations do not equal fixed token supply");
   }
   const extension = {
-    kind: 1, creator: definition.creator, ticker: bytesToHex(asciiToBytes32(definition.ticker)),
+    kind: BigInt(definition.totalSupply) > 9_223_372_036_854_775_807n ? 2 : 1,
+    creator: definition.creator, ticker: bytesToHex(asciiToBytes32(definition.ticker)),
     name: bytesToHex(asciiToBytes32(definition.ticker)), displayScale: definition.displayScale,
     maxSupply: definition.totalSupply, mintLaneCount: 1, mintPolicy: 0, mintPriceSompi: "0",
     treasury: definition.creator, protocolFeeRecipient: definition.creator, protocolFeeBps: "0",

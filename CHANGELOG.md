@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.8.1-kcom.0 (unpublished)
+
+- Combine the reviewed fee builder baseline with the KCOM vesting and claim transaction builders for branch integration tests.
+- Keep package publication and runtime enablement pending independent review and funded campaign evidence.
+
+## 0.8.0-fee.2
+
+- Verify fee receipts and fee accounts against the pinned escrow artifact and fresh node UTXOs before claim construction.
+- Plan independent protocol or creator claims while preserving the other share and matching the signed consensus commitment.
+- Keep signing, complete transaction mass checks, and market creation disabled in this prerelease.
+
+## 0.8.0-fee.1
+
+- Package the pinned fee v1 contract artifacts and fixed policy manifest for integration work.
+- Verify the raw artifact bytes and policy template tuples in the package test.
+- Signed fee-market trade and claim construction remains unavailable in this prerelease.
+
+## 0.8.0-fee.0
+
+- Add fee arithmetic, grouped quotes, policy encoding, creator consent and claim commitments for DEV integration tests.
+- Keep transaction construction on the legacy market path; this prerelease does not build or authorize fee-market spends.
+
+## 0.7.0
+
+- Remove duplicate nested snapshot artifact files while preserving their public package subpaths as aliases to the canonical root artifacts.
+- Support fixed snapshot supplies above one signed-64-bit KCC1 integer while keeping every holder and reserve amount signed-64-bit.
+- Bind wide fixed supplies with the domain-separated `KASPACOM/KCC20/HOLDER/V2` commitment and preserve V1 commitments for ordinary supplies.
+- Package the two-limb snapshot bootstrap/controller artifacts and encode their updated immutable state and start-plan commitments.
+
 ## 0.6.2
 
 - Reuse authenticated profile scripts during native holder consolidation, including the independent Argent implementation.

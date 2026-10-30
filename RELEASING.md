@@ -9,11 +9,14 @@ The package is published under the same version to both registries:
 
 Never publish different contents under the same version. npm package versions
 are immutable, so update `package.json` before each release.
+Prerelease versions use the `next` tag in both registries; stable versions use
+`latest`. Consumers must pin the full prerelease version.
 
 ## Publishing setup
 
 After a successful `main` CI run, `.github/workflows/publish.yml` compares the
-package version with the first parent of the merged commit. A changed version
+package version with the first parent of the merged commit and checks whether
+the current version is visible on npmjs. A changed or unpublished version
 triggers one job that packs the package once, publishes that tarball to npmjs
 and GitHub Packages, verifies both registries, then creates the matching tag
 and GitHub Release. A manual workflow dispatch retries a partial upload only
@@ -90,9 +93,11 @@ A green publishing workflow confirms an upload, not consumer compatibility.
 Inspect the installed tarball and complete the live release gate before
 consumer deployment. Record any unverified operation families explicitly.
 
-## Snapshot release gate
+## Fee integration prerelease
 
-The current candidate is version `0.6.0`. Run `test:snapshot:transactions` with
-the pinned WASM and close the snapshot artifact reproduction and funded TN10
-construction gates before merging the release PR. The first publish run must
-confirm npm trusted publishing for this workflow.
+Version `0.8.0-fee.1` adds pinned fee artifacts to the accounting and policy helpers for DEV integration
+tests. It does not construct fee-market transactions. Run the existing snapshot
+and example tests against the pinned WASM before publishing it under `next`.
+Funded fee-market journeys and signed settlement construction remain required
+before enabling markets or promoting a stable fee release. Confirm trusted npm
+publishing in the first workflow run.

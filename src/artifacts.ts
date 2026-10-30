@@ -8,9 +8,9 @@ export const KCC20_CURRENT_NATIVE_ARTIFACT_KEY =
 
 export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
   "KCC20SnapshotBootstrap.placeholder.json":
-    "3d64211a2b3c5ac24009b9ce59d4e8ecb8f2114dbf0c43b5a060b2ed91704e02",
+    "a22b93b0d8cd04096d83d25bbb6c38f0c07ac025b70226677db484fa93fe09ef",
   "KCC20SnapshotController.placeholder.json":
-    "fdc2e396a66a1f708522d68f879ec67d71bd0070c7417b1e7f5dd3a6c8cfda88",
+    "8a73c57e309860ff799a71ca9352afa84f71638061cfa427cc5e8d36d1b8b025",
   [KCC20_CURRENT_NATIVE_ARTIFACT_KEY]:
     "dd9cb334cd9e9220b15644782f271ef3ecdba34fd0762010e3d6bc18176837ae",
   "KCC20FeeTicket.placeholder.json":
@@ -21,7 +21,38 @@ export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
     "23cbd5473860cab4e63890d24ae1bd6732fce5beaa34f594dad01e845e3e9b9f",
   "KCC20Vesting.placeholder.json":
     "e32d9f5bde124526475a61075ba46eef41955d4662b1422713860cfbd7a59661",
+  "KCC20FeeEscrowV1.placeholder.json":
+    "90ff237d0c9d18a896ebea6ae048611805e434b85d2909050bf8dd07c4056133",
+  "KCC20FeeRecipientV1.placeholder.json":
+    "13cad3943dc79e80bbd73b3b2fb139be55f8d0eabd16439b7b3aee4ed763b336",
+  "KCC20OrderbookFeeRootV1.placeholder.json":
+    "c05643e79c1c1a56c46f7c175c1f4e7adaedb8727364d50efe76c6bde70eb610",
+  "KCC20OrderbookFeeHolderV1.placeholder.json":
+    "0d3de762cd5528526bd99443b73bfd66eaba2ce252a8b7789022965b691bb8d8",
+  "KCC20OrderbookFeeAskV1.placeholder.json":
+    "a87e25c0c66d206bc31f33d79094f5b31177f1dd261804b071ad7bc3b3b6b8b5",
+  "KCC20OrderbookFeeBidV1.placeholder.json":
+    "9289b3b5fcd46f30af4f236c65f76f369bd856311319474d20e06c5ba919ea8f",
+  "KCC20WrapperFeeV1.placeholder.json":
+    "970562614f538fc6374a778b4ff2435309ffd234f67efc507d57f8d098ace093",
+  "KCC20WrapperFeeArgentV1.placeholder.json":
+    "069a592e3b5bab0ee1e34a694859d73ed5a665fafb9ffacadd54046e09c978cd",
 });
+
+/** Raw file pins cover the ABI and dispatch tags as well as the script bytes. */
+export const KCC20_FEE_V1_ARTIFACT_SHA256 = Object.freeze({
+  "KCC20FeeEscrowV1.placeholder.json": "40aeb72a858bd3e20143e8686226dd66df191745d990a4afd8e22ea1cc643bdf",
+  "KCC20FeeRecipientV1.placeholder.json": "06944587b4055ee61050707c35e3774bee82f1c6e37914b0f14c6d7fdaf5ab71",
+  "KCC20OrderbookFeeRootV1.placeholder.json": "25f28f56285bda070d4a6fa6a4733e7c3cf5eebee44531990b6f4c5a9ab254a8",
+  "KCC20OrderbookFeeHolderV1.placeholder.json": "1124365e746ebe108fe8e5a9a7d13ea351bba0768011fd3228567d35de0847d1",
+  "KCC20OrderbookFeeAskV1.placeholder.json": "e2f04e79a64acf330ae45ad55bab61f92039c76d1c59e4d9b39d41b1c3296553",
+  "KCC20OrderbookFeeBidV1.placeholder.json": "4a6150291bb9e459a4ca61609854af7063c5f7314e0f5c2438a7f462627d33d4",
+  "KCC20WrapperFeeV1.placeholder.json": "ef8c1518209577f2c106a65ce267e95b129d62ec2220c72e49427ad92d84ad25",
+  "KCC20WrapperFeeArgentV1.placeholder.json": "2a03ffa43c9951ac4d17b9ad6698c4c3528d292e2841db195f8a7385855ea578",
+});
+
+export const KCC20_FEE_V1_POLICY_MANIFEST_SHA256 =
+  "7a96c07521fee2eab1e032b7dc9ca4d220eaca9feb287e1f25da45b7c0a943d2";
 
 /**
  * Canonical raw artifact pins and structural metadata for signerless snapshot
@@ -33,17 +64,17 @@ export const KCC20_SNAPSHOT_ARTIFACT_PINS = Object.freeze({
     key: "KCC20SnapshotBootstrap.placeholder.json",
     contractName: "KCC20SnapshotBootstrap",
     artifactSha256:
-      "5f0caea9818f5bd6110023a7f089a0d26f87d3fd0901cb52e24a32bd1853b302",
-    scriptLength: 33718,
+      "daddabe50454e1c6c187c0b027cc8887f79f0f0086a14f26c6a2a56054991ebb",
+    scriptLength: 35913,
     stateStart: 1,
-    stateLength: 405,
+    stateLength: 414,
   }),
   controller: Object.freeze({
     key: "KCC20SnapshotController.placeholder.json",
     contractName: "KCC20SnapshotController",
     artifactSha256:
-      "8c5d2056bb0a445ffc1a6967238fac46378372b5f357524c6795201699bf2b2f",
-    scriptLength: 15297,
+      "a73727cfe03108097e1226566cff9dbbbf42a5dc8526aac3196817ffc642212f",
+    scriptLength: 15350,
     stateStart: 1,
     stateLength: 432,
   }),
