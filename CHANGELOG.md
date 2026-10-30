@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-fee.2
+
+- Verify fee receipts and fee accounts against the pinned escrow artifact and fresh node UTXOs before claim construction.
+- Plan independent protocol or creator claims while preserving the other share and matching the signed consensus commitment.
+- Keep signing, complete transaction mass checks, and market creation disabled in this prerelease.
+
 ## 0.8.0-fee.1
 
 - Package the pinned fee v1 contract artifacts and fixed policy manifest for integration work.
