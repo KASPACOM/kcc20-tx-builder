@@ -3,6 +3,7 @@ import { sha256 } from "@noble/hashes/sha256";
 import { assertKcc20ArtifactScriptHash } from "./artifacts.js";
 import { normalizeSilverScriptArtifact, templateHash } from "./abi.js";
 import { KCC20_ESCROW_MAX_INT, KCC20_ESCROW_MIN_FEE_SOMPI, type Kcc20FeeReceiptAmounts } from "./escrow-fee.js";
+import type { Kcc20FeeAccountState, Kcc20FeeClaimAccount } from "./escrow-claim-plan.js";
 
 const ARTIFACT_KEY = "KCC20FeeEscrowV1.placeholder.json";
 // SHA-256 of JSON.stringify(JSON.parse(the packaged artifact)). This pins the
@@ -96,7 +97,8 @@ export function verifyKcc20FeeReceiptForClaim(input: {
   indexed: Kcc20IndexedFeeReceipt;
   live: Kcc20LiveFeeReceiptUtxo;
   expected: Kcc20FeeReceiptIdentity;
-}): { receipt: Kcc20FeeReceiptAmounts; redeemScript: Uint8Array } {
+}): { receipt: Kcc20FeeReceiptAmounts; redeemScript: Uint8Array;
+      escrowTemplate: { hash: string; prefixLength: number; suffixLength: number } } {
   const artifactHash = Array.from(sha256(new TextEncoder().encode(JSON.stringify(input.artifact))),
     byte => byte.toString(16).padStart(2, "0")).join("");
   if (artifactHash !== ARTIFACT_CANONICAL_SHA256) throw new Error("fee receipt artifact metadata mismatch");
@@ -175,5 +177,94 @@ export function verifyKcc20FeeReceiptForClaim(input: {
       valueSompi: total, protocolSompi: protocol, creatorSompi: creator,
     },
     redeemScript,
+    escrowTemplate: { hash: selfHash, prefixLength: prefix.length, suffixLength: suffix.length },
+  };
+}
+
+/** Authenticate a fee-account hint against the pinned escrow artifact and a fresh node UTXO. */
+export function verifyKcc20FeeAccountForClaim(input: {
+  artifact: unknown;
+  indexed: Kcc20IndexedFeeReceipt;
+  live: Kcc20LiveFeeReceiptUtxo;
+  expected: { tokenId: string; marketId: string; policyId: string; accountId: string };
+}): { account: Kcc20FeeClaimAccount; redeemScript: Uint8Array;
+      escrowTemplate: { hash: string; prefixLength: number; suffixLength: number } } {
+  const artifactHash = Array.from(sha256(new TextEncoder().encode(JSON.stringify(input.artifact))),
+    byte => byte.toString(16).padStart(2, "0")).join("");
+  if (artifactHash !== ARTIFACT_CANONICAL_SHA256) throw new Error("fee account artifact metadata mismatch");
+  const artifact = normalizeSilverScriptArtifact(input.artifact);
+  assertKcc20ArtifactScriptHash(ARTIFACT_KEY, artifact);
+  if (artifact.contract_name !== "KCC20FeeEscrowV1" ||
+      artifact.state_layout?.start !== STATE_START || artifact.state_layout?.len !== STATE_LENGTH) {
+    throw new Error("unsupported fee account artifact layout");
+  }
+  const base = Uint8Array.from(artifact.script);
+  const prefix = base.slice(0, STATE_START);
+  const suffix = base.slice(STATE_START + STATE_LENGTH);
+  const state = input.indexed.state;
+  if (!state || Array.isArray(state) || typeof state !== "object") throw new Error("missing indexed fee account state");
+  const tokenId = hex32(input.expected.tokenId, "expected token");
+  const marketId = hex32(input.expected.marketId, "expected market");
+  const policyId = hex32(input.expected.policyId, "expected policy");
+  const accountId = hex32(input.expected.accountId, "expected account");
+  if ([tokenId, marketId, policyId, accountId].includes(ZERO)) throw new Error("invalid fee account identity");
+  for (const [name, expected] of [["token", tokenId], ["market", marketId], ["policy", policyId]] as const) {
+    if (hex32(state[name], name) !== expected) throw new Error(`fee account ${name} mismatch`);
+  }
+  if (state.role !== "1" || state.roleName !== "account" ||
+      hex32(state.protocol_account, "protocol_account") !== ZERO ||
+      hex32(state.creator_account, "creator_account") !== ZERO ||
+      natural(state.protocol_amount, "protocol_amount") !== 0n ||
+      natural(state.creator_amount, "creator_amount") !== 0n ||
+      hex32(state.owner, "owner") === ZERO ||
+      !Number.isInteger(state.owner_scheme) || (state.owner_scheme as number) < 0 ||
+      (state.owner_scheme as number) > 4) {
+    throw new Error("invalid fee account role or owner state");
+  }
+  const guard = hex32(state.guard_template, "guard_template");
+  const guardPrefix = natural(state.guard_prefix, "guard_prefix");
+  const guardSuffix = natural(state.guard_suffix, "guard_suffix");
+  const scheme = state.owner_scheme as number;
+  if ((scheme <= 2 && (guard !== ZERO || guardPrefix !== 0n || guardSuffix !== 0n)) ||
+      (scheme === 3 && (guard === ZERO || guardPrefix !== 0n || guardSuffix !== 0n)) ||
+      (scheme === 4 && (guard === ZERO || guardPrefix === 0n || guardSuffix === 0n))) {
+    throw new Error("invalid fee account guard state");
+  }
+  hex32(state.action_hash, "action_hash");
+  const selfHash = Array.from(templateHash(prefix, suffix), byte => byte.toString(16).padStart(2, "0")).join("");
+  if (hex32(state.self_template, "self_template") !== selfHash ||
+      natural(state.self_prefix, "self_prefix") !== BigInt(prefix.length) ||
+      natural(state.self_suffix, "self_suffix") !== BigInt(suffix.length)) {
+    throw new Error("fee account self-template mismatch");
+  }
+  if (input.indexed.status !== "active" || input.indexed.spentByTxidHex) throw new Error("fee account is not active");
+  const txid = hex32(input.indexed.txidHex, "indexed txid");
+  if (!Number.isInteger(input.indexed.vout) || input.indexed.vout < 0 || input.indexed.vout > 0xffffffff ||
+      txid !== hex32(input.live.outpoint.transactionId, "live txid") || input.indexed.vout !== input.live.outpoint.index ||
+      hex32(input.indexed.covenantIdHex, "indexed covenant") !== accountId ||
+      hex32(input.live.covenantIdHex, "live covenant") !== accountId) {
+    throw new Error("fee account outpoint or lineage mismatch");
+  }
+  const principal = natural(input.indexed.amountSompiExact, "account principal");
+  if (principal === 0n || input.live.amountSompi !== principal) throw new Error("fee account principal mismatch");
+  const stateBytes = encodeState(state);
+  const redeemScript = new Uint8Array(prefix.length + stateBytes.length + suffix.length);
+  redeemScript.set(prefix);
+  redeemScript.set(stateBytes, prefix.length);
+  redeemScript.set(suffix, prefix.length + stateBytes.length);
+  const scriptHash = Array.from(blake2b(redeemScript, { dkLen: 32 }), byte => byte.toString(16).padStart(2, "0")).join("");
+  if (hex32(input.indexed.scriptHashHex, "indexed script hash") !== scriptHash ||
+      input.live.scriptPublicKey.version !== 0 ||
+      input.live.scriptPublicKey.scriptHex.toLowerCase() !== `aa20${scriptHash}87`) {
+    throw new Error("fee account script hash mismatch");
+  }
+  return {
+    account: {
+      outpoint: { transactionId: txid, index: input.indexed.vout },
+      covenantId: accountId, principalSompi: principal,
+      state: state as unknown as Kcc20FeeAccountState,
+    },
+    redeemScript,
+    escrowTemplate: { hash: selfHash, prefixLength: prefix.length, suffixLength: suffix.length },
   };
 }

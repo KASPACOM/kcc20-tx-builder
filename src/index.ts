@@ -22,6 +22,7 @@ export * from "./escrow-fee.js";
 export * from "./escrow-policy.js";
 export * from "./escrow-group.js";
 export * from "./escrow-receipt.js";
+export * from "./escrow-claim-plan.js";
 export * from "./trading-operation.js";
 export * from "./protocol.js";
 export * from "./runtime.js";
