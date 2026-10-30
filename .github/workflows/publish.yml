@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - name: Check version bump
+      - name: Check for an unpublished version
         id: version
         run: |
           node <<'NODE'
@@ -47,9 +47,20 @@ jobs:
           const current = require('./package.json').version;
           const previous = JSON.parse(execFileSync('git', ['show', 'HEAD^:package.json'], { encoding: 'utf8' })).version;
           const retry = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
-          const shouldPublish = retry || current !== previous;
+          let publishedIntegrity = '';
+          try {
+            publishedIntegrity = execFileSync('npm', [
+              'view', `@kaspacom/kcc20-tx-builder@${current}`, 'dist.integrity',
+              '--parseable', '--prefer-online',
+              '--registry=https://registry.npmjs.org/',
+              '--@kaspacom:registry=https://registry.npmjs.org/',
+            ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+          } catch {
+            // The publish step will report network errors; a missing version needs a retry.
+          }
+          const shouldPublish = retry || current !== previous || !publishedIntegrity;
           appendFileSync(process.env.GITHUB_OUTPUT, `version=${current}\npublish=${shouldPublish}\n`);
-          console.log(`version ${previous} -> ${current}; publish=${shouldPublish}`);
+          console.log(`version ${previous} -> ${current}; npmjs present=${Boolean(publishedIntegrity)}; publish=${shouldPublish}`);
           NODE
       - name: Update npm for trusted publishing
         if: steps.version.outputs.publish == 'true'
