@@ -95,9 +95,9 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
-Version `0.8.0-fee.1` adds pinned fee artifacts to the accounting and policy helpers for DEV integration
-tests. It does not construct fee-market transactions. Run the existing snapshot
-and example tests against the pinned WASM before publishing it under `next`.
-Funded fee-market journeys and signed settlement construction remain required
-before enabling markets or promoting a stable fee release. Confirm trusted npm
-publishing in the first workflow run.
+Version `0.8.0-fee.3` adds fee-account creation and binding PSKTs for DEV
+integration. Run the existing snapshot and example tests against the pinned
+WASM before publishing it under `next`. This prerelease does not build
+fee-market trades, claims or authority rotation. Funded fee-market journeys and
+signed settlement construction remain required before enabling markets or
+promoting a stable fee release.
