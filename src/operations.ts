@@ -24,6 +24,8 @@ export const KCC20_BUILDER_KEYS = [
   "fee-ticket.transfer",
   "kcc20fee.create-account",
   "kcc20fee.bind-account",
+  "kcc20fee.deploy-market-genesis",
+  "kcc20fee.bind-market",
   "kcc20-snapshot.deploy-bootstrap",
   "kcc20-snapshot.deploy-controller",
   "kcc20-snapshot.start",
