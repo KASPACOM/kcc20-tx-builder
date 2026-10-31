@@ -88,8 +88,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:escrow-fee": "npm run build && node --test test/escrow-fee.mjs test/escrow-policy.mjs test/escrow-group.mjs test/escrow-receipt.mjs test/escrow-claim-plan.mjs test/escrow-account-setup.mjs",
-    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs && node test/token-profiles.mjs && node test/profile-transfer.mjs && node --test test/mint-availability-limit.mjs test/consolidation-profile.mjs test/consolidation-transaction.mjs test/escrow-fee.mjs test/escrow-policy.mjs test/escrow-group.mjs test/escrow-receipt.mjs test/escrow-claim-plan.mjs test/escrow-account-setup.mjs && node test/pinned-funding.mjs",
+    "test:escrow-fee": "npm run build && node --test test/escrow-fee.mjs test/escrow-policy.mjs test/escrow-group.mjs test/escrow-receipt.mjs test/escrow-claim-plan.mjs test/escrow-account-setup.mjs test/escrow-account-bind-pskt.mjs",
+    "test": "npm run typecheck && npm run build && node test/smoke.mjs && node test/cjs-smoke.cjs && node test/snapshot-plan.mjs && node test/token-profiles.mjs && node test/profile-transfer.mjs && node --test test/mint-availability-limit.mjs test/consolidation-profile.mjs test/consolidation-transaction.mjs test/escrow-fee.mjs test/escrow-policy.mjs test/escrow-group.mjs test/escrow-receipt.mjs test/escrow-claim-plan.mjs test/escrow-account-setup.mjs test/escrow-account-bind-pskt.mjs && node test/pinned-funding.mjs",
     "prepack": "npm test",
     "test:examples": "npm run verify:compatibility && node scripts/test-examples.mjs --browser",
     "verify:compatibility": "node scripts/verify-compatibility.mjs",

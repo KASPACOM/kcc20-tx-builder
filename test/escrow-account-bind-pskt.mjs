@@ -1,0 +1,142 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import * as kw from "../examples/vendor/kaspa/kaspa.js";
+import {
+  buildKcc20InitialFeeAccount,
+  buildKcc20FeeEscrowScript,
+  createKcc20PsktBuilderEngine,
+} from "../dist/index.js";
+
+kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
+const artifact = JSON.parse(readFileSync(new URL("../artifacts/KCC20FeeEscrowV1.placeholder.json", import.meta.url)));
+const key = new kw.PrivateKey("03".padStart(64, "0"));
+const owner = key.toKeypair().xOnlyPublicKey.toString();
+const wallet = key.toAddress("testnet-10").toString();
+const tokenId = "01".repeat(32);
+const marketId = "02".repeat(32);
+const policyId = "03".repeat(32);
+const accountId = "04".repeat(32);
+const accountTxid = "0a".repeat(32);
+const fundingTxid = "0b".repeat(32);
+const principalSompi = 300000000n;
+
+function fixture(mutate = () => {}) {
+  const initial = buildKcc20InitialFeeAccount({
+    artifact, tokenId, ownerSchnorrPublicKey: owner, principalSompi,
+  });
+  const accountSpk = kw.payToScriptHashScript(initial.redeemScript);
+  const accountAddress = kw.addressFromScriptPublicKey(accountSpk, "testnet-10").toString();
+  const accountEntry = {
+    outpoint: { transactionId: accountTxid, index: 0 },
+    amount: principalSompi, scriptPublicKey: accountSpk,
+    blockDaaScore: 0n, isCoinbase: false, covenantId: accountId,
+  };
+  const fundingEntry = {
+    outpoint: { transactionId: fundingTxid, index: 0 },
+    amount: 200000000n, scriptPublicKey: kw.payToAddressScript(wallet),
+    blockDaaScore: 0n, isCoinbase: false,
+  };
+  const indexed = {
+    address: accountAddress, txidHex: accountTxid, vout: 0,
+    covenantIdHex: accountId, scriptHashHex: initial.scriptHash,
+    amountSompiExact: principalSompi.toString(), status: "active",
+    spentByTxidHex: null, state: { ...initial.state, roleName: "account" },
+  };
+  const request = {
+    schema: "kcc20-in-process-pskt-builder-input/v1",
+    request: {
+      builderKey: "kcc20fee.bind-account", network: "testnet-10",
+      owner: { walletAddress: wallet, kcc20Owner: owner },
+      params: { tokenId, accountId, marketId, policyId, activeAccountUtxo: indexed },
+    },
+  };
+  const fixture = { initial, indexed, request, accountEntry, fundingEntry, accountAddress };
+  mutate(fixture);
+  const engine = createKcc20PsktBuilderEngine({
+    wasm: kw, artifacts: { "KCC20FeeEscrowV1.placeholder.json": artifact },
+    rpcClientFactory: () => ({
+      connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({
+        entries: addresses.includes(wallet) ? [fundingEntry] : [accountEntry],
+      }),
+    }),
+  });
+  return { ...fixture, engine };
+}
+
+function signedMassAndPaidFee(f, built) {
+  const json = JSON.parse(built.psktTransactionJson);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  const accountSignature = Buffer.from(
+    kw.createInputSignature(signed, 0, key, kw.SighashType.All), "hex",
+  );
+  const normalizedAccountSignature = accountSignature.length === 66 && accountSignature[0] === 65
+    ? accountSignature.subarray(1) : accountSignature;
+  assert.equal(normalizedAccountSignature.length, 65);
+  const args = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
+  for (const arg of built.scripts[0].signatureScript.args) {
+    if (arg.type === "data") args.addData(Buffer.from(arg.hex, "hex"));
+    else if (arg.type === "signature") args.addData(normalizedAccountSignature);
+    else if (arg.type === "i64") args.addI64(BigInt(arg.value));
+    else throw new Error(`unsupported script argument ${arg.type}`);
+  }
+  signed.inputs[0].signatureScript = kw.ScriptBuilder.fromScript(
+    Buffer.from(built.scripts[0].scriptHex, "hex"),
+    { flags: { covenantsEnabled: true } },
+  ).encodePayToScriptHashSignatureScript(args.drain());
+  signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee account bind");
+  const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee account bind");
+  const paidFee = principalSompi + f.fundingEntry.amount -
+    BigInt(json.outputs[0].value) - BigInt(json.outputs[1].value);
+  return { transactionMass, storageMass, paidFee };
+}
+
+test("fee account binding builds a wallet-signable v1 PSKT and preserves principal", async () => {
+  const f = fixture();
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(json.version, 1);
+  assert.equal(json.inputs.length, 2);
+  assert.equal(json.outputs[0].covenant.covenantId, accountId);
+  assert.equal(json.outputs[0].covenant.authorizingInput, 0);
+  assert.equal(BigInt(json.outputs[0].value), principalSompi);
+  assert.equal(built.scripts.length, 1);
+  assert.equal(built.scripts[0].signatureScript.mode, "ordered-args");
+  assert.deepEqual(built.scripts[0].signatureScript.args.map(arg => arg.type),
+    ["data", "data", "signature", "i64", "data"]);
+  assert.deepEqual(built.signInputs, [{ index: 1, sighashType: 1 }]);
+  const expected = buildKcc20FeeEscrowScript(artifact, {
+    ...f.initial.state, market: marketId, policy: policyId,
+  });
+  assert.equal(json.outputs[0].scriptPublicKey, `0000${expected.scriptPublicKey.scriptHex}`);
+  assert.equal(built.metadata.accountPrincipalSompi, principalSompi.toString());
+
+  const { transactionMass, storageMass, paidFee } = signedMassAndPaidFee(f, built);
+  assert(transactionMass <= 450000n, `signed transaction mass ${transactionMass}`);
+  assert(storageMass <= 450000n, `signed storage mass ${storageMass}`);
+  assert(paidFee >= (transactionMass > storageMass ? transactionMass : storageMass) * 100n);
+});
+
+test("small funding pays the final signed storage fee or fails before signing", async () => {
+  const enough = fixture(({ fundingEntry }) => { fundingEntry.amount = 30000000n; });
+  const built = await enough.engine.build(enough.request);
+  const { transactionMass, storageMass, paidFee } = signedMassAndPaidFee(enough, built);
+  assert(transactionMass <= 450000n);
+  assert(storageMass <= 450000n);
+  assert(paidFee >= (transactionMass > storageMass ? transactionMass : storageMass) * 100n);
+
+  for (const amount of [20000000n, 10000000n]) {
+    const insufficient = fixture(({ fundingEntry }) => { fundingEntry.amount = amount; });
+    await assert.rejects(insufficient.engine.build(insufficient.request),
+      /fee account binding.*mass|insufficient change|predicted signed transaction exceeds/);
+  }
+});
+
+test("fee account binding rejects spent source and wrong wallet owner", async () => {
+  const spent = fixture(({ request }) => { request.request.params.activeAccountUtxo.status = "spent"; });
+  await assert.rejects(spent.engine.build(spent.request), /not active/);
+  const wrongOwner = fixture(({ request }) => { request.request.owner.kcc20Owner = "11".repeat(32); });
+  await assert.rejects(wrongOwner.engine.build(wrongOwner.request), /does not match connected wallet/);
+});
