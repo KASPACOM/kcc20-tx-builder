@@ -7,7 +7,7 @@ import {
   buildKcc20ScriptForState, createKcc20PsktBuilderEngine,
   prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding,
   prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk,
-  prepareKcc20FeeMarketBid, templateParts,
+  prepareKcc20FeeMarketBid, buildKcc20FeeEscrowScript, templateParts,
 } from "../dist/index.js";
 
 kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
@@ -609,4 +609,120 @@ test("fee-market buy honors a covenant-owned ask's committed payout", async () =
   const built = await f.engine.build(f.request);
   const json = JSON.parse(built.psktTransactionJson);
   assert.equal(BigInt(json.outputs[built.metadata.sellerOutputIndex].value), 550000000n);
+});
+
+function claimFixture(party = "protocol", count = 1) {
+  const escrow = artifacts.receipt;
+  const parts = templateParts(escrow);
+  const common = { token: tokenId, market: marketId,
+    policy: "03".repeat(32), owner_scheme: 0,
+    guard_template: "00".repeat(32), guard_prefix: "0", guard_suffix: "0",
+    self_template: hex(parts.hash),
+    self_prefix: String(parts.prefixLength), self_suffix: String(parts.suffixLength) };
+  const receiptState = { ...common, role: "0",
+    protocol_account: "04".repeat(32), creator_account: "05".repeat(32),
+    protocol_amount: "50000000", creator_amount: "50000000",
+    owner: "00".repeat(32), action_hash: "06".repeat(32), roleName: "receipt" };
+  const accountId = party === "protocol" ? "04".repeat(32) : "05".repeat(32);
+  const accountState = { ...common, role: "1",
+    protocol_account: "00".repeat(32), creator_account: "00".repeat(32),
+    protocol_amount: "0", creator_amount: "0", owner,
+    action_hash: "00".repeat(32), roleName: "account" };
+  const receiptScript = buildKcc20FeeEscrowScript(escrow, receiptState);
+  const accountScript = buildKcc20FeeEscrowScript(escrow, accountState);
+  const receiptSpk = kw.payToScriptHashScript(receiptScript.redeemScript);
+  const accountSpk = kw.payToScriptHashScript(accountScript.redeemScript);
+  const receiptAddress = kw.addressFromScriptPublicKey(receiptSpk, "testnet-10").toString();
+  const accountAddress = kw.addressFromScriptPublicKey(accountSpk, "testnet-10").toString();
+  const receiptEntries = Array.from({ length: count }, (_, index) => ({
+    outpoint: { transactionId: (0x4a + index).toString(16).repeat(32), index: 0 },
+    amount: 100000000n, scriptPublicKey: receiptSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: marketId }));
+  const accountEntry = { outpoint: { transactionId: "2b".repeat(32), index: 0 },
+    amount: 500000000n, scriptPublicKey: accountSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: accountId };
+  const fundingEntry = { outpoint: { transactionId: "2c".repeat(32), index: 0 },
+    amount: 500000000n, scriptPublicKey: kw.payToAddressScript(wallet),
+    blockDaaScore: 0n, isCoinbase: false };
+  const receipts = receiptEntries.map(entry => ({
+    txidHex: entry.outpoint.transactionId, vout: 0,
+    covenantIdHex: marketId, address: receiptAddress,
+    scriptHashHex: receiptScript.scriptHash,
+    amountSompiExact: "100000000", status: "active", spentByTxidHex: null,
+    state: receiptState }));
+  const account = { txidHex: accountEntry.outpoint.transactionId, vout: 0,
+    covenantIdHex: accountId, address: accountAddress,
+    scriptHashHex: accountScript.scriptHash,
+    amountSompiExact: "500000000", status: "active", spentByTxidHex: null,
+    state: accountState };
+  const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
+    request: { builderKey: "kcc20fee.claim", network: "testnet-10",
+      owner: { walletAddress: wallet, kcc20Owner: owner },
+      params: { party, marketId, contractCanonicalTokenId: tokenId,
+        policyId: "03".repeat(32), protocolAccountId: "04".repeat(32),
+        creatorAccountId: "05".repeat(32), receipts, account } } };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+      "ArgentKCC20.reference.json": argent },
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.includes(wallet) ? [fundingEntry]
+          : [...receiptEntries, accountEntry] }) }) });
+  return { engine, request, receiptEntry: receiptEntries[0], receiptEntries,
+    accountEntry, fundingEntry, receipt: receipts[0], receipts, account };
+}
+
+test("fee-market protocol claim preserves creator share and account principal", async () => {
+  const f = claimFixture();
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);
+  assert.equal(built.metadata.claimSompi, "50000000");
+  assert.equal(built.metadata.remainderSompi, "50000000");
+  assert.equal(BigInt(json.outputs[0].value), 50000000n);
+  assert.equal(BigInt(json.outputs[1].value), f.accountEntry.amount);
+  assert.equal(BigInt(json.outputs[2].value), 50000000n);
+  assert.equal(json.outputs[1].covenant.covenantId, "04".repeat(32));
+  assert.equal(json.outputs[2].covenant.covenantId, marketId);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  const script = built.scripts[0];
+  let signature = Buffer.from(kw.createInputSignature(signed, 1, key, kw.SighashType.All), "hex");
+  if (signature.length === 66 && signature[0] === 0x41) signature = signature.subarray(1);
+  const args = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
+  for (const arg of script.signatureScript.args) {
+    if (arg.type === "data") args.addData(Buffer.from(arg.hex, "hex"));
+    else if (arg.type === "i64") args.addI64(BigInt(arg.value));
+    else if (arg.type === "byte") args.addData(Uint8Array.of(arg.value));
+    else if (arg.type === "signature") args.addData(signature);
+    else throw new Error(`unsupported claim argument ${arg.type}`);
+  }
+  signed.inputs[1].signatureScript = kw.ScriptBuilder.fromScript(
+    Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
+  ).encodePayToScriptHashSignatureScript(args.drain());
+  signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market claim");
+  const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market claim");
+  assert(non.transactionMass <= 450000n);
+  assert(storage <= 450000n);
+});
+
+test("fee-market creator claim preserves protocol share", async () => {
+  const f = claimFixture("creator");
+  const built = await f.engine.build(f.request);
+  assert.equal(built.metadata.claimSompi, "50000000");
+  assert.equal(built.metadata.remainderSompi, "50000000");
+  assert.equal(built.metadata.accountId, "05".repeat(32));
+});
+
+test("fee-market claims one through five receipts without spending principal", async () => {
+  for (const count of [1, 2, 3, 4, 5]) {
+    const f = claimFixture("protocol", count);
+    const built = await f.engine.build(f.request);
+    const json = JSON.parse(built.psktTransactionJson);
+    assert.equal(built.metadata.receiptCount, count);
+    assert.equal(built.metadata.claimSompi, String(count * 50000000));
+    assert.equal(built.metadata.remainderSompi, String(count * 50000000));
+    assert.equal(BigInt(json.outputs[1].value), f.accountEntry.amount);
+    assert.deepEqual(built.signInputs, [{ index: count + 1, sighashType: 1 }]);
+  }
 });

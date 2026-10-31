@@ -84,6 +84,8 @@ import { buildKcc20FeeMarketRoleScript } from "./escrow-market-artifacts.js";
 import { calculateKcc20EscrowFees } from "./escrow-fee.js";
 import { encodeKcc20FeeVector, kcc20FeeGroupCommitment } from "./escrow-group.js";
 import { buildKcc20FeeEscrowScript } from "./escrow-receipt.js";
+import { verifyKcc20FeeReceiptForClaim, verifyKcc20FeeAccountForClaim } from "./escrow-receipt.js";
+import { planKcc20FeeClaimTransition } from "./escrow-claim-plan.js";
 import { createKcc20SnapshotPsktBuilder } from "./snapshot-operation.js";
 import { splitKcc20MintSupply } from "./protocol.js";
 import { buildKcc20DeployIntentOutputs } from "./deploy-receipt.js";
@@ -571,6 +573,7 @@ export function createKcc20PsktBuilderEngine(
     "kcc20fee.create-bid": buildFeeMarketCreateBidPskt,
     "kcc20fee.cancel-bid": buildFeeMarketCancelBidPskt,
     "kcc20fee.buy-ask": buildFeeMarketBuyAskPskt,
+    "kcc20fee.claim": buildFeeMarketClaimPskt,
     "kcc20wrapper.deploy-market": buildWrapperMarketDeployPskt,
     "kcc20wrapper.wrap": buildWrapperWrapPskt,
     "kcc20wrapper.unwrap": buildWrapperUnwrapPskt,
@@ -4578,6 +4581,214 @@ export function createKcc20PsktBuilderEngine(
           creatorFeeSompi: fees.creatorFeeSompi.toString(),
           buyerHolderOutputIndex: 0, askContinuationOutputIndex: remainingScript ? 1 : -1,
           sellerOutputIndex, receiptOutputIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketClaimPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const party = params.party;
+    if (party !== "protocol" && party !== "creator") {
+      throw new Error("fee-market claim party must be protocol or creator");
+    }
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const policyId = requireHex32(params.policyId, "fee-market policy ID");
+    const protocolAccountId = requireHex32(params.protocolAccountId, "protocol account ID");
+    const creatorAccountId = requireHex32(params.creatorAccountId || ZERO_HASH,
+      "creator account ID");
+    const accountId = party === "protocol" ? protocolAccountId : creatorAccountId;
+    if (accountId === ZERO_HASH) throw new Error("creator claim is disabled by this market policy");
+    const indexedReceipts = params.receipts;
+    const indexedAccount = params.account;
+    if (!Array.isArray(indexedReceipts) || indexedReceipts.length < 1 ||
+        indexedReceipts.length > 5 || !indexedAccount) {
+      throw new Error("fee-market claim requires one to five receipts and an account");
+    }
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const owner = requireHex32(request.owner?.kcc20Owner, "claim owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    if (Number(indexedAccount.state?.owner_scheme) !== 0 ||
+        String(indexedAccount.state?.owner).toLowerCase() !== owner) {
+      throw new Error("fee account is not controlled by the signing wallet");
+    }
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const artifact = (await readFeeMarketArtifacts()).receipt;
+    const kw = kaspaWasm;
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const payoutSpk = payToAddressScript(walletAddress);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(2 + payoutScript.length);
+    new DataView(payoutBytes.buffer).setUint16(0, Number(payoutSpk.version), true);
+    payoutBytes.set(payoutScript, 2);
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_CLAIM_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const sourceAddresses = [...indexedReceipts, indexedAccount]
+      .map(item => requireKaspaAddress(item.address));
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [covenantUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, sourceAddresses),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const getLive = (indexed, label) => {
+        const entry = findUtxoEntry(covenantUtxos.entries,
+          requireHex32(indexed.txidHex, `${label} txid`),
+          parseVout(indexed.vout, `${label} vout`));
+        if (!entry) throw new Error(`${label} is spent or unavailable`);
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        return { entry, live: { outpoint: entry.outpoint,
+          amountSompi: utxoAmountSompi(entry),
+          covenantIdHex: entry.covenantId?.toString?.() ?? entry.covenantId,
+          scriptPublicKey: { version: Number(spk?.version),
+            scriptHex: String(spk?.script).toLowerCase() } } };
+      };
+      const checkedReceipts = indexedReceipts.map(indexed => {
+        const { entry, live } = getLive(indexed, "fee receipt");
+        const checked = verifyKcc20FeeReceiptForClaim({ artifact,
+          indexed, live, expected: { tokenId, marketId, policyId,
+            protocolAccountId, creatorAccountId } });
+        assertScriptAddress(kw, checked.redeemScript, indexed.address,
+          network, "fee receipt address");
+        return { entry, ...checked };
+      });
+      const { entry: accountEntry, live: accountLive } = getLive(indexedAccount,
+        "fee account");
+      const checkedAccount = verifyKcc20FeeAccountForClaim({ artifact,
+        indexed: indexedAccount, live: accountLive,
+        expected: { tokenId, marketId, policyId, accountId } });
+      assertScriptAddress(kw, checkedAccount.redeemScript, indexedAccount.address,
+        network, "fee account address");
+      const transition = planKcc20FeeClaimTransition({
+        receipts: checkedReceipts.map(item => item.receipt), party,
+        account: checkedAccount.account,
+        escrowTemplate: checkedAccount.escrowTemplate,
+        payoutScriptPublicKey: payoutBytes,
+      });
+      const successor = buildKcc20FeeEscrowScript(artifact,
+        transition.successorAccountState);
+      const remainder = transition.remainderReceiptState
+        ? buildKcc20FeeEscrowScript(artifact, transition.remainderReceiptState)
+        : null;
+      const accountInputIndex = checkedReceipts.length;
+      const fundingInputIndex = accountInputIndex + 1;
+      const outputs = [new TransactionOutput(transition.claimSompi, payoutSpk),
+        new TransactionOutput(transition.accountPrincipalSompi,
+          payToScriptHashScript(successor.redeemScript),
+          new CovenantBinding(accountInputIndex, new Hash(accountId)))];
+      if (remainder) outputs.push(new TransactionOutput(transition.remainderSompi,
+        payToScriptHashScript(remainder.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        priorityFee + 10_000n,
+        [...checkedReceipts.map(item => item.entry.outpoint), accountEntry.outpoint],
+        params.fundingOutpoint);
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(utxoAmountSompi(fundingEntry) - priorityFee,
+        payoutSpk));
+      const inputs = [
+        ...checkedReceipts.map((item, index) => ({
+          previousOutpoint: item.entry.outpoint, utxo: item.entry,
+          sequence: 0n, sigOpCount: 0, computeBudget: index === 0 ? 200 : 50,
+        })),
+        { previousOutpoint: accountEntry.outpoint, utxo: accountEntry,
+          sequence: 0n, sigOpCount: 0, computeBudget: 100 },
+        { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+          sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+      ];
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs, outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 200);
+      checkedReceipts.forEach((_, index) => {
+        transaction.inputs[index].computeBudget = index === 0 ? 200 : 50;
+      });
+      transaction.inputs[accountInputIndex].computeBudget = 100;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market claim");
+      for (const [index, checked] of checkedReceipts.entries()) {
+        const prefix = covenantScriptBuilder(kw);
+        addExplicitByte(prefix, party === "creator" ? 1 : 0);
+        for (const value of [accountInputIndex, 1, 0]) prefix.addI64(BigInt(value));
+        prefix.addData(payoutBytes);
+        prefix.addI64(remainder ? 2n : -1n);
+        prefix.addData(dispatchTagFor(artifact, "claim"));
+        transaction.inputs[index].signatureScript = encodeCovenantP2shSignatureScript(
+          prefix.drain(), checked.redeemScript);
+      }
+      const accountStateArgs = state => [
+        i64TemplateArg(state.role),
+        ...[state.token, state.market, state.policy,
+          state.protocol_account, state.creator_account].map(value =>
+          dataTemplateArg(hexToBytes(value))),
+        i64TemplateArg(state.protocol_amount),
+        i64TemplateArg(state.creator_amount),
+        dataTemplateArg(hexToBytes(state.owner)),
+        byteTemplateArg(state.owner_scheme),
+        dataTemplateArg(hexToBytes(state.guard_template)),
+        i64TemplateArg(state.guard_prefix),
+        i64TemplateArg(state.guard_suffix),
+        dataTemplateArg(hexToBytes(state.action_hash)),
+        dataTemplateArg(hexToBytes(state.self_template)),
+        i64TemplateArg(state.self_prefix),
+        i64TemplateArg(state.self_suffix),
+      ];
+      const scripts = [{ inputIndex: accountInputIndex,
+        scriptHex: bytesToHex(checkedAccount.redeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: [
+          i64TemplateArg(1),
+          ...accountStateArgs(transition.successorAccountState),
+          i64TemplateArg(1), { type: "signature" },
+          i64TemplateArg(-1), i64TemplateArg(-1),
+          ...accountStateArgs(transition.successorAccountState),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(dispatchTagFor(artifact, "authorize")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market claim", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("claim preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[fundingInputIndex].signatureScript =
+            encodeP2pkSignatureScript(bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market claim");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market claim");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market claim exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.claim", operation: "fee-market-claim",
+          network, walletAddress, tokenId, marketId, policyId, party, accountId,
+          receiptCount: checkedReceipts.length,
+          claimSompi: transition.claimSompi.toString(),
+          remainderSompi: transition.remainderSompi.toString(),
+          payoutOutputIndex: 0, accountOutputIndex: 1,
+          remainderOutputIndex: remainder ? 2 : -1,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(),
             storage: storageMass.toString() } },
