@@ -33,7 +33,7 @@ function fixedBytes(value: unknown, width: number, field: string): Uint8Array {
 /** Render a pinned versioned role with exact SilverScript runtime-state encoding. */
 export function buildKcc20FeeMarketRoleScript(input: {
   artifact: unknown;
-  role: "root" | "wrapper" | "argentWrapper";
+  role: "root" | "holder" | "ask" | "bid" | "wrapper" | "argentWrapper";
   state: Record<string, unknown>;
 }) {
   const [key, name, metadataHash] = PINS[input.role];

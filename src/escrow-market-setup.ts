@@ -77,3 +77,46 @@ export function prepareKcc20FeeMarketBinding(input: Kcc20FeeMarketGenesisInput &
   const root = buildKcc20FeeMarketRoleScript({ artifact: input.artifacts.root, role: "root", state: rootState });
   return { genesis, marketId, wrapperState, wrapper, rootState, root };
 }
+
+/** Render a wrapped holder against the exact enabled wrapper for this market. */
+export function prepareKcc20FeeMarketWrappedHolder(input: Kcc20FeeMarketGenesisInput & {
+  marketId: string;
+  recipientOwner: string;
+  recipientOwnerScheme: number;
+  recipientPayoutScriptHash: string;
+  tokenAmount: bigint;
+}) {
+  const genesis = prepareKcc20FeeMarketGenesis(input);
+  const marketId = hex32(input.marketId, "market ID");
+  const recipientOwner = hex32(input.recipientOwner, "wrapped recipient");
+  const payoutScriptHash = hex32(input.recipientPayoutScriptHash, "wrapped payout script hash");
+  if (!Number.isInteger(input.recipientOwnerScheme) ||
+      input.recipientOwnerScheme < 0 || input.recipientOwnerScheme > 4) {
+    throw new Error("unsupported wrapped recipient scheme");
+  }
+  if (typeof input.tokenAmount !== "bigint" || input.tokenAmount <= 0n || input.tokenAmount > MAX) {
+    throw new Error("wrapped token amount is outside the contract range");
+  }
+  const wrapperRole = input.wrapperProfile === "native" ? "wrapper" : "argentWrapper";
+  const wrapperState = { ...genesis.state, enabled: true, authenticatedMarketId: marketId };
+  const wrapper = buildKcc20FeeMarketRoleScript({
+    artifact: input.artifacts[wrapperRole], role: wrapperRole, state: wrapperState,
+  });
+  const holderState = {
+    canonicalTokenId: genesis.tokenId,
+    owner: recipientOwner,
+    owner_scheme: input.recipientOwnerScheme,
+    amount: input.tokenAmount.toString(),
+    mode: "0",
+    unitPrice: "0",
+    feeTicketId: genesis.feeTicketId,
+    priceScale: input.priceScale.toString(),
+    feePolicy: genesis.state.feePolicy,
+    payout_script_hash: payoutScriptHash,
+    wrapper_spk_hash: wrapper.scriptHash,
+  };
+  const holder = buildKcc20FeeMarketRoleScript({
+    artifact: input.artifacts.holder, role: "holder", state: holderState,
+  });
+  return { marketId, wrapperState, wrapper, holderState, holder };
+}

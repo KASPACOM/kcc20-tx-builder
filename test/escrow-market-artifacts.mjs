@@ -6,6 +6,7 @@ import {
   normalizeSilverScriptArtifact,
   prepareKcc20FeeMarketBinding,
   prepareKcc20FeeMarketGenesis,
+  prepareKcc20FeeMarketWrappedHolder,
   templateParts,
   verifyKcc20FeeMarketArtifacts,
 } from "../dist/index.js";
@@ -103,6 +104,22 @@ test("market setup separates genesis ID from the bound root script", () => {
   assert.equal(bound.rootState.wrapper_spk_hash, bound.wrapper.scriptHash);
   assert.notEqual(bound.wrapper.scriptHash, genesis.wrapper.scriptHash);
   assert.equal(bound.rootState.feePolicy, genesis.state.feePolicy);
+});
+
+test("wrapped holder binds the exact enabled wrapper, policy and token amount", () => {
+  const input = {
+    tokenId: "01".repeat(32), feeTicketId: "00".repeat(32), priceScale: 1n,
+    policy, wrapperProfile: "native", artifacts, marketId: "02".repeat(32),
+    recipientOwner: "07".repeat(32), recipientOwnerScheme: 0,
+    recipientPayoutScriptHash: "08".repeat(32), tokenAmount: 7n,
+  };
+  const result = prepareKcc20FeeMarketWrappedHolder(input);
+  assert.equal(result.holderState.wrapper_spk_hash, result.wrapper.scriptHash);
+  assert.equal(result.holderState.amount, "7");
+  assert.equal(result.holderState.feePolicy, prepareKcc20FeeMarketGenesis(input).state.feePolicy);
+  assert.equal(result.holder.template.hash, policy.holderTemplate.hash);
+  assert.throws(() => prepareKcc20FeeMarketWrappedHolder({ ...input, tokenAmount: 0n }),
+    /wrapped token amount/);
 });
 
 test("Argent market setup rejects unsupported creator fees", () => {
