@@ -214,6 +214,24 @@ test("fee account binding rejects spent source and wrong wallet owner", async ()
   await assert.rejects(wrongOwner.engine.build(wrongOwner.request), /does not match connected wallet/);
 });
 
+test("fee account binding rejects a funding wallet different from its owner key", async () => {
+  const f = fixture(({ request }) => {
+    const other = new kw.PrivateKey("04".padStart(64, "0"));
+    request.request.owner.walletAddress = other.toAddress("testnet-10").toString();
+  });
+  await assert.rejects(f.engine.build(f.request), /owner must match the connected Schnorr wallet address/);
+});
+
+test("fee account binding automatically skips an account outpoint in wallet funding", async () => {
+  const f = fixture(({ accountEntry, walletEntries }) => {
+    walletEntries.push(accountEntry);
+  });
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(json.inputs[0].transactionId, accountTxid);
+  assert.equal(json.inputs[1].transactionId, fundingTxid);
+});
+
 test("fee account binding excludes its account outpoint from funding", async () => {
   const f = fixture(({ request, accountEntry, walletEntries }) => {
     walletEntries.push(accountEntry);
