@@ -5,8 +5,9 @@ import { blake3 } from "@noble/hashes/blake3";
 import * as kw from "../examples/vendor/kaspa/kaspa.js";
 import {
   buildKcc20ScriptForState, createKcc20PsktBuilderEngine,
-  prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketWrappedHolder,
-  prepareKcc20FeeMarketAsk, templateParts,
+  prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding,
+  prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk,
+  prepareKcc20FeeMarketBid, templateParts,
 } from "../dist/index.js";
 
 kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
@@ -395,6 +396,112 @@ test("fee-market cancel ask signs the exact holder restoration and deposit", asy
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market cancel ask");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market cancel ask");
+  assert(non.transactionMass <= 450000n);
+  assert(storage <= 450000n);
+});
+
+function bidFixture() {
+  const base = unwrapFixture();
+  const binding = prepareKcc20FeeMarketBinding({ tokenId, marketId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    wrapperProfile: "native", artifacts, rootOwner: owner,
+    rootOwnerScheme: 0,
+    rootPayoutScriptHash: base.holder.holderState.payout_script_hash });
+  const rootSpk = kw.payToScriptHashScript(binding.root.redeemScript);
+  const rootAddress = kw.addressFromScriptPublicKey(rootSpk, "testnet-10").toString();
+  const rootEntry = { outpoint: { transactionId: "0e".repeat(32), index: 0 },
+    amount: 50000000n, scriptPublicKey: rootSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: marketId };
+  const fundingEntry = { outpoint: { transactionId: "0f".repeat(32), index: 0 },
+    amount: 3000000000n, scriptPublicKey: kw.payToAddressScript(wallet),
+    blockDaaScore: 0n, isCoinbase: false };
+  const rootUtxo = { txidHex: rootEntry.outpoint.transactionId,
+    vout: 0, address: rootAddress, amountSompiExact: "50000000",
+    state: binding.rootState };
+  const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
+    request: { builderKey: "kcc20fee.create-bid", network: "testnet-10",
+      owner: { walletAddress: wallet, kcc20Owner: owner },
+      params: { marketId, contractCanonicalTokenId: tokenId,
+        feeTicketId: "00".repeat(32), priceScale: "1",
+        bidAmount: "5", bidUnitPriceSompi: "100000000",
+        feePolicy: policy, policyId: binding.genesis.policyId, rootUtxo } } };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+      "ArgentKCC20.reference.json": argent },
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.includes(wallet) ? [fundingEntry] : [rootEntry] }) }) });
+  return { engine, request, rootEntry, fundingEntry, rootUtxo, binding };
+}
+
+test("fee-market bid creation signs exact 2 KAS deposit and preserves root", async () => {
+  const f = bidFixture();
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.deepEqual(built.signInputs, [{ index: 1, sighashType: 1 }]);
+  assert.equal(built.metadata.grossSompi, "500000000");
+  assert.equal(built.metadata.bidDepositSompi, "200000000");
+  assert.equal(BigInt(json.outputs[0].value), 700000000n);
+  assert.equal(BigInt(json.outputs[1].value), f.rootEntry.amount);
+  assert.equal(json.outputs[0].covenant.authorizingInput, 0);
+  assert.equal(json.outputs[1].covenant.authorizingInput, 0);
+  assert.equal(String(json.outputs[1].scriptPublicKey).slice(-70),
+    f.binding.root.scriptPublicKey.scriptHex);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market create bid");
+  const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market create bid");
+  assert(non.transactionMass <= 450000n);
+  assert(storage <= 450000n);
+});
+
+test("fee-market bid rejects a root with changed policy", async () => {
+  const f = bidFixture();
+  f.rootUtxo.state.feePolicy = "ff".repeat(361);
+  await assert.rejects(f.engine.build(f.request), /root feePolicy differs from fixed policy/);
+});
+
+test("fee-market cancel bid refunds gross and the full 2 KAS deposit", async () => {
+  const f = bidFixture();
+  const plan = prepareKcc20FeeMarketBid({ tokenId, marketId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    wrapperProfile: "native", artifacts, rootOwner: owner,
+    rootOwnerScheme: 0,
+    rootPayoutScriptHash: f.binding.rootState.payout_script_hash,
+    buyer: owner, buyerScheme: 0,
+    buyerPayoutScriptHash: f.binding.rootState.payout_script_hash,
+    bidAmount: 5n, bidUnitPrice: 100000000n });
+  const bidSpk = kw.payToScriptHashScript(plan.bid.redeemScript);
+  const bidAddress = kw.addressFromScriptPublicKey(bidSpk, "testnet-10").toString();
+  f.rootEntry.amount = 700000000n;
+  f.rootEntry.scriptPublicKey = bidSpk;
+  f.rootUtxo.address = bidAddress;
+  f.rootUtxo.amountSompiExact = "700000000";
+  f.rootUtxo.state = plan.bidState;
+  f.request.request.builderKey = "kcc20fee.cancel-bid";
+  f.request.request.params = { ...f.request.request.params, bidUtxo: f.rootUtxo };
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.deepEqual(built.signInputs, [{ index: 1, sighashType: 1 }]);
+  assert.equal(json.outputs[0].covenant, null);
+  assert.equal(BigInt(json.outputs[0].value), 700000000n);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  const script = built.scripts[0];
+  let signature = Buffer.from(kw.createInputSignature(signed, 0, key, kw.SighashType.All), "hex");
+  if (signature.length === 66 && signature[0] === 0x41) signature = signature.subarray(1);
+  const args = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
+  for (const arg of script.signatureScript.args) {
+    if (arg.type === "data") args.addData(Buffer.from(arg.hex, "hex"));
+    else if (arg.type === "i64") args.addI64(BigInt(arg.value));
+    else if (arg.type === "signature") args.addData(signature);
+    else throw new Error(`unsupported bid cancel argument ${arg.type}`);
+  }
+  signed.inputs[0].signatureScript = kw.ScriptBuilder.fromScript(
+    Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
+  ).encodePayToScriptHashSignatureScript(args.drain());
+  signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market cancel bid");
+  const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market cancel bid");
   assert(non.transactionMass <= 450000n);
   assert(storage <= 450000n);
 });

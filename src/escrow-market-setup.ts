@@ -151,3 +151,32 @@ export function prepareKcc20FeeMarketAsk(input: Kcc20FeeMarketGenesisInput & {
   }) : null;
   return { holder, askState, ask, remaining, change };
 }
+
+/** Render a bid while preserving the single market root unchanged. */
+export function prepareKcc20FeeMarketBid(input: Kcc20FeeMarketGenesisInput & {
+  marketId: string;
+  rootOwner: string;
+  rootOwnerScheme: number;
+  rootPayoutScriptHash: string;
+  buyer: string;
+  buyerScheme: number;
+  buyerPayoutScriptHash: string;
+  bidAmount: bigint;
+  bidUnitPrice: bigint;
+}) {
+  if (input.bidAmount <= 0n || input.bidAmount > MAX ||
+      input.bidUnitPrice <= 0n || input.bidUnitPrice > MAX ||
+      !Number.isInteger(input.buyerScheme) || input.buyerScheme < 0 ||
+      input.buyerScheme > 4) {
+    throw new Error("fee-market bid amount, price or buyer scheme is invalid");
+  }
+  const binding = prepareKcc20FeeMarketBinding(input);
+  const bidState = { ...binding.rootState,
+    owner: hex32(input.buyer, "bid buyer"), owner_scheme: input.buyerScheme,
+    amount: input.bidAmount.toString(), mode: "3",
+    unitPrice: input.bidUnitPrice.toString(),
+    payout_script_hash: hex32(input.buyerPayoutScriptHash, "bid payout hash") };
+  const bid = buildKcc20FeeMarketRoleScript({ artifact: input.artifacts.bid,
+    role: "bid", state: bidState });
+  return { binding, bidState, bid };
+}

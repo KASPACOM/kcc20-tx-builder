@@ -30,6 +30,8 @@ export const KCC20_BUILDER_KEYS = [
   "kcc20fee.unwrap",
   "kcc20fee.create-ask",
   "kcc20fee.cancel-ask",
+  "kcc20fee.create-bid",
+  "kcc20fee.cancel-bid",
   "kcc20-snapshot.deploy-bootstrap",
   "kcc20-snapshot.deploy-controller",
   "kcc20-snapshot.start",
