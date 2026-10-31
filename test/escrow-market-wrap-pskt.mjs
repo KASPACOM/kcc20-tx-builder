@@ -726,3 +726,49 @@ test("fee-market claims one through five receipts without spending principal", a
     assert.deepEqual(built.signInputs, [{ index: count + 1, sighashType: 1 }]);
   }
 });
+
+test("fee-market account rotation preserves principal and changes only its authority", async () => {
+  for (const next of [
+    { newOwnerScheme: 0, newOwner: "aa".repeat(32) },
+    { newOwnerScheme: 1, newOwner: hex(blake3(Buffer.from(owner, "hex"))),
+      newOwnerPublicKey: owner },
+    { newOwnerScheme: 2,
+      newOwner: hex(blake3(Buffer.from(key.toKeypair().publicKey, "hex"))),
+      newOwnerPublicKey: key.toKeypair().publicKey },
+    { newOwnerScheme: 3,
+      newOwner: String(kw.payToScriptHashScript(Uint8Array.of(0x51)).script).slice(4, 68),
+      newOwnerP2shRedeemScriptHex: "51",
+      newGuardTemplate: "bb".repeat(32) },
+    { newOwnerScheme: 4, newOwner: "aa".repeat(32),
+      newGuardTemplate: "bb".repeat(32), newGuardPrefix: "1", newGuardSuffix: "2" },
+  ]) {
+    const f = claimFixture();
+    f.request.request.builderKey = "kcc20fee.rotate-account";
+    f.request.request.params = { account: f.account,
+      marketId, contractCanonicalTokenId: tokenId,
+      policyId: "03".repeat(32), accountId: "04".repeat(32), ...next };
+    const built = await f.engine.build(f.request);
+    const json = JSON.parse(built.psktTransactionJson);
+    assert.equal(built.metadata.newOwnerScheme, next.newOwnerScheme);
+    assert.equal(BigInt(json.outputs[0].value), f.accountEntry.amount);
+    assert.equal(json.outputs[0].covenant.covenantId, "04".repeat(32));
+    assert.deepEqual(built.signInputs, [{ index: 1, sighashType: 1 }]);
+  }
+});
+
+test("fee-market rotation rejects a mismatched new key or P2SH program", async () => {
+  for (const next of [
+    { newOwnerScheme: 1, newOwner: "aa".repeat(32), newOwnerPublicKey: owner },
+    { newOwnerScheme: 2, newOwner: "aa".repeat(32),
+      newOwnerPublicKey: key.toKeypair().publicKey },
+    { newOwnerScheme: 3, newOwner: "aa".repeat(32),
+      newOwnerP2shRedeemScriptHex: "51", newGuardTemplate: "bb".repeat(32) },
+  ]) {
+    const f = claimFixture();
+    f.request.request.builderKey = "kcc20fee.rotate-account";
+    f.request.request.params = { account: f.account,
+      marketId, contractCanonicalTokenId: tokenId,
+      policyId: "03".repeat(32), accountId: "04".repeat(32), ...next };
+    await assert.rejects(f.engine.build(f.request), /does not match/);
+  }
+});

@@ -34,6 +34,7 @@ export const KCC20_BUILDER_KEYS = [
   "kcc20fee.cancel-bid",
   "kcc20fee.buy-ask",
   "kcc20fee.claim",
+  "kcc20fee.rotate-account",
   "kcc20-snapshot.deploy-bootstrap",
   "kcc20-snapshot.deploy-controller",
   "kcc20-snapshot.start",

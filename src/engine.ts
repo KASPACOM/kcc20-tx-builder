@@ -574,6 +574,7 @@ export function createKcc20PsktBuilderEngine(
     "kcc20fee.cancel-bid": buildFeeMarketCancelBidPskt,
     "kcc20fee.buy-ask": buildFeeMarketBuyAskPskt,
     "kcc20fee.claim": buildFeeMarketClaimPskt,
+    "kcc20fee.rotate-account": buildFeeMarketRotateAccountPskt,
     "kcc20wrapper.deploy-market": buildWrapperMarketDeployPskt,
     "kcc20wrapper.wrap": buildWrapperWrapPskt,
     "kcc20wrapper.unwrap": buildWrapperUnwrapPskt,
@@ -2989,6 +2990,25 @@ export function createKcc20PsktBuilderEngine(
     builder.addData(hexToBytes(state.wrapper_spk_hash));
   }
 
+  function feeAccountStateTemplateArgs(state) {
+    return [i64TemplateArg(state.role),
+      ...[state.token, state.market, state.policy,
+        state.protocol_account, state.creator_account].map(value =>
+        dataTemplateArg(hexToBytes(value))),
+      i64TemplateArg(state.protocol_amount),
+      i64TemplateArg(state.creator_amount),
+      dataTemplateArg(hexToBytes(state.owner)),
+      byteTemplateArg(state.owner_scheme),
+      dataTemplateArg(hexToBytes(state.guard_template)),
+      i64TemplateArg(state.guard_prefix),
+      i64TemplateArg(state.guard_suffix),
+      dataTemplateArg(hexToBytes(state.action_hash)),
+      dataTemplateArg(hexToBytes(state.self_template)),
+      i64TemplateArg(state.self_prefix),
+      i64TemplateArg(state.self_suffix),
+    ];
+  }
+
   async function buildFeeMarketGenesisPskt(input) {
     const request = input.request || {};
     const params = request.params || {};
@@ -4727,31 +4747,14 @@ export function createKcc20PsktBuilderEngine(
         transaction.inputs[index].signatureScript = encodeCovenantP2shSignatureScript(
           prefix.drain(), checked.redeemScript);
       }
-      const accountStateArgs = state => [
-        i64TemplateArg(state.role),
-        ...[state.token, state.market, state.policy,
-          state.protocol_account, state.creator_account].map(value =>
-          dataTemplateArg(hexToBytes(value))),
-        i64TemplateArg(state.protocol_amount),
-        i64TemplateArg(state.creator_amount),
-        dataTemplateArg(hexToBytes(state.owner)),
-        byteTemplateArg(state.owner_scheme),
-        dataTemplateArg(hexToBytes(state.guard_template)),
-        i64TemplateArg(state.guard_prefix),
-        i64TemplateArg(state.guard_suffix),
-        dataTemplateArg(hexToBytes(state.action_hash)),
-        dataTemplateArg(hexToBytes(state.self_template)),
-        i64TemplateArg(state.self_prefix),
-        i64TemplateArg(state.self_suffix),
-      ];
       const scripts = [{ inputIndex: accountInputIndex,
         scriptHex: bytesToHex(checkedAccount.redeemScript), signType: 1,
         signatureScript: { mode: "ordered-args", args: [
           i64TemplateArg(1),
-          ...accountStateArgs(transition.successorAccountState),
+          ...feeAccountStateTemplateArgs(transition.successorAccountState),
           i64TemplateArg(1), { type: "signature" },
           i64TemplateArg(-1), i64TemplateArg(-1),
-          ...accountStateArgs(transition.successorAccountState),
+          ...feeAccountStateTemplateArgs(transition.successorAccountState),
           dataTemplateArg(new Uint8Array(0)),
           dataTemplateArg(new Uint8Array(0)),
           dataTemplateArg(dispatchTagFor(artifact, "authorize")),
@@ -4789,6 +4792,164 @@ export function createKcc20PsktBuilderEngine(
           remainderSompi: transition.remainderSompi.toString(),
           payoutOutputIndex: 0, accountOutputIndex: 1,
           remainderOutputIndex: remainder ? 2 : -1,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketRotateAccountPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const policyId = requireHex32(params.policyId, "fee-market policy ID");
+    const accountId = requireHex32(params.accountId, "fee account ID");
+    const indexedAccount = params.account;
+    if (!indexedAccount) throw new Error("current fee account UTXO is required");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const currentOwner = requireHex32(request.owner?.kcc20Owner, "current fee account owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, currentOwner);
+    if (Number(indexedAccount.state?.owner_scheme) !== 0 ||
+        String(indexedAccount.state?.owner).toLowerCase() !== currentOwner) {
+      throw new Error("fee account is not controlled by the signing wallet");
+    }
+    const newOwner = requireHex32(params.newOwner, "new fee account owner");
+    const newScheme = Number(params.newOwnerScheme);
+    if (!Number.isInteger(newScheme) || newScheme < 0 || newScheme > 4) {
+      throw new Error("unsupported new fee account owner scheme");
+    }
+    if (newScheme === 1 || newScheme === 2) {
+      const keyHex = String(params.newOwnerPublicKey || "");
+      const width = newScheme === 1 ? 64 : 66;
+      if (!new RegExp(`^[0-9a-fA-F]{${width}}$`).test(keyHex) ||
+          bytesToHex(blake3(hexToBytes(keyHex))) !== newOwner) {
+        throw new Error("new fee account key does not match its owner hash");
+      }
+    }
+    const zero = ZERO_HASH;
+    const guardTemplate = requireHex32(params.newGuardTemplate || zero,
+      "new fee account guard template");
+    const guardPrefix = parseU64(params.newGuardPrefix ?? 0, "new guard prefix");
+    const guardSuffix = parseU64(params.newGuardSuffix ?? 0, "new guard suffix");
+    if ((newScheme <= 2 && (guardTemplate !== zero || guardPrefix !== 0n || guardSuffix !== 0n)) ||
+        (newScheme === 3 && (guardTemplate === zero || guardPrefix !== 0n || guardSuffix !== 0n)) ||
+        (newScheme === 4 && (guardTemplate === zero || guardPrefix === 0n || guardSuffix === 0n))) {
+      throw new Error("new fee account authority guard is invalid");
+    }
+    if (newOwner === currentOwner && newScheme === 0) {
+      throw new Error("fee account rotation must change authority");
+    }
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const artifact = (await readFeeMarketArtifacts()).receipt;
+    const kw = kaspaWasm;
+    if (newScheme === 3) {
+      const redeemHex = String(params.newOwnerP2shRedeemScriptHex || "");
+      if (!/^(?:[0-9a-fA-F]{2}){1,10000}$/.test(redeemHex)) {
+        throw new Error("new P2SH fee account owner script is required");
+      }
+      const program = kw.payToScriptHashScript(hexToBytes(redeemHex));
+      if (String(program.script).slice(4, 68).toLowerCase() !== newOwner) {
+        throw new Error("new P2SH fee account owner does not match its script");
+      }
+    }
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const accountAddress = requireKaspaAddress(indexedAccount.address);
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ROTATE_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [accountUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [accountAddress]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const accountEntry = findUtxoEntry(accountUtxos.entries,
+        requireHex32(indexedAccount.txidHex, "account txid"),
+        parseVout(indexedAccount.vout, "account vout"));
+      if (!accountEntry) throw new Error("fee account is spent or unavailable");
+      const spk = accountEntry.scriptPublicKey ?? accountEntry.entry?.scriptPublicKey ??
+        accountEntry.utxoEntry?.scriptPublicKey;
+      const checked = verifyKcc20FeeAccountForClaim({ artifact,
+        indexed: indexedAccount,
+        live: { outpoint: accountEntry.outpoint,
+          amountSompi: utxoAmountSompi(accountEntry),
+          covenantIdHex: accountEntry.covenantId?.toString?.() ?? accountEntry.covenantId,
+          scriptPublicKey: { version: Number(spk?.version),
+            scriptHex: String(spk?.script).toLowerCase() } },
+        expected: { tokenId, marketId, policyId, accountId } });
+      assertScriptAddress(kw, checked.redeemScript, accountAddress,
+        network, "fee account address");
+      const nextState = { ...checked.account.state, owner: newOwner,
+        owner_scheme: newScheme, guard_template: guardTemplate,
+        guard_prefix: guardPrefix.toString(), guard_suffix: guardSuffix.toString(),
+        action_hash: zero };
+      const successor = buildKcc20FeeEscrowScript(artifact, nextState);
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        priorityFee + 10_000n, [accountEntry.outpoint], params.fundingOutpoint);
+      const fundingChange = utxoAmountSompi(fundingEntry) - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("fee account rotation funding is too small");
+      const outputs = [new TransactionOutput(checked.account.principalSompi,
+        payToScriptHashScript(successor.redeemScript),
+        new CovenantBinding(0, new Hash(accountId))),
+      new TransactionOutput(fundingChange, payToAddressScript(walletAddress))];
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: accountEntry.outpoint, utxo: accountEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 100 },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 100);
+      transaction.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee account rotation");
+      const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(checked.redeemScript),
+        signType: 1, signatureScript: { mode: "ordered-args", args: [
+          i64TemplateArg(2), ...feeAccountStateTemplateArgs(nextState),
+          i64TemplateArg(0), { type: "signature" },
+          i64TemplateArg(-1), i64TemplateArg(-1),
+          ...feeAccountStateTemplateArgs(nextState),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(dispatchTagFor(artifact, "authorize")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, 1, network, "fee account rotation", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("rotation preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee account rotation");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee account rotation");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee account rotation exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 1, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.rotate-account",
+          operation: "fee-market-rotate-account", network, walletAddress,
+          tokenId, marketId, policyId, accountId, newOwner,
+          newOwnerScheme: newScheme, accountOutputIndex: 0,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(),
             storage: storageMass.toString() } },
