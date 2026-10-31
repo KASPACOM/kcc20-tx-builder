@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0-fee.4
+
+- Require the fee-account owner key to match the connected Schnorr funding wallet for creation and binding.
+- Exclude the account source outpoint from binding funding and reject duplicate inputs.
+
 ## 0.8.0-fee.3
 
 - Build wallet-signable fee-account genesis and one-time market binding PSKTs from the pinned escrow artifact.

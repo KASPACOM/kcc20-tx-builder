@@ -95,9 +95,10 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
-Version `0.8.0-fee.3` adds fee-account creation and binding PSKTs for DEV
+Version `0.8.0-fee.4` adds fee-account creation and binding PSKTs for DEV
 integration. Run the existing snapshot and example tests against the pinned
-WASM before publishing it under `next`. This prerelease does not build
+WASM before publishing it under `next`. This version fixes fee.3's owner and
+funding-source checks. This prerelease does not build
 fee-market trades, claims or authority rotation. Funded fee-market journeys and
 signed settlement construction remain required before enabling markets or
 promoting a stable fee release.
