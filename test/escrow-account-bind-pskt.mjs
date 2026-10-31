@@ -93,6 +93,68 @@ function signedMassAndPaidFee(f, built) {
   return { transactionMass, storageMass, paidFee };
 }
 
+test("fee account creation builds a signed genesis output with its own covenant lineage", async () => {
+  const f = fixture(({ fundingEntry, request }) => {
+    fundingEntry.amount = 500000000n;
+    request.request.builderKey = "kcc20fee.create-account";
+    request.request.params = { tokenId, principalSompi: principalSompi.toString() };
+  });
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(json.version, 1);
+  assert.equal(json.inputs.length, 1);
+  assert.equal(json.outputs[0].scriptPublicKey, `0000${f.initial.scriptPublicKey.scriptHex}`);
+  assert.equal(BigInt(json.outputs[0].value), principalSompi);
+  assert.equal(json.outputs[0].covenant.authorizingInput, 0);
+  assert.equal(json.outputs[0].covenant.covenantId, built.metadata.accountId);
+  assert.notEqual(built.metadata.accountId, "00".repeat(32));
+  assert.equal(built.metadata.accountGenesisHint.address, f.accountAddress);
+  assert.equal(built.metadata.accountGenesisHint.scriptHashHex, f.initial.scriptHash);
+  assert.equal(built.metadata.accountGenesisHint.state.market, "00".repeat(32));
+  assert.equal(built.metadata.accountGenesisHint.txidHex, undefined);
+  assert.deepEqual(built.signInputs, [{ index: 0, sighashType: 1 }]);
+  assert.deepEqual(built.scripts, []);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  signed.inputs[0].signatureScript = kw.createInputSignature(signed, 0, key, kw.SighashType.All);
+  const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee account genesis");
+  const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee account genesis");
+  const paidFee = f.fundingEntry.amount - BigInt(json.outputs[0].value) - BigInt(json.outputs[1].value);
+  assert(transactionMass <= 450000n);
+  assert(storageMass <= 450000n);
+  assert(paidFee >= (transactionMass > storageMass ? transactionMass : storageMass) * 100n);
+});
+
+test("creation hint can bind after its accepted outpoint appears on the node", async () => {
+  const f = fixture(({ fundingEntry, request }) => {
+    fundingEntry.amount = 500000000n;
+    request.request.builderKey = "kcc20fee.create-account";
+    request.request.params = { tokenId, principalSompi: principalSompi.toString() };
+  });
+  const created = await f.engine.build(f.request);
+  f.accountEntry.covenantId = created.metadata.accountId;
+  f.fundingEntry.outpoint.transactionId = "0c".repeat(32);
+  f.request.request.builderKey = "kcc20fee.bind-account";
+  f.request.request.params = {
+    tokenId, accountId: created.metadata.accountId, marketId, policyId,
+    accountGenesisHint: { ...created.metadata.accountGenesisHint, txidHex: accountTxid },
+  };
+  const bound = await f.engine.build(f.request);
+  const boundJson = JSON.parse(bound.psktTransactionJson);
+  assert.equal(bound.metadata.accountId, created.metadata.accountId);
+  assert.equal(boundJson.outputs[0].covenant.covenantId, created.metadata.accountId);
+  assert.equal(BigInt(boundJson.outputs[0].value), principalSompi);
+  assert.deepEqual(bound.signInputs, [{ index: 1, sighashType: 1 }]);
+});
+
+test("fee account creation rejects a principal too small for storage mass", async () => {
+  const f = fixture(({ fundingEntry, request }) => {
+    fundingEntry.amount = 500000000n;
+    request.request.builderKey = "kcc20fee.create-account";
+    request.request.params = { tokenId, principalSompi: "1" };
+  });
+  await assert.rejects(f.engine.build(f.request), /mass target|insufficient change/);
+});
+
 test("fee account binding builds a wallet-signable v1 PSKT and preserves principal", async () => {
   const f = fixture();
   const built = await f.engine.build(f.request);

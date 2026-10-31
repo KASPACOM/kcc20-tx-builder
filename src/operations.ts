@@ -22,6 +22,7 @@ export const KCC20_BUILDER_KEYS = [
   "fee-ticket.create-from-utility-burn",
   "fee-ticket.burn",
   "fee-ticket.transfer",
+  "kcc20fee.create-account",
   "kcc20fee.bind-account",
   "kcc20-snapshot.deploy-bootstrap",
   "kcc20-snapshot.deploy-controller",
