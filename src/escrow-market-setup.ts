@@ -120,3 +120,34 @@ export function prepareKcc20FeeMarketWrappedHolder(input: Kcc20FeeMarketGenesisI
   });
   return { marketId, wrapperState, wrapper, holderState, holder };
 }
+
+/** Render an ask and any holder continuation against a pinned market policy. */
+export function prepareKcc20FeeMarketAsk(input: Kcc20FeeMarketGenesisInput & {
+  marketId: string;
+  owner: string;
+  ownerScheme: number;
+  payoutScriptHash: string;
+  holderAmount: bigint;
+  askAmount: bigint;
+  askUnitPrice: bigint;
+}) {
+  if (input.askAmount <= 0n || input.askAmount > input.holderAmount ||
+      input.askUnitPrice <= 0n || input.askUnitPrice > MAX) {
+    throw new Error("fee-market ask amount or price is invalid");
+  }
+  const holder = prepareKcc20FeeMarketWrappedHolder({ ...input,
+    recipientOwner: input.owner, recipientOwnerScheme: input.ownerScheme,
+    recipientPayoutScriptHash: input.payoutScriptHash,
+    tokenAmount: input.holderAmount,
+  });
+  const askState = { ...holder.holderState, amount: input.askAmount.toString(),
+    mode: "2", unitPrice: input.askUnitPrice.toString() };
+  const ask = buildKcc20FeeMarketRoleScript({ artifact: input.artifacts.ask,
+    role: "ask", state: askState });
+  const remaining = input.holderAmount - input.askAmount;
+  const change = remaining > 0n ? prepareKcc20FeeMarketWrappedHolder({ ...input,
+    recipientOwner: input.owner, recipientOwnerScheme: input.ownerScheme,
+    recipientPayoutScriptHash: input.payoutScriptHash, tokenAmount: remaining,
+  }) : null;
+  return { holder, askState, ask, remaining, change };
+}
