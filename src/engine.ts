@@ -617,6 +617,7 @@ export function createKcc20PsktBuilderEngine(
     const principalSompi = parseU64(params.principalSompi, "fee account principal");
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
     const priorityFee = parseU64(
       env.KCC20_FEE_ACCOUNT_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
@@ -748,6 +749,7 @@ export function createKcc20PsktBuilderEngine(
     }
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
     const accountAddress = requireKaspaAddress(indexed.address);
     const priorityFee = parseU64(
       env.KCC20_FEE_ACCOUNT_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
@@ -801,7 +803,7 @@ export function createKcc20PsktBuilderEngine(
       const fundingEntry = selectFundingEntry(
         walletUtxos.entries,
         priorityFee + 10_000n,
-        [],
+        [accountEntry.outpoint],
         params.fundingOutpoint,
       );
       const fundingAmount = utxoAmountSompi(fundingEntry);
@@ -832,6 +834,7 @@ export function createKcc20PsktBuilderEngine(
       });
       setVersionOneInputMassFields(unsignedTx, computeBudget);
       unsignedTx.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(unsignedTx, "fee account binding");
       const scripts = [{
         inputIndex: 0,
         scriptHex: bytesToHex(plan.currentRedeemScript),
@@ -13743,6 +13746,17 @@ export function createKcc20PsktBuilderEngine(
     if (!/^kaspa(?:test|dev)?:/i.test(address))
       throw new Error("owner.walletAddress must be a Kaspa address");
     return address;
+  }
+
+  function assertFeeAccountSchnorrWalletOwner(walletAddress, owner) {
+    const script = String(kaspaWasm.payToAddressScript(walletAddress).script)
+      .toLowerCase();
+    const publicKey = /^20([0-9a-f]{64})ac$/.exec(script)?.[1];
+    if (!publicKey || publicKey !== owner) {
+      throw new Error(
+        "fee account owner must match the connected Schnorr wallet address",
+      );
+    }
   }
 
   return {
