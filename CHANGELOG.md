@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0-fee.3
+
+- Build wallet-signable fee-account genesis and one-time market binding PSKTs from the pinned escrow artifact.
+- Keep the account's full KAS principal and lineage during binding; check current node UTXOs, signed fees and mass.
+- Return a creation hint for the first bind, since the account state is not visible from an unspent P2SH genesis output.
+- Keep fee-market trading, claims, rotation and new-market creation disabled in this prerelease.
+
 ## 0.8.0-fee.2
 
 - Verify fee receipts and fee accounts against the pinned escrow artifact and fresh node UTXOs before claim construction.
