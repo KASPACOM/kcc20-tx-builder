@@ -4634,8 +4634,11 @@ export function createKcc20PsktBuilderEngine(
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
     const owner = requireHex32(request.owner?.kcc20Owner, "claim owner");
     assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
-    if (Number(indexedAccount.state?.owner_scheme) !== 0 ||
-        String(indexedAccount.state?.owner).toLowerCase() !== owner) {
+    const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
+    const accountOwner = accountOwnerScheme === 1
+      ? bytesToHex(blake3(hexToBytes(owner))) : owner;
+    if ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
+        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner) {
       throw new Error("fee account is not controlled by the signing wallet");
     }
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
@@ -4752,7 +4755,8 @@ export function createKcc20PsktBuilderEngine(
         signatureScript: { mode: "ordered-args", args: [
           i64TemplateArg(1),
           ...feeAccountStateTemplateArgs(transition.successorAccountState),
-          i64TemplateArg(1), { type: "signature" },
+          i64TemplateArg(1), { type: "signature",
+            ...(accountOwnerScheme === 1 ? { prefixHex: owner } : {}) },
           i64TemplateArg(-1), i64TemplateArg(-1),
           ...feeAccountStateTemplateArgs(transition.successorAccountState),
           dataTemplateArg(new Uint8Array(0)),
@@ -4813,8 +4817,11 @@ export function createKcc20PsktBuilderEngine(
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
     const currentOwner = requireHex32(request.owner?.kcc20Owner, "current fee account owner");
     assertFeeAccountSchnorrWalletOwner(walletAddress, currentOwner);
-    if (Number(indexedAccount.state?.owner_scheme) !== 0 ||
-        String(indexedAccount.state?.owner).toLowerCase() !== currentOwner) {
+    const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
+    const accountOwner = accountOwnerScheme === 1
+      ? bytesToHex(blake3(hexToBytes(currentOwner))) : currentOwner;
+    if ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
+        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner) {
       throw new Error("fee account is not controlled by the signing wallet");
     }
     const newOwner = requireHex32(params.newOwner, "new fee account owner");
@@ -4913,7 +4920,8 @@ export function createKcc20PsktBuilderEngine(
       const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(checked.redeemScript),
         signType: 1, signatureScript: { mode: "ordered-args", args: [
           i64TemplateArg(2), ...feeAccountStateTemplateArgs(nextState),
-          i64TemplateArg(0), { type: "signature" },
+          i64TemplateArg(0), { type: "signature",
+            ...(accountOwnerScheme === 1 ? { prefixHex: currentOwner } : {}) },
           i64TemplateArg(-1), i64TemplateArg(-1),
           ...feeAccountStateTemplateArgs(nextState),
           dataTemplateArg(new Uint8Array(0)),

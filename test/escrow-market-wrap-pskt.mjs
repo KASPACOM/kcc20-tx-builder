@@ -611,7 +611,7 @@ test("fee-market buy honors a covenant-owned ask's committed payout", async () =
   assert.equal(BigInt(json.outputs[built.metadata.sellerOutputIndex].value), 550000000n);
 });
 
-function claimFixture(party = "protocol", count = 1) {
+function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
   const escrow = artifacts.receipt;
   const parts = templateParts(escrow);
   const common = { token: tokenId, market: marketId,
@@ -626,7 +626,10 @@ function claimFixture(party = "protocol", count = 1) {
   const accountId = party === "protocol" ? "04".repeat(32) : "05".repeat(32);
   const accountState = { ...common, role: "1",
     protocol_account: "00".repeat(32), creator_account: "00".repeat(32),
-    protocol_amount: "0", creator_amount: "0", owner,
+    protocol_amount: "0", creator_amount: "0",
+    owner: accountOwnerScheme === 1
+      ? hex(blake3(Buffer.from(owner, "hex"))) : owner,
+    owner_scheme: accountOwnerScheme,
     action_hash: "00".repeat(32), roleName: "account" };
   const receiptScript = buildKcc20FeeEscrowScript(escrow, receiptState);
   const accountScript = buildKcc20FeeEscrowScript(escrow, accountState);
@@ -704,6 +707,24 @@ test("fee-market protocol claim preserves creator share and account principal", 
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market claim");
   assert(non.transactionMass <= 450000n);
   assert(storage <= 450000n);
+});
+
+test("fee-market Schnorr public-key-hash account can claim and rotate", async () => {
+  const f = claimFixture("protocol", 1, 1);
+  const claim = await f.engine.build(f.request);
+  assert.equal(claim.scripts[0].signatureScript.args.find(arg =>
+    arg.type === "signature").prefixHex, owner);
+  assert.equal(claim.metadata.claimSompi, "50000000");
+  f.request.request.builderKey = "kcc20fee.rotate-account";
+  f.request.request.params = { account: f.account,
+    marketId, contractCanonicalTokenId: tokenId,
+    policyId: "03".repeat(32), accountId: "04".repeat(32),
+    newOwnerScheme: 0, newOwner: "aa".repeat(32) };
+  const rotation = await f.engine.build(f.request);
+  assert.equal(rotation.scripts[0].signatureScript.args.find(arg =>
+    arg.type === "signature").prefixHex, owner);
+  assert.equal(BigInt(JSON.parse(rotation.psktTransactionJson).outputs[0].value),
+    f.accountEntry.amount);
 });
 
 test("fee-market creator claim preserves protocol share", async () => {
