@@ -26,6 +26,7 @@ export const KCC20_BUILDER_KEYS = [
   "kcc20fee.bind-account",
   "kcc20fee.deploy-market-genesis",
   "kcc20fee.bind-market",
+  "kcc20fee.wrap",
   "kcc20-snapshot.deploy-bootstrap",
   "kcc20-snapshot.deploy-controller",
   "kcc20-snapshot.start",
