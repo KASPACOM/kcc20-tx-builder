@@ -4,6 +4,17 @@
 
 - Combine the reviewed fee builder baseline with the KCOM vesting and claim transaction builders for branch integration tests.
 - Keep package publication and runtime enablement pending independent review and funded campaign evidence.
+## 0.8.0-fee.4
+
+- Require the fee-account owner key to match the connected Schnorr funding wallet for creation and binding.
+- Exclude the account source outpoint from binding funding and reject duplicate inputs.
+
+## 0.8.0-fee.3
+
+- Build wallet-signable fee-account genesis and one-time market binding PSKTs from the pinned escrow artifact.
+- Keep the account's full KAS principal and lineage during binding; check current node UTXOs, signed fees and mass.
+- Return a creation hint for the first bind, since the account state is not visible from an unspent P2SH genesis output.
+- Keep fee-market trading, claims, rotation and new-market creation disabled in this prerelease.
 
 ## 0.8.0-fee.2
 

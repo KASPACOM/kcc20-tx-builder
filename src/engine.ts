@@ -79,6 +79,7 @@ import {
 import { createKcomVestingPsktBuilder } from "./kcom-vesting.js";
 import { createKcomClaimPsktBuilder } from "./kcom-claim-builder.js";
 import { KCC20_BUILDER_KEYS } from "./operations.js";
+import { buildKcc20InitialFeeAccount, planKcc20FeeAccountBinding } from "./escrow-account-setup.js";
 import { createKcc20SnapshotPsktBuilder } from "./snapshot-operation.js";
 import { splitKcc20MintSupply } from "./protocol.js";
 import { buildKcc20DeployIntentOutputs } from "./deploy-receipt.js";
@@ -580,6 +581,8 @@ export function createKcc20PsktBuilderEngine(
     "fee-ticket.create-from-utility-burn": buildFeeTicketCreatePskt,
     "fee-ticket.burn": buildFeeTicketBurnPskt,
     "fee-ticket.transfer": buildFeeTicketTransferPskt,
+    "kcc20fee.create-account": buildFeeAccountCreatePskt,
+    "kcc20fee.bind-account": buildFeeAccountBindPskt,
     "kcc20wrapper.deploy-market": buildWrapperMarketDeployPskt,
     "kcc20wrapper.wrap": buildWrapperWrapPskt,
     "kcc20wrapper.unwrap": buildWrapperUnwrapPskt,
@@ -631,6 +634,298 @@ export function createKcc20PsktBuilderEngine(
       );
     }
     return builder(input);
+  }
+
+  async function buildFeeAccountCreatePskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const tokenId = requireHex32(params.tokenId, "fee account token id");
+    const owner = requireHex32(request.owner?.kcc20Owner, "fee account owner");
+    const principalSompi = parseU64(params.principalSompi, "fee account principal");
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const priorityFee = parseU64(
+      env.KCC20_FEE_ACCOUNT_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee",
+    );
+    const artifactKey = "KCC20FeeEscrowV1.placeholder.json";
+    const supplied = options.artifacts?.[artifactKey] ?? await options.artifactProvider?.(artifactKey);
+    const artifact = supplied?.artifact ?? supplied;
+    if (!artifact) throw new Error("missing pinned fee escrow artifact");
+    const initial = buildKcc20InitialFeeAccount({
+      artifact, tokenId, ownerSchnorrPublicKey: owner, principalSompi,
+    });
+    const kw = kaspaWasm;
+    const { Encoding, GenesisCovenantGroup, RpcClient, Transaction,
+      TransactionOutput, covenantId, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({
+      url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh,
+      networkId: network,
+    });
+    await rpc.connect();
+    try {
+      const walletUtxos = await getUtxosByAddresses(rpc, [walletAddress]);
+      const fundingEntry = selectFundingEntry(
+        walletUtxos.entries,
+        principalSompi + priorityFee + 10_000n,
+        [],
+        params.fundingOutpoint,
+      );
+      const fundingAmount = utxoAmountSompi(fundingEntry);
+      const change = fundingAmount - principalSompi - priorityFee;
+      if (change <= 10_000n) throw new Error("fee account creation funding change is too small");
+      const transaction = new Transaction({
+        version: 1,
+        lockTime: 0n,
+        inputs: [{ previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+          sequence: 0n, sigOpCount: 0, computeBudget: 30 }],
+        outputs: [
+          new TransactionOutput(principalSompi, payToScriptHashScript(initial.redeemScript)),
+          new TransactionOutput(change, payToAddressScript(walletAddress)),
+        ],
+        subnetworkId: SUBNETWORK_ID_NATIVE,
+        gas: 0n,
+        payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 30);
+      transaction.populateGenesisCovenants([new GenesisCovenantGroup(0, [0])]);
+      transaction.finalize();
+      const accountId = transaction.outputs[0]?.covenant?.covenantId?.toString();
+      if (!accountId) throw new Error("fee account genesis covenant id is missing");
+      const expectedId = covenantId(fundingEntry.outpoint, [
+        { index: 0, output: transaction.outputs[0] },
+      ]).toString();
+      if (accountId !== expectedId) throw new Error("fee account genesis covenant id mismatch");
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, 1, network, "fee account creation", candidate => {
+          const predicted = cloneTransactionForMassPreflight(kw, candidate, "fee account creation");
+          predicted.inputs[0].signatureScript = encodeP2pkSignatureScript(bytesToHex(dummySignatureBytes()));
+          return predicted;
+        },
+      );
+      const nonContextualMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee account creation",
+      ).transactionMass;
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee account creation",
+      );
+      if (nonContextualMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError(
+          "fee account creation exceeds the signed transaction mass target",
+          "TRANSACTION_MASS_EXCEEDED",
+          { nonContextualMass, storageMass, targetMass: CONSOLIDATION_TARGET_TRANSACTION_MASS },
+        );
+      }
+      const finalAccountId = covenantId(fundingEntry.outpoint, [
+        { index: 0, output: feeResult.transaction.outputs[0] },
+      ]).toString();
+      if (finalAccountId !== accountId) throw new Error("fee account genesis id changed after fee calculation");
+      const psktTransactionJson = feeResult.transaction.serializeToSafeJSON();
+      if (typeof psktTransactionJson !== "string") throw new Error("fee account creation PSKT serialization failed");
+      return {
+        schema: OUTPUT_SCHEMA,
+        psktTransactionJson,
+        signInputs: [{ index: 0, sighashType: 1 }],
+        scripts: [],
+        submitTransactionSupported: true,
+        metadata: {
+          builderKey: "kcc20fee.create-account",
+          operation: "create-fee-account",
+          action: "genesis",
+          contract: "KCC20FeeEscrowV1",
+          network, walletAddress, tokenId, owner, accountId,
+          accountPrincipalSompi: principalSompi.toString(),
+          // Attach the broadcast txid to this hint before binding. The first
+          // spend reveals the script; until then the indexer sees only P2SH.
+          accountGenesisHint: {
+            vout: 0,
+            address: kw.addressFromScriptPublicKey(
+              payToScriptHashScript(initial.redeemScript), network,
+            ).toString(),
+            covenantIdHex: accountId,
+            scriptHashHex: initial.scriptHash,
+            amountSompiExact: principalSompi.toString(),
+            state: { ...initial.state, roleName: "account" },
+          },
+        },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeAccountBindPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    // A genesis output has no revealed script yet. The caller keeps the
+    // creation hint, adds its accepted txid, then we check the live UTXO.
+    const indexed = params.accountGenesisHint
+      ? { ...params.accountGenesisHint, status: "active", spentByTxidHex: null }
+      : params.activeAccountUtxo;
+    if (!indexed || !indexed.address) throw new Error("active unbound fee account UTXO and address are required");
+    const tokenId = requireHex32(params.tokenId, "fee account token id");
+    const accountId = requireHex32(params.accountId, "fee account id");
+    const marketId = requireHex32(params.marketId, "fee account market id");
+    const policyId = requireHex32(params.policyId, "fee account policy id");
+    const owner = requireHex32(request.owner?.kcc20Owner, "fee account owner");
+    if (String(indexed.state?.owner || "").toLowerCase() !== owner) {
+      throw new Error("fee account owner does not match connected wallet");
+    }
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const accountAddress = requireKaspaAddress(indexed.address);
+    const priorityFee = parseU64(
+      env.KCC20_FEE_ACCOUNT_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee",
+    );
+    const computeBudget = parsePositiveNumber(
+      env.KCC20_FEE_ACCOUNT_COMPUTE_BUDGET || 500,
+      "computeBudget",
+    );
+    const artifactKey = "KCC20FeeEscrowV1.placeholder.json";
+    const supplied = options.artifacts?.[artifactKey] ?? await options.artifactProvider?.(artifactKey);
+    const artifact = supplied?.artifact ?? supplied;
+    if (!artifact) throw new Error("missing pinned fee escrow artifact");
+
+    const kw = kaspaWasm;
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({
+      url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh,
+      networkId: network,
+    });
+    await rpc.connect();
+    try {
+      const [accountUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [accountAddress]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const txid = requireHex32(indexed.txidHex, "fee account txid");
+      const vout = parseVout(indexed.vout, "fee account vout");
+      const accountEntry = findUtxoEntry(accountUtxos.entries, txid, vout);
+      if (!accountEntry) throw new Error("unbound fee account UTXO is spent or unavailable");
+      requireMatchingCovenantId(accountEntry, accountId, "unbound fee account");
+      const spk = accountEntry.scriptPublicKey ??
+        accountEntry.entry?.scriptPublicKey ?? accountEntry.utxoEntry?.scriptPublicKey;
+      const scriptBytes = spk?.script;
+      if (!spk || !scriptBytes) throw new Error("unbound fee account has no script public key");
+      const scriptHex = typeof scriptBytes === "string" ? scriptBytes : bytesToHex(scriptBytes);
+      const plan = planKcc20FeeAccountBinding({
+        artifact,
+        indexed,
+        live: {
+          outpoint: { transactionId: txid, index: vout },
+          amountSompi: utxoAmountSompi(accountEntry),
+          covenantIdHex: accountId,
+          scriptPublicKey: { version: Number(spk.version), scriptHex },
+        },
+        tokenId, accountId, marketId, policyId,
+      });
+      assertScriptAddress(kw, plan.currentRedeemScript, accountAddress, network, "unbound fee account address");
+      const fundingEntry = selectFundingEntry(
+        walletUtxos.entries,
+        priorityFee + 10_000n,
+        [accountEntry.outpoint],
+        params.fundingOutpoint,
+      );
+      const fundingAmount = utxoAmountSompi(fundingEntry);
+      if (fundingAmount <= priorityFee + 10_000n) throw new Error("fee account binding funding change is too small");
+      const unsignedTx = new Transaction({
+        version: 1,
+        lockTime: 0n,
+        inputs: [
+          { previousOutpoint: accountEntry.outpoint, utxo: accountEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ],
+        outputs: [
+          new TransactionOutput(
+            plan.successorAmountSompi,
+            payToScriptHashScript(plan.successorRedeemScript),
+            new CovenantBinding(0, new Hash(accountId)),
+          ),
+          new TransactionOutput(
+            fundingAmount - priorityFee,
+            payToAddressScript(walletAddress),
+          ),
+        ],
+        subnetworkId: SUBNETWORK_ID_NATIVE,
+        gas: 0n,
+        payload: "",
+      });
+      setVersionOneInputMassFields(unsignedTx, computeBudget);
+      unsignedTx.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(unsignedTx, "fee account binding");
+      const scripts = [{
+        inputIndex: 0,
+        scriptHex: bytesToHex(plan.currentRedeemScript),
+        signType: 1,
+        signatureScript: {
+          mode: "ordered-args",
+          args: [
+            dataTemplateArg(hexToBytes(marketId)),
+            dataTemplateArg(hexToBytes(policyId)),
+            { type: "signature" },
+            i64TemplateArg(0),
+            dataTemplateArg(dispatchTagFor(artifact, "bindMarket")),
+          ],
+        },
+      }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, unsignedTx, 1, network, "fee account binding", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("fee account mass preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()),
+          );
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        },
+      );
+      const nonContextualMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee account binding",
+      ).transactionMass;
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee account binding",
+      );
+      if (nonContextualMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError(
+          "fee account binding exceeds the signed transaction mass target",
+          "TRANSACTION_MASS_EXCEEDED",
+          { nonContextualMass, storageMass, targetMass: CONSOLIDATION_TARGET_TRANSACTION_MASS },
+        );
+      }
+      const transaction = feeResult.transaction;
+      const psktTransactionJson = transaction.serializeToSafeJSON();
+      if (typeof psktTransactionJson !== "string") throw new Error("fee account binding PSKT serialization failed");
+      return {
+        schema: OUTPUT_SCHEMA,
+        psktTransactionJson,
+        signInputs: [{ index: 1, sighashType: 1 }],
+        scripts,
+        submitTransactionSupported: true,
+        metadata: {
+          builderKey: "kcc20fee.bind-account",
+          operation: "bind-fee-account",
+          action: "bindMarket",
+          contract: "KCC20FeeEscrowV1",
+          network, walletAddress, tokenId, accountId, marketId, policyId,
+          accountInput: `${txid}:${vout}`,
+          accountPrincipalSompi: plan.successorAmountSompi.toString(),
+        },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
   }
 
   async function buildFeeTicketRootUpdatePskt(input) {
@@ -13478,6 +13773,17 @@ export function createKcc20PsktBuilderEngine(
     if (!/^kaspa(?:test|dev)?:/i.test(address))
       throw new Error("owner.walletAddress must be a Kaspa address");
     return address;
+  }
+
+  function assertFeeAccountSchnorrWalletOwner(walletAddress, owner) {
+    const script = String(kaspaWasm.payToAddressScript(walletAddress).script)
+      .toLowerCase();
+    const publicKey = /^20([0-9a-f]{64})ac$/.exec(script)?.[1];
+    if (!publicKey || publicKey !== owner) {
+      throw new Error(
+        "fee account owner must match the connected Schnorr wallet address",
+      );
+    }
   }
 
   return {
