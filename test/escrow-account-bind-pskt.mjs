@@ -37,6 +37,7 @@ function fixture(mutate = () => {}) {
     amount: 200000000n, scriptPublicKey: kw.payToAddressScript(wallet),
     blockDaaScore: 0n, isCoinbase: false,
   };
+  const walletEntries = [fundingEntry];
   const indexed = {
     address: accountAddress, txidHex: accountTxid, vout: 0,
     covenantIdHex: accountId, scriptHashHex: initial.scriptHash,
@@ -51,14 +52,14 @@ function fixture(mutate = () => {}) {
       params: { tokenId, accountId, marketId, policyId, activeAccountUtxo: indexed },
     },
   };
-  const fixture = { initial, indexed, request, accountEntry, fundingEntry, accountAddress };
+  const fixture = { initial, indexed, request, accountEntry, fundingEntry, walletEntries, accountAddress };
   mutate(fixture);
   const engine = createKcc20PsktBuilderEngine({
     wasm: kw, artifacts: { "KCC20FeeEscrowV1.placeholder.json": artifact },
     rpcClientFactory: () => ({
       connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({
-        entries: addresses.includes(wallet) ? [fundingEntry] : [accountEntry],
+        entries: addresses.includes(wallet) ? walletEntries : [accountEntry],
       }),
     }),
   });
@@ -155,6 +156,16 @@ test("fee account creation rejects a principal too small for storage mass", asyn
   await assert.rejects(f.engine.build(f.request), /mass target|insufficient change/);
 });
 
+test("fee account creation rejects an owner key that differs from its funding wallet", async () => {
+  const f = fixture(({ fundingEntry, request }) => {
+    fundingEntry.amount = 500000000n;
+    request.request.builderKey = "kcc20fee.create-account";
+    request.request.params = { tokenId, principalSompi: principalSompi.toString() };
+    request.request.owner.kcc20Owner = "11".repeat(32);
+  });
+  await assert.rejects(f.engine.build(f.request), /owner must match the connected Schnorr wallet address/);
+});
+
 test("fee account binding builds a wallet-signable v1 PSKT and preserves principal", async () => {
   const f = fixture();
   const built = await f.engine.build(f.request);
@@ -201,4 +212,12 @@ test("fee account binding rejects spent source and wrong wallet owner", async ()
   await assert.rejects(spent.engine.build(spent.request), /not active/);
   const wrongOwner = fixture(({ request }) => { request.request.owner.kcc20Owner = "11".repeat(32); });
   await assert.rejects(wrongOwner.engine.build(wrongOwner.request), /does not match connected wallet/);
+});
+
+test("fee account binding excludes its account outpoint from funding", async () => {
+  const f = fixture(({ request, accountEntry, walletEntries }) => {
+    walletEntries.push(accountEntry);
+    request.request.params.fundingOutpoint = `${accountTxid}:0`;
+  });
+  await assert.rejects(f.engine.build(f.request), /pinned funding UTXO.*unavailable/);
 });

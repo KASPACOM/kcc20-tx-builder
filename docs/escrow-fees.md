@@ -10,7 +10,8 @@ disabled, and this change does not publish a package.
 genesis output and a separate wallet change output. The caller supplies the
 native token ID and account principal in sompi. The connected wallet's Schnorr
 public key controls the account. The builder pins the escrow artifact, checks
-the key, computes the account covenant ID, and checks the signed transaction's
+that this key matches the funding wallet's Schnorr address, computes the account
+covenant ID, and checks the signed transaction's
 fee and mass before returning the PSKT. The wallet signs the funding input.
 
 The creation result includes `metadata.accountGenesisHint`. Save it with the
@@ -24,6 +25,7 @@ lineage, outpoint and principal against the pinned artifact. The wallet signs
 the account input and a separate funding input. The bound output keeps the
 same account ID and exact principal. Binding is a one-time operation; later
 authority changes use the contract's rotation path.
+The account outpoint cannot also serve as the funding input.
 
 These operations prepare wallet-signable transactions. They do not broadcast
 or establish funded TN10 execution. Account creation and binding are only the
