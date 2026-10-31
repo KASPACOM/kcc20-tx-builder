@@ -682,10 +682,10 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
   const receiptEntries = Array.from({ length: count }, (_, index) => ({
     outpoint: { transactionId: (0x4a + index).toString(16).repeat(32), index: 0 },
     amount: 100000000n, scriptPublicKey: receiptSpk, blockDaaScore: 0n,
-    isCoinbase: false, covenantId: marketId }));
+    isCoinbase: false, entry: { covenantId: marketId } }));
   const accountEntry = { outpoint: { transactionId: "2b".repeat(32), index: 0 },
     amount: 500000000n, scriptPublicKey: accountSpk, blockDaaScore: 0n,
-    isCoinbase: false, covenantId: accountId };
+    isCoinbase: false, entry: { covenantId: accountId } };
   const fundingEntry = { outpoint: { transactionId: "2c".repeat(32), index: 0 },
     amount: 500000000n, scriptPublicKey: kw.payToAddressScript(wallet),
     blockDaaScore: 0n, isCoinbase: false };

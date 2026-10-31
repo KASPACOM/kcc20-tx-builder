@@ -4901,7 +4901,8 @@ export function createKcc20PsktBuilderEngine(
           entry.utxoEntry?.scriptPublicKey;
         return { entry, live: { outpoint: entry.outpoint,
           amountSompi: utxoAmountSompi(entry),
-          covenantIdHex: entry.covenantId?.toString?.() ?? entry.covenantId,
+          covenantIdHex: requireMatchingCovenantId(entry,
+            indexed.covenantIdHex, `${label} live`),
           scriptPublicKey: { version: Number(spk?.version),
             scriptHex: String(spk?.script).toLowerCase() } } };
       };
@@ -5115,7 +5116,8 @@ export function createKcc20PsktBuilderEngine(
         indexed: indexedAccount,
         live: { outpoint: accountEntry.outpoint,
           amountSompi: utxoAmountSompi(accountEntry),
-          covenantIdHex: accountEntry.covenantId?.toString?.() ?? accountEntry.covenantId,
+          covenantIdHex: requireMatchingCovenantId(accountEntry,
+            accountId, "fee account live"),
           scriptPublicKey: { version: Number(spk?.version),
             scriptHex: String(spk?.script).toLowerCase() } },
         expected: { tokenId, marketId, policyId, accountId } });
