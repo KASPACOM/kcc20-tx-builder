@@ -161,3 +161,129 @@ test("fee-market final wrap has no native holder change output", async () => {
   const json = JSON.parse(built.psktTransactionJson);
   assert.equal(json.outputs[3].covenant, null);
 });
+
+function unwrapFixture(unwrapAmount = 10n) {
+  const payoutSpk = kw.payToAddressScript(wallet);
+  const payoutScript = Buffer.from(String(payoutSpk.script), "hex");
+  const payoutSerialized = Buffer.alloc(11 + payoutScript.length);
+  payoutSerialized[0] = 0xe3;
+  payoutSerialized.writeUInt16LE(Number(payoutSpk.version), 1);
+  payoutSerialized.writeBigUInt64LE(BigInt(payoutScript.length), 3);
+  payoutScript.copy(payoutSerialized, 11);
+  const holder = prepareKcc20FeeMarketWrappedHolder({
+    tokenId, marketId, feeTicketId: "00".repeat(32), priceScale: 1n,
+    policy, wrapperProfile: "native", artifacts, recipientOwner: owner,
+    recipientOwnerScheme: 0, recipientPayoutScriptHash: hex(blake3(payoutSerialized)),
+    tokenAmount: 10n,
+  });
+  const reserveState = { amount: 10n,
+    owner: Buffer.from(holder.wrapper.scriptHash, "hex"), ownerScheme: 3,
+    borrowScheme: 0, borrowGuard: new Uint8Array(32),
+    extensionCommitment: new Uint8Array(32) };
+  const reserveScript = buildKcc20ScriptForState(native, reserveState);
+  const reserveSpk = kw.payToScriptHashScript(reserveScript);
+  const reserveAddress = kw.addressFromScriptPublicKey(reserveSpk, "testnet-10").toString();
+  const holderSpk = kw.payToScriptHashScript(holder.holder.redeemScript);
+  const holderAddress = kw.addressFromScriptPublicKey(holderSpk, "testnet-10").toString();
+  const wrapperSpk = kw.payToScriptHashScript(holder.wrapper.redeemScript);
+  const wrapperAddress = kw.addressFromScriptPublicKey(wrapperSpk, "testnet-10").toString();
+  const wrappedEntry = { outpoint: { transactionId: "0a".repeat(32), index: 0 },
+    amount: 50000000n, scriptPublicKey: holderSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: marketId };
+  const reserveEntry = { outpoint: { transactionId: "0b".repeat(32), index: 0 },
+    amount: 50000000n, scriptPublicKey: reserveSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: tokenId };
+  const wrapperEntry = { outpoint: { transactionId: "0c".repeat(32), index: 0 },
+    amount: 50000000n, scriptPublicKey: wrapperSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: marketId };
+  const fundingEntry = { outpoint: { transactionId: "0d".repeat(32), index: 0 },
+    amount: 500000000n, scriptPublicKey: payoutSpk, blockDaaScore: 0n,
+    isCoinbase: false };
+  const wrappedUtxo = { txidHex: wrappedEntry.outpoint.transactionId, vout: 0,
+    address: holderAddress, amountSompiExact: "50000000", state: holder.holderState };
+  const reserveUtxo = { txidHex: reserveEntry.outpoint.transactionId, vout: 0,
+    address: reserveAddress, amountSompiExact: "50000000", state: {
+      stateAmount: "10", owner: holder.wrapper.scriptHash, ownerScheme: 3,
+      borrowScheme: 0, borrowGuard: "00".repeat(32),
+      extensionCommitment: "00".repeat(32) } };
+  const wrapperUtxo = { txidHex: wrapperEntry.outpoint.transactionId, vout: 0,
+    address: wrapperAddress, amountSompiExact: "50000000" };
+  const genesis = prepareKcc20FeeMarketGenesis({ tokenId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    wrapperProfile: "native", artifacts });
+  const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
+    request: { builderKey: "kcc20fee.unwrap", network: "testnet-10",
+      owner: { walletAddress: wallet, kcc20Owner: owner },
+      params: { marketId, contractCanonicalTokenId: tokenId,
+        feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: unwrapAmount.toString(),
+        feePolicy: policy, policyId: genesis.policyId,
+        wrappedUtxo, reserveUtxo, wrapperUtxo } } };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+      "ArgentKCC20.reference.json": argent },
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.includes(wallet) ? [fundingEntry]
+          : [wrappedEntry, reserveEntry, wrapperEntry] }) }) });
+  return { engine, request, wrappedEntry, reserveEntry, wrapperEntry, fundingEntry,
+    holder, wrappedUtxo, reserveUtxo };
+}
+
+test("fee-market full unwrap returns the exact holder deposit and native reserve", async () => {
+  const f = unwrapFixture();
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
+  assert.equal(built.metadata.refundIndex, 1);
+  assert.equal(built.metadata.reserveChangeIndex, -1);
+  assert.equal(built.metadata.wrappedChangeIndex, -1);
+  assert.equal(json.outputs[0].covenant.covenantId, tokenId);
+  assert.equal(BigInt(json.outputs[0].value), f.reserveEntry.amount);
+  assert.equal(json.outputs[1].covenant, null);
+  assert.equal(BigInt(json.outputs[1].value), f.wrappedEntry.amount);
+  assert.equal(json.outputs[2].covenant.covenantId, marketId);
+  assert.equal(BigInt(json.outputs[2].value), f.wrapperEntry.amount);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  const script = built.scripts[0];
+  let signature = Buffer.from(kw.createInputSignature(signed, 0, key, kw.SighashType.All), "hex");
+  if (signature.length === 66 && signature[0] === 0x41) signature = signature.subarray(1);
+  const args = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
+  for (const arg of script.signatureScript.args) {
+    if (arg.type === "data") args.addData(Buffer.from(arg.hex, "hex"));
+    else if (arg.type === "i64") args.addI64(BigInt(arg.value));
+    else if (arg.type === "signature") args.addData(signature);
+    else throw new Error(`unsupported holder argument ${arg.type}`);
+  }
+  signed.inputs[0].signatureScript = kw.ScriptBuilder.fromScript(
+    Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
+  ).encodePayToScriptHashSignatureScript(args.drain());
+  signed.inputs[3].signatureScript = kw.createInputSignature(signed, 3, key, kw.SighashType.All);
+  const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market unwrap");
+  const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market unwrap");
+  assert(transactionMass <= 450000n);
+  assert(storageMass <= 450000n);
+  const paidFee = f.wrappedEntry.amount + f.reserveEntry.amount +
+    f.wrapperEntry.amount + f.fundingEntry.amount -
+    json.outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+  assert(paidFee >= (transactionMass > storageMass ? transactionMass : storageMass) * 100n);
+});
+
+test("fee-market partial unwrap preserves both reserve and wrapped holder deposits", async () => {
+  const f = unwrapFixture(5n);
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(built.metadata.reserveChangeIndex, 1);
+  assert.equal(built.metadata.wrappedChangeIndex, 2);
+  assert.equal(built.metadata.refundIndex, -1);
+  assert.equal(BigInt(json.outputs[1].value), f.reserveEntry.amount);
+  assert.equal(BigInt(json.outputs[2].value), f.wrappedEntry.amount);
+  assert.equal(json.outputs[1].covenant.covenantId, tokenId);
+  assert.equal(json.outputs[2].covenant.covenantId, marketId);
+});
+
+test("fee-market unwrap rejects a reserve from a different wrapper", async () => {
+  const f = unwrapFixture();
+  f.reserveUtxo.state.owner = "ff".repeat(32);
+  await assert.rejects(f.engine.build(f.request),
+    /different wrapper script|reserve address|does not match a bundled token profile/);
+});
