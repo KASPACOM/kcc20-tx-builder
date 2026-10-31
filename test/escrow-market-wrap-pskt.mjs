@@ -574,6 +574,48 @@ test("fee-market buyer fills an ask with one authenticated fee receipt", async (
   assert(storage <= 450000n);
 });
 
+test("fee-market buyer group fills two asks with one receipt and exact refunds", async () => {
+  const f = buyAskFixture();
+  const secondEntry = { ...f.askEntry,
+    outpoint: { transactionId: "1c".repeat(32), index: 0 } };
+  const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+      "ArgentKCC20.reference.json": argent },
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.includes(wallet) ? [f.fundingEntry] : [f.askEntry, secondEntry] }) }) });
+  f.request.request.builderKey = "kcc20fee.buy-two-asks";
+  f.request.request.params.asks = [f.askUtxo, secondAsk];
+  const built = await engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);
+  assert.equal(json.outputs.length, 6);
+  assert.equal(built.metadata.protocolFeeSompi, "100000000");
+  assert.equal(built.metadata.creatorFeeSompi, "0");
+  assert.equal(built.metadata.receiptOutputIndex, 4);
+  for (const index of [0, 2]) {
+    assert.equal(BigInt(json.outputs[index].value), 50000000n);
+    assert.equal(json.outputs[index].covenant.covenantId, marketId);
+  }
+  for (const index of [1, 3]) assert.equal(BigInt(json.outputs[index].value), 550000000n);
+  assert.equal(BigInt(json.outputs[4].value), 100000000n);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  const mass = engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market two asks");
+  const storage = engine.protocol.calculateToccataStorageMass(signed, "fee-market two asks");
+  assert(mass.computeMass <= 450000n);
+  assert(mass.transientMass <= 900000n);
+  assert(storage <= 450000n);
+});
+
+test("fee-market buyer group rejects duplicate asks before selecting funding", async () => {
+  const f = buyAskFixture();
+  f.request.request.builderKey = "kcc20fee.buy-two-asks";
+  f.request.request.params.asks = [f.askUtxo, f.askUtxo];
+  await assert.rejects(f.engine.build(f.request), /same ask twice/);
+});
+
 test("fee-market partial buy preserves the seller's remaining ask deposit", async () => {
   const f = buyAskFixture(2n);
   const built = await f.engine.build(f.request);
