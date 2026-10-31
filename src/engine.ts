@@ -4397,10 +4397,23 @@ export function createKcc20PsktBuilderEngine(
     };
     const buyerPayout = payoutHashForOwner(buyer);
     const seller = requireHex32(askUtxo.state.owner, "ask seller");
-    if (Number(askUtxo.state.owner_scheme) !== 0) {
-      throw new Error("fee-market buy for this seller authority needs a payout witness proof");
+    const sellerScheme = Number(askUtxo.state.owner_scheme);
+    if (!Number.isInteger(sellerScheme) || sellerScheme < 0 || sellerScheme > 4) {
+      throw new Error("unsupported ask seller authority");
     }
-    const sellerPayout = payoutHashForOwner(seller);
+    const sellerPayout = sellerScheme === 0
+      ? payoutHashForOwner(seller)
+      : (() => {
+          const address = requireKaspaAddress(params.sellerPayoutAddress);
+          const spk = kw.payToAddressScript(address);
+          const script = hexToBytes(String(spk.script));
+          const serialized = new Uint8Array(11 + script.length);
+          serialized[0] = 0xe3;
+          new DataView(serialized.buffer).setUint16(1, Number(spk.version), true);
+          new DataView(serialized.buffer).setBigUint64(3, BigInt(script.length), true);
+          serialized.set(script, 11);
+          return { spk, hash: bytesToHex(blake3(serialized)) };
+        })();
     if (String(askUtxo.state.payout_script_hash).toLowerCase() !== sellerPayout.hash) {
       throw new Error("ask seller payout does not match authenticated owner");
     }
@@ -4423,7 +4436,7 @@ export function createKcc20PsktBuilderEngine(
     }
     const sellerPlan = prepareKcc20FeeMarketAsk({ tokenId, feeTicketId,
       priceScale, policy: params.feePolicy, wrapperProfile: "native", artifacts,
-      marketId, owner: seller, ownerScheme: 0,
+      marketId, owner: seller, ownerScheme: sellerScheme,
       payoutScriptHash: sellerPayout.hash, holderAmount: askAmount,
       askAmount, askUnitPrice });
     const askScript = sellerPlan.ask;

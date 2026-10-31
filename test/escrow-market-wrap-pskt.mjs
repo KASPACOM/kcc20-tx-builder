@@ -550,7 +550,7 @@ function buyAskFixture(fillAmount = 5n) {
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({ entries:
         addresses.includes(wallet) ? [fundingEntry] : [askEntry] }) }) });
-  return { engine, request, askEntry, fundingEntry, askUtxo, plan };
+  return { engine, request, askEntry, fundingEntry, askUtxo, plan, sellerWallet };
 }
 
 test("fee-market buyer fills an ask with one authenticated fee receipt", async () => {
@@ -590,4 +590,23 @@ test("fee-market buy rejects an ask from a different fixed policy", async () => 
   const f = buyAskFixture();
   f.askUtxo.state.feePolicy = "ff".repeat(361);
   await assert.rejects(f.engine.build(f.request), /fixed market policy/);
+});
+
+test("fee-market buy honors a covenant-owned ask's committed payout", async () => {
+  const f = buyAskFixture();
+  const seller = "aa".repeat(32);
+  const plan = prepareKcc20FeeMarketAsk({ tokenId, marketId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    wrapperProfile: "native", artifacts, owner: seller,
+    ownerScheme: 3,
+    payoutScriptHash: f.plan.askState.payout_script_hash,
+    holderAmount: 5n, askAmount: 5n, askUnitPrice: 100000000n });
+  const spk = kw.payToScriptHashScript(plan.ask.redeemScript);
+  f.askEntry.scriptPublicKey = spk;
+  f.askUtxo.address = kw.addressFromScriptPublicKey(spk, "testnet-10").toString();
+  f.askUtxo.state = { ...plan.askState, feePolicyVersion: 1, creatorFeeBps: 0 };
+  f.request.request.params.sellerPayoutAddress = f.sellerWallet;
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(BigInt(json.outputs[built.metadata.sellerOutputIndex].value), 550000000n);
 });
