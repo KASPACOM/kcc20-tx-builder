@@ -505,3 +505,89 @@ test("fee-market cancel bid refunds gross and the full 2 KAS deposit", async () 
   assert(non.transactionMass <= 450000n);
   assert(storage <= 450000n);
 });
+
+function buyAskFixture(fillAmount = 5n) {
+  const sellerKey = new kw.PrivateKey("04".padStart(64, "0"));
+  const seller = sellerKey.toKeypair().xOnlyPublicKey.toString();
+  const sellerWallet = sellerKey.toAddress("testnet-10").toString();
+  const sellerSpk = kw.payToAddressScript(sellerWallet);
+  const sellerScript = Buffer.from(String(sellerSpk.script), "hex");
+  const payoutBytes = Buffer.alloc(11 + sellerScript.length);
+  payoutBytes[0] = 0xe3;
+  payoutBytes.writeUInt16LE(Number(sellerSpk.version), 1);
+  payoutBytes.writeBigUInt64LE(BigInt(sellerScript.length), 3);
+  sellerScript.copy(payoutBytes, 11);
+  const sellerPayoutHash = hex(blake3(payoutBytes));
+  const plan = prepareKcc20FeeMarketAsk({ tokenId, marketId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    wrapperProfile: "native", artifacts, owner: seller,
+    ownerScheme: 0, payoutScriptHash: sellerPayoutHash,
+    holderAmount: 5n, askAmount: 5n, askUnitPrice: 100000000n });
+  const askSpk = kw.payToScriptHashScript(plan.ask.redeemScript);
+  const askAddress = kw.addressFromScriptPublicKey(askSpk, "testnet-10").toString();
+  const askEntry = { outpoint: { transactionId: "1a".repeat(32), index: 0 },
+    amount: 50000000n, scriptPublicKey: askSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: marketId };
+  const fundingEntry = { outpoint: { transactionId: "1b".repeat(32), index: 0 },
+    amount: 3000000000n, scriptPublicKey: kw.payToAddressScript(wallet),
+    blockDaaScore: 0n, isCoinbase: false };
+  const askUtxo = { txidHex: askEntry.outpoint.transactionId, vout: 0,
+    address: askAddress, amountSompiExact: "50000000",
+    state: { ...plan.askState, feePolicyVersion: 1, creatorFeeBps: 0 } };
+  const genesis = prepareKcc20FeeMarketGenesis({ tokenId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    wrapperProfile: "native", artifacts });
+  const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
+    request: { builderKey: "kcc20fee.buy-ask", network: "testnet-10",
+      owner: { walletAddress: wallet, kcc20Owner: owner },
+      params: { marketId, contractCanonicalTokenId: tokenId,
+        feeTicketId: "00".repeat(32), priceScale: "1",
+        fillAmount: fillAmount.toString(), feePolicy: policy,
+        policyId: genesis.policyId, askUtxo } } };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+      "ArgentKCC20.reference.json": argent },
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.includes(wallet) ? [fundingEntry] : [askEntry] }) }) });
+  return { engine, request, askEntry, fundingEntry, askUtxo, plan };
+}
+
+test("fee-market buyer fills an ask with one authenticated fee receipt", async () => {
+  const f = buyAskFixture();
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.deepEqual(built.signInputs, [{ index: 1, sighashType: 1 }]);
+  assert.equal(built.metadata.protocolFeeSompi, "50000000");
+  assert.equal(built.metadata.creatorFeeSompi, "0");
+  assert.equal(built.metadata.askContinuationOutputIndex, -1);
+  assert.equal(BigInt(json.outputs[0].value), 50000000n);
+  assert.equal(BigInt(json.outputs[1].value), 550000000n);
+  assert.equal(BigInt(json.outputs[2].value), 50000000n);
+  assert.equal(json.outputs[0].covenant.covenantId, marketId);
+  assert.equal(json.outputs[2].covenant.covenantId, marketId);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market buy ask");
+  const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market buy ask");
+  assert(non.transactionMass <= 450000n);
+  assert(storage <= 450000n);
+});
+
+test("fee-market partial buy preserves the seller's remaining ask deposit", async () => {
+  const f = buyAskFixture(2n);
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(built.metadata.askContinuationOutputIndex, 1);
+  assert.equal(built.metadata.sellerOutputIndex, 2);
+  assert.equal(built.metadata.receiptOutputIndex, 3);
+  assert.equal(BigInt(json.outputs[1].value), f.askEntry.amount);
+  assert.equal(BigInt(json.outputs[2].value), 200000000n);
+  assert.equal(BigInt(json.outputs[3].value), 50000000n);
+});
+
+test("fee-market buy rejects an ask from a different fixed policy", async () => {
+  const f = buyAskFixture();
+  f.askUtxo.state.feePolicy = "ff".repeat(361);
+  await assert.rejects(f.engine.build(f.request), /fixed market policy/);
+});
