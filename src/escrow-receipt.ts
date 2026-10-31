@@ -87,6 +87,39 @@ function encodeState(state: Record<string, unknown>): Uint8Array {
   return Uint8Array.from(encoded);
 }
 
+/** Render an escrow state using only the packaged, pinned v1 program. */
+export function buildKcc20FeeEscrowScript(artifactInput: unknown, state: Record<string, unknown>) {
+  const artifactHash = Array.from(sha256(new TextEncoder().encode(JSON.stringify(artifactInput))),
+    byte => byte.toString(16).padStart(2, "0")).join("");
+  if (artifactHash !== ARTIFACT_CANONICAL_SHA256) throw new Error("fee escrow artifact metadata mismatch");
+  const artifact = normalizeSilverScriptArtifact(artifactInput);
+  assertKcc20ArtifactScriptHash(ARTIFACT_KEY, artifact);
+  if (artifact.contract_name !== "KCC20FeeEscrowV1" ||
+      artifact.state_layout?.start !== STATE_START || artifact.state_layout?.len !== STATE_LENGTH) {
+    throw new Error("unsupported fee escrow artifact layout");
+  }
+  const base = Uint8Array.from(artifact.script);
+  const prefix = base.slice(0, STATE_START);
+  const suffix = base.slice(STATE_START + STATE_LENGTH);
+  const hash = Array.from(templateHash(prefix, suffix), byte => byte.toString(16).padStart(2, "0")).join("");
+  if (hex32(state.self_template, "self_template") !== hash ||
+      natural(state.self_prefix, "self_prefix") !== BigInt(prefix.length) ||
+      natural(state.self_suffix, "self_suffix") !== BigInt(suffix.length)) {
+    throw new Error("fee escrow self-template mismatch");
+  }
+  const redeemScript = new Uint8Array(prefix.length + STATE_LENGTH + suffix.length);
+  redeemScript.set(prefix);
+  redeemScript.set(encodeState(state), prefix.length);
+  redeemScript.set(suffix, prefix.length + STATE_LENGTH);
+  const scriptHash = Array.from(blake2b(redeemScript, { dkLen: 32 }), byte => byte.toString(16).padStart(2, "0")).join("");
+  return {
+    redeemScript,
+    scriptHash,
+    scriptPublicKey: { version: 0 as const, scriptHex: `aa20${scriptHash}87` },
+    escrowTemplate: { hash, prefixLength: prefix.length, suffixLength: suffix.length },
+  };
+}
+
 /**
  * Check a receipt hint against the pinned program and a fresh node UTXO.
  * The caller must fetch `live` from a qualified canonical node, authenticate
@@ -189,6 +222,30 @@ export function verifyKcc20FeeAccountForClaim(input: {
   expected: { tokenId: string; marketId: string; policyId: string; accountId: string };
 }): { account: Kcc20FeeClaimAccount; redeemScript: Uint8Array;
       escrowTemplate: { hash: string; prefixLength: number; suffixLength: number } } {
+  return verifyFeeAccount(input, false);
+}
+
+/** Verify an unbound account before its one-time market binding. */
+export function verifyKcc20UnboundFeeAccountForBinding(input: {
+  artifact: unknown;
+  indexed: Kcc20IndexedFeeReceipt;
+  live: Kcc20LiveFeeReceiptUtxo;
+  expected: { tokenId: string; accountId: string };
+}): { account: Kcc20FeeClaimAccount; redeemScript: Uint8Array;
+      escrowTemplate: { hash: string; prefixLength: number; suffixLength: number } } {
+  return verifyFeeAccount({
+    ...input,
+    expected: { ...input.expected, marketId: ZERO, policyId: ZERO },
+  }, true);
+}
+
+function verifyFeeAccount(input: {
+  artifact: unknown;
+  indexed: Kcc20IndexedFeeReceipt;
+  live: Kcc20LiveFeeReceiptUtxo;
+  expected: { tokenId: string; marketId: string; policyId: string; accountId: string };
+}, requireUnbound: boolean): { account: Kcc20FeeClaimAccount; redeemScript: Uint8Array;
+      escrowTemplate: { hash: string; prefixLength: number; suffixLength: number } } {
   const artifactHash = Array.from(sha256(new TextEncoder().encode(JSON.stringify(input.artifact))),
     byte => byte.toString(16).padStart(2, "0")).join("");
   if (artifactHash !== ARTIFACT_CANONICAL_SHA256) throw new Error("fee account artifact metadata mismatch");
@@ -207,7 +264,10 @@ export function verifyKcc20FeeAccountForClaim(input: {
   const marketId = hex32(input.expected.marketId, "expected market");
   const policyId = hex32(input.expected.policyId, "expected policy");
   const accountId = hex32(input.expected.accountId, "expected account");
-  if ([tokenId, marketId, policyId, accountId].includes(ZERO)) throw new Error("invalid fee account identity");
+  if (tokenId === ZERO || accountId === ZERO ||
+      (requireUnbound ? (marketId !== ZERO || policyId !== ZERO) : (marketId === ZERO || policyId === ZERO))) {
+    throw new Error("invalid fee account identity");
+  }
   for (const [name, expected] of [["token", tokenId], ["market", marketId], ["policy", policyId]] as const) {
     if (hex32(state[name], name) !== expected) throw new Error(`fee account ${name} mismatch`);
   }
@@ -231,6 +291,9 @@ export function verifyKcc20FeeAccountForClaim(input: {
     throw new Error("invalid fee account guard state");
   }
   hex32(state.action_hash, "action_hash");
+  if (requireUnbound && (scheme !== 0 || state.action_hash !== ZERO)) {
+    throw new Error("unbound fee account must have its initial owner and action state");
+  }
   const selfHash = Array.from(templateHash(prefix, suffix), byte => byte.toString(16).padStart(2, "0")).join("");
   if (hex32(state.self_template, "self_template") !== selfHash ||
       natural(state.self_prefix, "self_prefix") !== BigInt(prefix.length) ||
