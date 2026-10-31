@@ -753,6 +753,7 @@ test("fee-market account rotation preserves principal and changes only its autho
     assert.equal(BigInt(json.outputs[0].value), f.accountEntry.amount);
     assert.equal(json.outputs[0].covenant.covenantId, "04".repeat(32));
     assert.deepEqual(built.signInputs, [{ index: 1, sighashType: 1 }]);
+    assert.equal(built.metadata.transfersAllUnclaimedEntitlements, true);
   }
 });
 

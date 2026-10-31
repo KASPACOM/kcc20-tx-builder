@@ -4950,6 +4950,7 @@ export function createKcc20PsktBuilderEngine(
           operation: "fee-market-rotate-account", network, walletAddress,
           tokenId, marketId, policyId, accountId, newOwner,
           newOwnerScheme: newScheme, accountOutputIndex: 0,
+          transfersAllUnclaimedEntitlements: true,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(),
             storage: storageMass.toString() } },
