@@ -574,6 +574,7 @@ export function createKcc20PsktBuilderEngine(
     "kcc20fee.cancel-bid": buildFeeMarketCancelBidPskt,
     "kcc20fee.buy-ask": buildFeeMarketBuyAskPskt,
     "kcc20fee.buy-two-asks": buildFeeMarketBuyTwoAsksPskt,
+    "kcc20fee.sell-into-bids": buildFeeMarketSellIntoBidsPskt,
     "kcc20fee.claim": buildFeeMarketClaimPskt,
     "kcc20fee.rotate-account": buildFeeMarketRotateAccountPskt,
     "kcc20wrapper.deploy-market": buildWrapperMarketDeployPskt,
@@ -4832,6 +4833,316 @@ export function createKcc20PsktBuilderEngine(
           grossSompi: legs.reduce((sum, leg) => sum + leg.gross, 0n).toString(),
           protocolFeeSompi: protocolTotal.toString(),
           creatorFeeSompi: creatorTotal.toString(), receiptOutputIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(), storage: storageMass.toString() } },
+      };
+    } finally { await rpc.disconnect(); }
+  }
+
+  async function buildFeeMarketSellIntoBidsPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const bids = params.bids;
+    if (!Array.isArray(bids) || bids.length < 1 || bids.length > 10) {
+      throw new Error("fee-market seller group requires one to ten bids");
+    }
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const seller = requireHex32(request.owner?.kcc20Owner, "seller");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, seller);
+    const source = params.holderUtxo;
+    if (!source || String(source.state?.mode) !== "0" ||
+        Number(source.state.owner_scheme) !== 0 ||
+        String(source.state.owner).toLowerCase() !== seller) {
+      throw new Error("current wallet-owned fee-market holder UTXO is required");
+    }
+    const holderAmount = parsePositiveU64(source.state.amount, "holder amount");
+    const kw = kaspaWasm;
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const sellerSpk = p2pkScriptPubKey(kw, seller);
+    const sellerScript = hexToBytes(String(sellerSpk.script));
+    const sellerPayoutBytes = new Uint8Array(11 + sellerScript.length);
+    sellerPayoutBytes[0] = 0xe3;
+    new DataView(sellerPayoutBytes.buffer).setUint16(1, Number(sellerSpk.version), true);
+    new DataView(sellerPayoutBytes.buffer).setBigUint64(3, BigInt(sellerScript.length), true);
+    sellerPayoutBytes.set(sellerScript, 11);
+    const sellerPayoutHash = bytesToHex(blake3(sellerPayoutBytes));
+    const artifacts = await readFeeMarketArtifacts();
+    const base = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId };
+    const policyId = prepareKcc20FeeMarketGenesis(base).policyId;
+    if (policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market seller group policy ID mismatch");
+    }
+    const holderPlan = prepareKcc20FeeMarketWrappedHolder({ ...base,
+      recipientOwner: seller, recipientOwnerScheme: 0,
+      recipientPayoutScriptHash: sellerPayoutHash, tokenAmount: holderAmount });
+    if (String(source.state.canonicalTokenId).toLowerCase() !== tokenId ||
+        String(source.state.feeTicketId).toLowerCase() !== feeTicketId ||
+        BigInt(source.state.priceScale ?? -1) !== priceScale ||
+        String(source.state.feePolicy).toLowerCase() !== holderPlan.holderState.feePolicy ||
+        String(source.state.wrapper_spk_hash).toLowerCase() !== holderPlan.wrapper.scriptHash ||
+        String(source.state.payout_script_hash).toLowerCase() !== sellerPayoutHash) {
+      throw new Error("fee-market seller holder differs from fixed policy or payout");
+    }
+    const holderAddress = requireKaspaAddress(source.address);
+    assertScriptAddress(kw, holderPlan.holder.redeemScript, holderAddress,
+      network, "fee-market seller holder address");
+    let sold = 0n;
+    const legs = bids.map((bid, slot) => {
+      const utxo = bid?.bidUtxo;
+      if (!utxo || String(utxo.state?.mode) !== "3") {
+        throw new Error(`fee-market bid ${slot} is not active`);
+      }
+      const amount = parsePositiveU64(utxo.state.amount, `bid ${slot} amount`);
+      const price = parsePositiveU64(utxo.state.unitPrice, `bid ${slot} unit price`);
+      const fill = parsePositiveU64(bid.fillAmount, `bid ${slot} fill amount`);
+      if (fill > amount) throw new Error(`bid ${slot} fill exceeds available tokens`);
+      const gross = exactGrossSompi(fill, price, priceScale, "fee-market seller fill");
+      if (gross < MIN_FILL_GROSS_SOMPI || gross > (1n << 63n) - 1n) {
+        throw new Error(`bid ${slot} fill gross is outside contract range`);
+      }
+      const remaining = amount - fill;
+      if (remaining > 0n && exactGrossSompi(remaining, price, priceScale,
+        "fee-market remaining bid") < MIN_FILL_GROSS_SOMPI) {
+        throw new Error(`bid ${slot} remainder is below 0.5 KAS`);
+      }
+      sold += fill;
+      const buyer = requireHex32(utxo.state.owner, `bid ${slot} buyer`);
+      const scheme = Number(utxo.state.owner_scheme);
+      if (!Number.isInteger(scheme) || scheme < 0 || scheme > 4) {
+        throw new Error(`bid ${slot} has an unsupported owner scheme`);
+      }
+      const payoutHash = requireHex32(utxo.state.payout_script_hash,
+        `bid ${slot} buyer payout hash`);
+      if (String(utxo.state.canonicalTokenId).toLowerCase() !== tokenId ||
+          String(utxo.state.feeTicketId).toLowerCase() !== feeTicketId ||
+          BigInt(utxo.state.priceScale ?? -1) !== priceScale ||
+          String(utxo.state.feePolicy).toLowerCase() !== holderPlan.holderState.feePolicy ||
+          String(utxo.state.wrapper_spk_hash).toLowerCase() !== holderPlan.wrapper.scriptHash) {
+        throw new Error(`bid ${slot} differs from fixed market policy`);
+      }
+      const bidScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid,
+        role: "bid", state: utxo.state });
+      const buyerPlan = prepareKcc20FeeMarketWrappedHolder({ ...base,
+        recipientOwner: buyer, recipientOwnerScheme: scheme,
+        recipientPayoutScriptHash: payoutHash, tokenAmount: fill });
+      const continuation = remaining > 0n
+        ? buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid,
+          role: "bid", state: { ...utxo.state, amount: remaining.toString() } })
+        : null;
+      const fee = calculateKcc20EscrowFees({ grossSompi: gross,
+        creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: false });
+      if (gross <= fee.totalFeeSompi) {
+        throw new Error(`bid ${slot} leaves no seller proceeds after fees`);
+      }
+      const address = requireKaspaAddress(utxo.address);
+      assertScriptAddress(kw, bidScript.redeemScript, address, network,
+        `fee-market bid ${slot} address`);
+      return { utxo, amount, fill, gross, remaining, buyerPlan, bidScript,
+        continuation, fee, address };
+    });
+    if (sold > holderAmount) throw new Error("seller group exceeds holder token amount");
+    const seenBids = new Set(legs.map(leg => `${leg.utxo.txidHex}:${leg.utxo.vout}`));
+    if (seenBids.size !== legs.length) throw new Error("seller group repeats a bid UTXO");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_TRADE_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [sourceUtxos, bidUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [holderAddress]),
+        getUtxosByAddresses(rpc, legs.map(leg => leg.address)),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const holderEntry = findUtxoEntry(sourceUtxos.entries,
+        requireHex32(source.txidHex, "holder txid"), parseVout(source.vout, "holder vout"));
+      if (!holderEntry) throw new Error("fee-market seller holder is spent or unavailable");
+      requireMatchingCovenantId(holderEntry, marketId, "fee-market seller holder");
+      const holderSpk = holderEntry.scriptPublicKey ?? holderEntry.entry?.scriptPublicKey ??
+        holderEntry.utxoEntry?.scriptPublicKey;
+      if (Number(holderSpk?.version) !== 0 ||
+          String(holderSpk?.script).toLowerCase() !== holderPlan.holder.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(holderEntry).toString() !== String(source.amountSompiExact)) {
+        throw new Error("fee-market seller holder differs from live node UTXO");
+      }
+      const bidEntries = legs.map((leg, slot) => {
+        const entry = findUtxoEntry(bidUtxos.entries,
+          requireHex32(leg.utxo.txidHex, `bid ${slot} txid`),
+          parseVout(leg.utxo.vout, `bid ${slot} vout`));
+        if (!entry) throw new Error(`fee-market bid ${slot} is spent or unavailable`);
+        requireMatchingCovenantId(entry, marketId, `fee-market bid ${slot}`);
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        if (Number(spk?.version) !== 0 ||
+            String(spk?.script).toLowerCase() !== leg.bidScript.scriptPublicKey.scriptHex ||
+            utxoAmountSompi(entry).toString() !== String(leg.utxo.amountSompiExact)) {
+          throw new Error(`fee-market bid ${slot} differs from live node UTXO`);
+        }
+        const originalGross = exactGrossSompi(leg.amount,
+          BigInt(leg.utxo.state.unitPrice), priceScale, "fee-market bid gross");
+        const deposit = utxoAmountSompi(entry) - originalGross;
+        if (deposit < MIN_FILL_GROSS_SOMPI || deposit > 200_000_000n) {
+          throw new Error(`fee-market bid ${slot} has an invalid locked deposit`);
+        }
+        return { entry, deposit };
+      });
+      const feeSlots = legs.map(leg => ({ protocolFeeSompi: leg.fee.protocolFeeSompi,
+        creatorFeeSompi: leg.fee.creatorFeeSompi }));
+      const protocolTotal = feeSlots.reduce((sum, fee) => sum + fee.protocolFeeSompi, 0n);
+      const creatorTotal = feeSlots.reduce((sum, fee) => sum + fee.creatorFeeSompi, 0n);
+      const feeTotal = protocolTotal + creatorTotal;
+      const vector = encodeKcc20FeeVector(feeSlots);
+      const groupHash = kcc20FeeGroupCommitment({ tokenId, marketId, policyId,
+        taker: seller, marketInputs: [holderEntry.outpoint,
+          ...bidEntries.map(({ entry }) => entry.outpoint)], feeSlots });
+      const receiptState = { role: "0", token: tokenId, market: marketId,
+        policy: policyId, protocol_account: params.feePolicy.protocolAccountId,
+        creator_account: params.feePolicy.creatorAccountId,
+        protocol_amount: protocolTotal.toString(), creator_amount: creatorTotal.toString(),
+        owner: ZERO_HASH, owner_scheme: 0, guard_template: ZERO_HASH,
+        guard_prefix: "0", guard_suffix: "0", action_hash: groupHash,
+        self_template: params.feePolicy.receiptTemplate.hash,
+        self_prefix: String(params.feePolicy.receiptTemplate.prefixLength),
+        self_suffix: String(params.feePolicy.receiptTemplate.suffixLength) };
+      const receipt = buildKcc20FeeEscrowScript(artifacts.receipt, receiptState);
+      const outputs = [];
+      const legIndexes = [];
+      for (let slot = 0; slot < legs.length; slot++) {
+        const leg = legs[slot];
+        const { entry, deposit } = bidEntries[slot];
+        const buyerIndex = outputs.length;
+        outputs.push(new TransactionOutput(leg.remaining > 0n ? 50_000_000n : deposit,
+          payToScriptHashScript(leg.buyerPlan.holder.redeemScript),
+          new CovenantBinding(0, new Hash(marketId))));
+        const continuationIndex = leg.continuation ? outputs.length : -1;
+        if (leg.continuation) {
+          const remainingGross = exactGrossSompi(leg.remaining,
+            BigInt(leg.utxo.state.unitPrice), priceScale, "fee-market bid continuation");
+          outputs.push(new TransactionOutput(remainingGross + deposit,
+            payToScriptHashScript(leg.continuation.redeemScript),
+            new CovenantBinding(slot + 1, new Hash(marketId))));
+        }
+        const sellerIndex = outputs.length;
+        outputs.push(new TransactionOutput(leg.gross - leg.fee.totalFeeSompi, sellerSpk));
+        legIndexes.push({ buyerIndex, continuationIndex, sellerIndex });
+      }
+      const holderRemainder = holderAmount - sold;
+      const changeIndex = holderRemainder > 0n ? outputs.length : -1;
+      if (holderRemainder > 0n) {
+        const change = prepareKcc20FeeMarketWrappedHolder({ ...base,
+          recipientOwner: seller, recipientOwnerScheme: 0,
+          recipientPayoutScriptHash: sellerPayoutHash, tokenAmount: holderRemainder });
+        outputs.push(new TransactionOutput(utxoAmountSompi(holderEntry),
+          payToScriptHashScript(change.holder.redeemScript),
+          new CovenantBinding(0, new Hash(marketId))));
+      }
+      const receiptOutputIndex = outputs.length;
+      outputs.push(new TransactionOutput(feeTotal,
+        payToScriptHashScript(receipt.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const refundIndex = holderRemainder === 0n ? outputs.length : -1;
+      if (refundIndex >= 0) {
+        outputs.push(new TransactionOutput(utxoAmountSompi(holderEntry), sellerSpk));
+      }
+      const covenantInputs = [holderEntry, ...bidEntries.map(({ entry }) => entry)];
+      const covenantSompi = covenantInputs.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n);
+      const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const fundingNeeded = outputSompi + priorityFee > covenantSompi
+        ? outputSompi + priorityFee - covenantSompi + 10_000n
+        : priorityFee + 10_000n;
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, fundingNeeded,
+        covenantInputs.map(entry => entry.outpoint), params.fundingOutpoint);
+      const fundingChange = covenantSompi + utxoAmountSompi(fundingEntry) - outputSompi - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("seller group funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: holderEntry.outpoint, utxo: holderEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 1000 },
+          ...bidEntries.map(({ entry }) => ({ previousOutpoint: entry.outpoint, utxo: entry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 100 })),
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      // Pinned signed consensus proof uses 394 units for ten-bid leader and
+      // 43 for each bid delegator. Leave more than 2x headroom per role.
+      setVersionOneInputMassFields(transaction, 1000);
+      for (let slot = 0; slot < legs.length; slot++) transaction.inputs[slot + 1].computeBudget = 100;
+      const fundingInputIndex = legs.length + 1;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market seller group");
+      const legBytes = new Uint8Array(legs.length * 32);
+      const view = new DataView(legBytes.buffer);
+      for (let slot = 0; slot < legs.length; slot++) {
+        const indexes = legIndexes[slot];
+        for (const [field, value] of [legs[slot].fill, indexes.buyerIndex,
+          indexes.continuationIndex < 0 ? 0 : indexes.continuationIndex,
+          indexes.sellerIndex].entries()) {
+          view.setBigInt64(slot * 32 + field * 8, BigInt(value), true);
+        }
+      }
+      const receiptParts = templateParts(normalizeSilverScriptArtifact(artifacts.receipt));
+      const scripts = [{ inputIndex: 0,
+        scriptHex: bytesToHex(holderPlan.holder.redeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: [
+          { type: "signature" }, i64TemplateArg(legs.length), dataTemplateArg(legBytes),
+          dataTemplateArg(vector), i64TemplateArg(-1), i64TemplateArg(receiptOutputIndex),
+          i64TemplateArg(changeIndex), i64TemplateArg(refundIndex), i64TemplateArg(-1),
+          dataTemplateArg(receiptParts.prefix), dataTemplateArg(receiptParts.suffix),
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "sellIntoBids")),
+        ] } }];
+      for (let slot = 0; slot < legs.length; slot++) {
+        const delegate = covenantScriptBuilder(kw);
+        for (const value of [0, slot, legs[slot].remaining,
+          legIndexes[slot].continuationIndex]) delegate.addI64(BigInt(value));
+        delegate.addData(dispatchTagFor(artifacts.bid, "delegateSellerGroup"));
+        transaction.inputs[slot + 1].signatureScript = encodeCovenantP2shSignatureScript(
+          delegate.drain(), legs[slot].bidScript.redeemScript);
+      }
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market seller group", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("seller group preflight serialization failed");
+          const predicted = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predicted.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predicted))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predicted));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market seller group");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market seller group");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market seller group exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.sell-into-bids",
+          operation: "fee-market-sell-into-bids", network, walletAddress,
+          tokenId, marketId, policyId, fillCount: legs.length,
+          soldAmount: sold.toString(),
+          grossSompi: legs.reduce((sum, leg) => sum + leg.gross, 0n).toString(),
+          protocolFeeSompi: protocolTotal.toString(),
+          creatorFeeSompi: creatorTotal.toString(), receiptOutputIndex,
+          sellerChangeIndex: changeIndex, sellerRefundIndex: refundIndex,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(), storage: storageMass.toString() } },
       };
