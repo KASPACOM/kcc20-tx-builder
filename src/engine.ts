@@ -82,6 +82,7 @@ import { buildKcc20InitialFeeAccount, planKcc20FeeAccountBinding } from "./escro
 import { prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding, prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk, prepareKcc20FeeMarketBid } from "./escrow-market-setup.js";
 import { buildKcc20FeeMarketRoleScript } from "./escrow-market-artifacts.js";
 import { calculateKcc20EscrowFees } from "./escrow-fee.js";
+import { kcc20CreatorFeeConsent } from "./escrow-policy.js";
 import { encodeKcc20FeeVector, kcc20FeeGroupCommitment } from "./escrow-group.js";
 import { buildKcc20FeeEscrowScript } from "./escrow-receipt.js";
 import { verifyKcc20FeeReceiptForClaim, verifyKcc20FeeAccountForClaim } from "./escrow-receipt.js";
@@ -3042,8 +3043,8 @@ export function createKcc20PsktBuilderEngine(
       DEFAULT_KCC20_PRICE_SCALE,
     ));
     const artifacts = await readFeeMarketArtifacts();
-    if (params.feePolicy?.creatorFeeBps !== 0) {
-      throw new Error("creator-fee genesis requires authenticated creator consent at market binding");
+    if (wrapperProfile === "argent" && params.feePolicy?.creatorFeeBps !== 0) {
+      throw new Error("Argent token profile cannot authorize creator fees");
     }
     const genesis = prepareKcc20FeeMarketGenesis({
       tokenId: contractCanonicalTokenId, feeTicketId, priceScale,
@@ -3068,6 +3069,26 @@ export function createKcc20PsktBuilderEngine(
     }
     assertScriptAddress(kaspaWasm, accountPlan.redeemScript,
       requireKaspaAddress(account.address), network, "protocol fee account address");
+    const creatorAccount = params.feePolicy.creatorFeeBps > 0 ? params.creatorAccount : null;
+    if (params.feePolicy.creatorFeeBps > 0 &&
+        (!creatorAccount || requireHex32(creatorAccount.accountId, "creator account ID") !==
+          params.feePolicy.creatorAccountId.toLowerCase())) {
+      throw new Error("creator fee account does not match immutable policy");
+    }
+    const creatorPlan = creatorAccount ? buildKcc20InitialFeeAccount({
+      artifact: artifacts.receipt, tokenId: contractCanonicalTokenId,
+      ownerSchnorrPublicKey: creatorAccount.state?.owner,
+      principalSompi: parseU64(creatorAccount.amountSompiExact, "creator account principal"),
+    }) : null;
+    if (creatorAccount) {
+      if (creatorAccount.scriptHashHex?.toLowerCase() !== creatorPlan.scriptHash ||
+          creatorAccount.state?.market !== ZERO_HASH ||
+          creatorAccount.state?.policy !== ZERO_HASH) {
+        throw new Error("creator fee account must be an authenticated unbound account");
+      }
+      assertScriptAddress(kaspaWasm, creatorPlan.redeemScript,
+        requireKaspaAddress(creatorAccount.address), network, "creator fee account address");
+    }
     const kw = kaspaWasm;
     const { Encoding, GenesisCovenantGroup, RpcClient, Transaction,
       TransactionOutput, covenantId, payToAddressScript, payToScriptHashScript } = kw;
@@ -3075,9 +3096,11 @@ export function createKcc20PsktBuilderEngine(
       encoding: Encoding.Borsh, networkId: network });
     await rpc.connect();
     try {
-      const [tokenUtxos, accountUtxos, walletUtxos] = await Promise.all([
+      const [tokenUtxos, accountUtxos, creatorUtxos, walletUtxos] = await Promise.all([
         getUtxosByAddresses(rpc, [requireKaspaAddress(evidence.address)]),
         getUtxosByAddresses(rpc, [requireKaspaAddress(account.address)]),
+        creatorAccount ? getUtxosByAddresses(rpc, [requireKaspaAddress(creatorAccount.address)])
+          : Promise.resolve({ entries: [] }),
         getUtxosByAddresses(rpc, [walletAddress]),
       ]);
       const tokenEntry = findUtxoEntry(tokenUtxos.entries,
@@ -3099,6 +3122,20 @@ export function createKcc20PsktBuilderEngine(
           String(accountSpk?.script).toLowerCase() !== accountPlan.scriptPublicKey.scriptHex ||
           utxoAmountSompi(accountEntry) !== accountPlan.amountSompi) {
         throw new Error("protocol fee account live UTXO differs from unbound account proof");
+      }
+      if (creatorAccount) {
+        const creatorEntry = findUtxoEntry(creatorUtxos.entries,
+          requireHex32(creatorAccount.txidHex, "creator account txid"),
+          parseVout(creatorAccount.vout, "creator account vout"));
+        if (!creatorEntry) throw new Error("creator fee account is spent or unavailable");
+        requireMatchingCovenantId(creatorEntry, creatorAccount.accountId, "creator fee account");
+        const creatorSpk = creatorEntry.scriptPublicKey ??
+          creatorEntry.entry?.scriptPublicKey ?? creatorEntry.utxoEntry?.scriptPublicKey;
+        if (Number(creatorSpk?.version) !== 0 ||
+            String(creatorSpk?.script).toLowerCase() !== creatorPlan.scriptPublicKey.scriptHex ||
+            utxoAmountSompi(creatorEntry) !== creatorPlan.amountSompi) {
+          throw new Error("creator fee account live UTXO differs from unbound account proof");
+        }
       }
       const fundingEntry = selectFundingEntry(walletUtxos.entries,
         principalSompi + priorityFee + 10_000n, [], params.fundingOutpoint);
@@ -3182,8 +3219,32 @@ export function createKcc20PsktBuilderEngine(
     if (wrapperProfile !== "native" && wrapperProfile !== "argent") {
       throw new Error("unsupported fee-market wrapper profile");
     }
+    let creatorConsentCommitment = null;
+    let creatorConsentOwner = null;
     if (params.feePolicy?.creatorFeeBps !== 0) {
-      throw new Error("creator-fee binding requires authenticated creator consent");
+      const evidence = params.creatorEvidence;
+      const approval = params.creatorConsent;
+      const creatorOwner = requireHex32(evidence?.creatorOwner, "verified creator owner");
+      if (evidence?.claimVerified !== true || evidence?.verificationStatus !== "verified" ||
+          evidence?.contractCanonicalTokenId !== tokenId ||
+          requireHex32(approval?.creatorOwner, "consenting creator owner") !== creatorOwner ||
+          requireHex32(params.creatorAccount?.accountId, "creator account ID") !==
+            requireHex32(params.feePolicy.creatorAccountId, "policy creator account ID")) {
+        throw new Error("creator fees require verified token creator evidence and the fixed fee account");
+      }
+      const signature = String(approval?.signature || "").toLowerCase();
+      if (!/^[0-9a-f]{128}$/.test(signature)) {
+        throw new Error("creator consent signature must be a 64-byte Schnorr signature");
+      }
+      const consent = kcc20CreatorFeeConsent({ tokenId, marketId, feeTicketId,
+        priceScale, policy: params.feePolicy });
+      if (typeof kaspaWasm.verifyMessage !== "function" ||
+          !kaspaWasm.verifyMessage({ message: consent.message,
+            signature, publicKey: creatorOwner })) {
+        throw new Error("creator consent does not authorize this exact market and fee policy");
+      }
+      creatorConsentCommitment = consent.commitment;
+      creatorConsentOwner = creatorOwner;
     }
     const principalSompi = parseU64(params.rootPrincipalSompi, "root principal");
     if (principalSompi < 50_000_000n) throw new Error("root principal is below 0.5 KAS");
@@ -3318,6 +3379,7 @@ export function createKcc20PsktBuilderEngine(
         metadata: {
           builderKey: "kcc20fee.bind-market", operation: "bind-fee-market",
           network, walletAddress, tokenId, marketId, policyId: plan.genesis.policyId,
+          creatorConsentCommitment, creatorConsentOwner,
           wrapperPrincipalSompi: utxoAmountSompi(wrapperEntry).toString(),
           rootPrincipalSompi: principalSompi.toString(),
           wrapperAddress: kw.addressFromScriptPublicKey(

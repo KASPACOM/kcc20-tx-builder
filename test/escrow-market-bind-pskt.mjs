@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 import * as kw from "../examples/vendor/kaspa/kaspa.js";
 import {
   buildKcc20InitialFeeAccount, buildKcc20ScriptForState,
-  createKcc20PsktBuilderEngine, prepareKcc20FeeMarketGenesis, templateParts,
+  createKcc20PsktBuilderEngine, kcc20CreatorFeeConsent,
+  prepareKcc20FeeMarketGenesis, templateParts,
 } from "../dist/index.js";
 
 kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
@@ -134,7 +135,43 @@ test("creator-fee binding remains closed until consent is authenticated", async 
   f.request.request.params.feePolicy = {
     ...policy, creatorFeeBps: 100, creatorAccountId: "05".repeat(32),
   };
-  await assert.rejects(f.engine.build(f.request), /creator-fee binding requires authenticated creator consent/);
+  await assert.rejects(f.engine.build(f.request), /verified creator owner/);
+});
+
+test("creator consent authorizes only the exact accepted market and policy", async () => {
+  const f = fixture();
+  const creatorPolicy = { ...policy, creatorFeeBps: 100,
+    creatorAccountId: "05".repeat(32) };
+  const creatorGenesis = prepareKcc20FeeMarketGenesis({ tokenId,
+    feeTicketId: "00".repeat(32), priceScale: 1n,
+    policy: creatorPolicy, wrapperProfile: "native", artifacts });
+  f.wrapperEntry.scriptPublicKey = kw.payToScriptHashScript(
+    creatorGenesis.wrapper.redeemScript);
+  const params = f.request.request.params;
+  params.feePolicy = creatorPolicy;
+  params.policyId = creatorGenesis.policyId;
+  params.creatorAccount = { accountId: creatorPolicy.creatorAccountId };
+  params.wrapperGenesisHint = { ...params.wrapperGenesisHint,
+    address: kw.addressFromScriptPublicKey(f.wrapperEntry.scriptPublicKey,
+      "testnet-10").toString(),
+    scriptHashHex: creatorGenesis.wrapper.scriptHash,
+    state: creatorGenesis.state };
+  params.creatorEvidence = { contractCanonicalTokenId: tokenId,
+    creatorOwner: owner, claimVerified: true, verificationStatus: "verified" };
+  const consent = kcc20CreatorFeeConsent({ tokenId, marketId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy: creatorPolicy });
+  params.creatorConsent = { creatorOwner: owner,
+    signature: kw.signMessage({ message: consent.message, privateKey: key }) };
+  const built = await f.engine.build(f.request);
+  assert.equal(built.metadata.creatorConsentCommitment, consent.commitment);
+  assert.equal(built.metadata.creatorConsentOwner, owner);
+  params.creatorConsent.signature = kw.signMessage({ message: "different market",
+    privateKey: key });
+  await assert.rejects(f.engine.build(f.request), /does not authorize this exact market/);
+  params.creatorConsent.signature = kw.signMessage({ message: consent.message,
+    privateKey: key });
+  params.creatorEvidence.claimVerified = false;
+  await assert.rejects(f.engine.build(f.request), /verified token creator evidence/);
 });
 
 test("fee-market genesis signs one disabled wrapper and fixes its KIP-20 ID", async () => {
@@ -222,4 +259,80 @@ test("fee-market genesis signs one disabled wrapper and fixes its KIP-20 ID", as
   const storageMass = engine.protocol.calculateToccataStorageMass(signed, "fee-market genesis");
   assert(transactionMass <= 450000n);
   assert(storageMass <= 450000n);
+});
+
+test("creator-fee genesis verifies both unbound accounts without spending them", async () => {
+  const native = JSON.parse(readFileSync(new URL("../artifacts/KCC20.placeholder.json", import.meta.url)));
+  const creatorPolicy = { ...policy, creatorFeeBps: 500,
+    creatorAccountId: "05".repeat(32) };
+  const tokenScript = buildKcc20ScriptForState(native, {
+    amount: 1n, owner: Buffer.from(owner, "hex"), ownerScheme: 0,
+    borrowScheme: 0, borrowGuard: new Uint8Array(32),
+    extensionCommitment: new Uint8Array(32),
+  });
+  const tokenSpk = kw.payToScriptHashScript(tokenScript);
+  const tokenAddress = kw.addressFromScriptPublicKey(tokenSpk, "testnet-10").toString();
+  const tokenEntry = { outpoint: { transactionId: "0c".repeat(32), index: 0 },
+    amount: 100000000n, scriptPublicKey: tokenSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId: tokenId };
+  const account = buildKcc20InitialFeeAccount({ artifact: artifacts.receipt,
+    tokenId, ownerSchnorrPublicKey: owner, principalSompi: 300000000n });
+  const accountSpk = kw.payToScriptHashScript(account.redeemScript);
+  const accountAddress = kw.addressFromScriptPublicKey(accountSpk,
+    "testnet-10").toString();
+  const accountEntry = (transactionId, covenantId) => ({
+    outpoint: { transactionId, index: 0 }, amount: 300000000n,
+    scriptPublicKey: accountSpk, blockDaaScore: 0n,
+    isCoinbase: false, covenantId,
+  });
+  const fundingEntry = { outpoint: { transactionId: "0e".repeat(32), index: 0 },
+    amount: 500000000n, scriptPublicKey: kw.payToAddressScript(wallet),
+    blockDaaScore: 0n, isCoinbase: false };
+  const genesis = prepareKcc20FeeMarketGenesis({ tokenId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy: creatorPolicy,
+    wrapperProfile: "native", artifacts });
+  const accountHint = (transactionId, accountId) => ({
+    accountId, txidHex: transactionId, vout: 0, address: accountAddress,
+    amountSompiExact: "300000000", scriptHashHex: account.scriptHash,
+    state: account.state,
+  });
+  const params = { canonicalCovenantId: tokenId,
+    feeTicketId: "00".repeat(32), priceScale: "1",
+    feePolicy: creatorPolicy, policyId: genesis.policyId,
+    wrapperPrincipalSompi: "100000000",
+    tokenUtxo: { txidHex: tokenEntry.outpoint.transactionId, vout: 0,
+      address: tokenAddress, state: { stateAmount: "1", owner,
+        ownerScheme: 0, borrowScheme: 0, borrowGuard: "00".repeat(32),
+        extensionCommitment: "00".repeat(32) } },
+    protocolAccount: accountHint("0d".repeat(32), policy.protocolAccountId),
+    creatorAccount: accountHint("0f".repeat(32), creatorPolicy.creatorAccountId),
+  };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: {
+    ...artifactMap, "KCC20.placeholder.json": native,
+  }, rpcClientFactory: () => ({
+    connect: async () => {}, disconnect: async () => {},
+    getUtxosByAddresses: async ({ addresses }) => ({ entries:
+      addresses.includes(tokenAddress) ? [tokenEntry]
+        : addresses.includes(accountAddress) ? [
+          accountEntry("0d".repeat(32), policy.protocolAccountId),
+          accountEntry("0f".repeat(32), creatorPolicy.creatorAccountId),
+        ] : [fundingEntry],
+    }),
+  }) });
+  const request = { schema: "kcc20-in-process-pskt-builder-input/v1", request: {
+    builderKey: "kcc20fee.deploy-market-genesis", network: "testnet-10",
+    owner: { walletAddress: wallet, kcc20Owner: owner }, params,
+  } };
+  const built = await engine.build(request);
+  const transaction = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  transaction.inputs[0].signatureScript = kw.createInputSignature(transaction, 0,
+    key, kw.SighashType.All);
+  assert.equal(transaction.inputs.length, 1);
+  assert.equal(transaction.inputs[0].previousOutpoint.transactionId,
+    fundingEntry.outpoint.transactionId);
+  assert.equal(transaction.outputs.length, 2);
+  assert(engine.protocol.calculateToccataV1NonContextualMass(transaction,
+    "creator genesis").transactionMass <= 450000n);
+  params.creatorAccount.txidHex = "ff".repeat(32);
+  await assert.rejects(engine.build(request), /creator fee account is spent or unavailable/);
 });
