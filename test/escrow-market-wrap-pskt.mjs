@@ -854,7 +854,9 @@ test("fee-market buyer group fills two asks with one receipt and exact refunds",
   f.request.request.params.asks = [f.askUtxo, secondAsk];
   const built = await engine.build(f.request);
   const json = JSON.parse(built.psktTransactionJson);
-  assert.equal(built.submitTransactionSupported, false);
+  assert.equal(built.submitTransactionSupported, true);
+  assert.equal(json.inputs[0].computeBudget, 1500);
+  assert.equal(json.inputs[1].computeBudget, 600);
   assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);
   assert.equal(json.outputs.length, 6);
   assert.equal(built.metadata.protocolFeeSompi, "100000000");
@@ -893,6 +895,9 @@ test("fee-market buyer group burns one ticket across both asks", async () => {
   const built = await engine.build(f.request);
   const json = JSON.parse(built.psktTransactionJson);
   assert.equal(built.metadata.fillCount, 2);
+  assert.equal(built.submitTransactionSupported, true);
+  assert.equal(json.inputs[1].computeBudget, 600);
+  assert.equal(json.inputs[2].computeBudget, 300);
   assert.equal(built.metadata.protocolFeeSompi, "0");
   assert.equal(built.metadata.receiptOutputIndex, -1);
   assert.equal(built.metadata.ticketInputIndex, 2);
