@@ -9,6 +9,7 @@ import {
   prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk,
   prepareKcc20FeeMarketBid, buildKcc20FeeEscrowScript, templateParts,
   kcc20CreatorFeeConsent, saleCommon,
+  isKcc20BuilderKey,
 } from "../dist/index.js";
 
 kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
@@ -323,6 +324,7 @@ function mergeFixture(count = 3) {
 
 test("creator-fee holders merge three UTXOs with exact deposit refund and signed mass", async () => {
   const f = mergeFixture(3);
+  assert.equal(isKcc20BuilderKey(f.request.request.builderKey), true);
   const built = await f.engine.build(f.request);
   const json = JSON.parse(built.psktTransactionJson);
   const refund = f.entries.reduce((sum, entry) => sum + entry.amount, 0n) - 50_000_000n;
