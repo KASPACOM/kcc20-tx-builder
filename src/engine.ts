@@ -4381,6 +4381,33 @@ export function createKcc20PsktBuilderEngine(
     }
   }
 
+  async function feeMarketTicketForTaker(params, owner, taker, network, feeTicketId) {
+    const ticketRequest = params.feeTicketUtxo || null;
+    if (!ticketRequest) return null;
+    if (feeTicketId === ZERO_HASH) {
+      throw new Error("a fee-market ticket waiver requires the bound FeeTicket root");
+    }
+    const state = kcc20FeeTicketStateFromUtxo(ticketRequest, owner);
+    if (state.mode !== 2 || bytesToHex(state.ownerIdentifier) !== taker) {
+      throw new Error("fee-market ticket must be owned by the taker wallet");
+    }
+    const address = requireKaspaAddress(ticketRequest.address);
+    const info = selectFeeTicketArtifactForState(await readFeeTicketArtifacts(),
+      state, address, network, "fee-market FeeTicket");
+    const pinned = templateParts(normalizeSilverScriptArtifact(info.artifact));
+    const expected = params.feePolicy.ticketTemplate;
+    if (bytesToHex(templateHash(pinned.prefix, pinned.suffix)) !==
+          requireHex32(expected?.hash, "ticket template") ||
+        pinned.prefix.length !== Number(expected?.prefixLength) ||
+        pinned.suffix.length !== Number(expected?.suffixLength)) {
+      throw new Error("fee-market ticket artifact differs from fixed policy");
+    }
+    return { ...info, state, address,
+      txid: requireHex32(ticketRequest.txidHex, "FeeTicket txid"),
+      vout: parseVout(ticketRequest.vout, "FeeTicket vout"),
+      amountSompiExact: String(ticketRequest.amountSompiExact) };
+  }
+
   async function buildFeeMarketBuyAskPskt(input) {
     const request = input.request || {};
     const params = request.params || {};
@@ -4410,6 +4437,8 @@ export function createKcc20PsktBuilderEngine(
     }
     const kw = kaspaWasm;
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const ticket = await feeMarketTicketForTaker(params, request.owner,
+      buyer, network, feeTicketId);
     const payoutHashForOwner = owner => {
       const spk = p2pkScriptPubKey(kw, owner);
       const script = hexToBytes(String(spk.script));
@@ -4471,7 +4500,7 @@ export function createKcc20PsktBuilderEngine(
       ? buildKcc20FeeMarketRoleScript({ artifact: artifacts.ask,
         role: "ask", state: remainingState }) : null;
     const fees = calculateKcc20EscrowFees({ grossSompi: gross,
-      creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: false });
+      creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: Boolean(ticket) });
     const vector = encodeKcc20FeeVector([{ protocolFeeSompi: fees.protocolFeeSompi,
       creatorFeeSompi: fees.creatorFeeSompi }]);
     const askAddress = requireKaspaAddress(askUtxo.address);
@@ -4486,8 +4515,10 @@ export function createKcc20PsktBuilderEngine(
       encoding: Encoding.Borsh, networkId: network });
     await rpc.connect();
     try {
-      const [askUtxos, walletUtxos] = await Promise.all([
-        getUtxosByAddresses(rpc, [askAddress]), getUtxosByAddresses(rpc, [walletAddress]),
+      const [askUtxos, ticketUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [askAddress]),
+        ticket ? getUtxosByAddresses(rpc, [ticket.address]) : Promise.resolve({ entries: [] }),
+        getUtxosByAddresses(rpc, [walletAddress]),
       ]);
       const askEntry = findUtxoEntry(askUtxos.entries,
         requireHex32(askUtxo.txidHex, "ask txid"), parseVout(askUtxo.vout, "ask vout"));
@@ -4500,10 +4531,25 @@ export function createKcc20PsktBuilderEngine(
           utxoAmountSompi(askEntry).toString() !== String(askUtxo.amountSompiExact)) {
         throw new Error("fee-market ask differs from live node UTXO");
       }
+      const ticketEntry = ticket ? findUtxoEntry(ticketUtxos.entries,
+        ticket.txid, ticket.vout) : null;
+      if (ticket) {
+        if (!ticketEntry) throw new Error("fee-market FeeTicket is spent or unavailable");
+        requireMatchingCovenantId(ticketEntry, feeTicketId, "fee-market FeeTicket");
+        const ticketSpk = ticketEntry.scriptPublicKey ?? ticketEntry.entry?.scriptPublicKey ??
+          ticketEntry.utxoEntry?.scriptPublicKey;
+        const expectedSpk = kw.payToScriptHashScript(ticket.script);
+        if (Number(ticketSpk?.version) !== Number(expectedSpk.version) ||
+            String(ticketSpk?.script).toLowerCase() !== String(expectedSpk.script).toLowerCase() ||
+            utxoAmountSompi(ticketEntry).toString() !== ticket.amountSompiExact) {
+          throw new Error("fee-market FeeTicket differs from live node UTXO");
+        }
+      }
       const groupHash = kcc20FeeGroupCommitment({ tokenId, marketId,
         policyId, taker: buyer, marketInputs: [askEntry.outpoint],
         feeSlots: [{ protocolFeeSompi: fees.protocolFeeSompi,
-          creatorFeeSompi: fees.creatorFeeSompi }] });
+          creatorFeeSompi: fees.creatorFeeSompi }],
+        ticketOutpoint: ticketEntry?.outpoint });
       const receiptState = { role: "0", token: tokenId, market: marketId,
         policy: policyId, protocol_account: params.feePolicy.protocolAccountId,
         creator_account: params.feePolicy.creatorAccountId,
@@ -4525,15 +4571,21 @@ export function createKcc20PsktBuilderEngine(
       const sellerOutputIndex = outputs.length;
       outputs.push(new TransactionOutput(gross + (remainingScript ? 0n : utxoAmountSompi(askEntry)),
         sellerPayout.spk));
-      const receiptOutputIndex = outputs.length;
-      outputs.push(new TransactionOutput(fees.totalFeeSompi,
+      const receiptOutputIndex = fees.totalFeeSompi > 0n ? outputs.length : -1;
+      if (receiptOutputIndex >= 0) outputs.push(new TransactionOutput(fees.totalFeeSompi,
         payToScriptHashScript(receipt.redeemScript),
         new CovenantBinding(0, new Hash(marketId))));
+      const ticketRefundIndex = ticketEntry ? outputs.length : -1;
+      if (ticketEntry) outputs.push(new TransactionOutput(utxoAmountSompi(ticketEntry),
+        payoutHashForOwner(buyer).spk));
       const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
-      const requiredFunding = outputSompi + priorityFee - utxoAmountSompi(askEntry) + 10_000n;
+      const covenantSompi = utxoAmountSompi(askEntry) +
+        (ticketEntry ? utxoAmountSompi(ticketEntry) : 0n);
+      const requiredFunding = outputSompi + priorityFee - covenantSompi + 10_000n;
       const fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding,
-        [askEntry.outpoint], params.fundingOutpoint);
-      const fundingChange = utxoAmountSompi(askEntry) + utxoAmountSompi(fundingEntry) -
+        ticketEntry ? [askEntry.outpoint, ticketEntry.outpoint] : [askEntry.outpoint],
+        params.fundingOutpoint);
+      const fundingChange = covenantSompi + utxoAmountSompi(fundingEntry) -
         outputSompi - priorityFee;
       if (fundingChange <= 10_000n) throw new Error("fee-market buy funding change is too small");
       const fundingChangeIndex = outputs.length;
@@ -4542,12 +4594,17 @@ export function createKcc20PsktBuilderEngine(
         inputs: [
           { previousOutpoint: askEntry.outpoint, utxo: askEntry,
             sequence: 0n, sigOpCount: 0, computeBudget: 1500 },
+          ...(ticketEntry ? [{ previousOutpoint: ticketEntry.outpoint, utxo: ticketEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 }] : []),
           { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
             sequence: 0n, sigOpCount: 0, computeBudget: 30 },
         ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
       });
       setVersionOneInputMassFields(transaction, 1500);
-      transaction.inputs[1].computeBudget = 30;
+      const ticketInputIndex = ticketEntry ? 1 : -1;
+      const fundingInputIndex = ticketEntry ? 2 : 1;
+      if (ticketEntry) transaction.inputs[ticketInputIndex].computeBudget = 300;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
       assertUniqueTransactionInputOutpoints(transaction, "fee-market buy ask");
       const legs = new Uint8Array(32);
       const legView = new DataView(legs.buffer);
@@ -4562,24 +4619,29 @@ export function createKcc20PsktBuilderEngine(
       prefix.addI64(1n);
       prefix.addData(legs);
       prefix.addData(vector);
-      for (const index of [-1, receiptOutputIndex, -1]) prefix.addI64(BigInt(index));
-      prefix.addData(receiptParts.prefix);
-      prefix.addData(receiptParts.suffix);
+      for (const index of [ticketInputIndex, receiptOutputIndex, ticketRefundIndex])
+        prefix.addI64(BigInt(index));
+      prefix.addData(fees.totalFeeSompi > 0n ? receiptParts.prefix : new Uint8Array());
+      prefix.addData(fees.totalFeeSompi > 0n ? receiptParts.suffix : new Uint8Array());
       prefix.addData(holderParts.prefix);
       prefix.addData(holderParts.suffix);
       prefix.addData(dispatchTagFor(artifacts.ask, "buyAsks"));
       transaction.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(
         prefix.drain(), askScript.redeemScript);
+      const scripts = ticketEntry ? [feeTicketBurnScriptHint(ticketInputIndex,
+        ticket.script, ticket.burnDispatchTag, ticketRefundIndex,
+        ticket.burnTakesRefundOutput)] : [];
       const feeResult = transactionWithPredictedSignedFeeChange(
         kw, transaction, fundingChangeIndex, network, "fee-market buy ask", candidate => {
           const serialized = candidate.serializeToSafeJSON();
           if (typeof serialized !== "string") throw new Error("buy ask preflight serialization failed");
           const predictedJson = JSON.parse(serialized);
-          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+          const predictedWithTicket = transactionJsonWithScriptHints(kw, predictedJson, scripts);
+          predictedWithTicket.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
             bytesToHex(dummySignatureBytes()));
           return typeof kw.Transaction.deserializeFromSafeJSON === "function"
-            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
-            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedWithTicket))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedWithTicket));
         });
       const signedMass = calculateToccataV1NonContextualMass(
         feeResult.predictedTransaction, "fee-market buy ask");
@@ -4594,7 +4656,7 @@ export function createKcc20PsktBuilderEngine(
       }
       return { schema: OUTPUT_SCHEMA,
         psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
-        signInputs: [{ index: 1, sighashType: 1 }], scripts: [],
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
         submitTransactionSupported: true,
         metadata: { builderKey: "kcc20fee.buy-ask", operation: "fee-market-buy-ask",
           network, walletAddress, tokenId, marketId, policyId,
@@ -4602,7 +4664,7 @@ export function createKcc20PsktBuilderEngine(
           protocolFeeSompi: fees.protocolFeeSompi.toString(),
           creatorFeeSompi: fees.creatorFeeSompi.toString(),
           buyerHolderOutputIndex: 0, askContinuationOutputIndex: remainingScript ? 1 : -1,
-          sellerOutputIndex, receiptOutputIndex,
+          sellerOutputIndex, receiptOutputIndex, ticketInputIndex, ticketRefundIndex,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(),
             storage: storageMass.toString() } },
@@ -4627,6 +4689,8 @@ export function createKcc20PsktBuilderEngine(
     const buyer = requireHex32(request.owner?.kcc20Owner, "buyer");
     assertFeeAccountSchnorrWalletOwner(walletAddress, buyer);
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const ticket = await feeMarketTicketForTaker(params, request.owner,
+      buyer, network, feeTicketId);
     const kw = kaspaWasm;
     const payoutSpk = p2pkScriptPubKey(kw, buyer);
     const payoutScript = hexToBytes(String(payoutSpk.script));
@@ -4683,7 +4747,7 @@ export function createKcc20PsktBuilderEngine(
       assertScriptAddress(kw, sellerPlan.ask.redeemScript, address,
         network, `fee-market ask ${index} address`);
       const fee = calculateKcc20EscrowFees({ grossSompi: gross,
-        creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: false });
+        creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: Boolean(ticket) });
       return { ask, amount, gross, sellerSpk, address, holder,
         askScript: sellerPlan.ask, fee };
     });
@@ -4699,8 +4763,9 @@ export function createKcc20PsktBuilderEngine(
       encoding: Encoding.Borsh, networkId: network });
     await rpc.connect();
     try {
-      const [sourceUtxos, walletUtxos] = await Promise.all([
+      const [sourceUtxos, ticketUtxos, walletUtxos] = await Promise.all([
         getUtxosByAddresses(rpc, legs.map(leg => leg.address)),
+        ticket ? getUtxosByAddresses(rpc, [ticket.address]) : Promise.resolve({ entries: [] }),
         getUtxosByAddresses(rpc, [walletAddress]),
       ]);
       const entries = legs.map((leg, index) => {
@@ -4718,6 +4783,20 @@ export function createKcc20PsktBuilderEngine(
         }
         return entry;
       });
+      const ticketEntry = ticket ? findUtxoEntry(ticketUtxos.entries,
+        ticket.txid, ticket.vout) : null;
+      if (ticket) {
+        if (!ticketEntry) throw new Error("fee-market FeeTicket is spent or unavailable");
+        requireMatchingCovenantId(ticketEntry, feeTicketId, "fee-market FeeTicket");
+        const ticketSpk = ticketEntry.scriptPublicKey ?? ticketEntry.entry?.scriptPublicKey ??
+          ticketEntry.utxoEntry?.scriptPublicKey;
+        const expectedSpk = kw.payToScriptHashScript(ticket.script);
+        if (Number(ticketSpk?.version) !== Number(expectedSpk.version) ||
+            String(ticketSpk?.script).toLowerCase() !== String(expectedSpk.script).toLowerCase() ||
+            utxoAmountSompi(ticketEntry).toString() !== ticket.amountSompiExact) {
+          throw new Error("fee-market FeeTicket differs from live node UTXO");
+        }
+      }
       const feeSlots = legs.map(leg => ({ protocolFeeSompi: leg.fee.protocolFeeSompi,
         creatorFeeSompi: leg.fee.creatorFeeSompi }));
       const protocolTotal = feeSlots.reduce((sum, fee) => sum + fee.protocolFeeSompi, 0n);
@@ -4725,7 +4804,8 @@ export function createKcc20PsktBuilderEngine(
       const feeTotal = protocolTotal + creatorTotal;
       const vector = encodeKcc20FeeVector(feeSlots);
       const groupHash = kcc20FeeGroupCommitment({ tokenId, marketId, policyId,
-        taker: buyer, marketInputs: entries.map(entry => entry.outpoint), feeSlots });
+        taker: buyer, marketInputs: entries.map(entry => entry.outpoint), feeSlots,
+        ticketOutpoint: ticketEntry?.outpoint });
       const receiptState = { role: "0", token: tokenId, market: marketId,
         policy: policyId, protocol_account: params.feePolicy.protocolAccountId,
         creator_account: params.feePolicy.creatorAccountId,
@@ -4745,15 +4825,20 @@ export function createKcc20PsktBuilderEngine(
         outputs.push(new TransactionOutput(leg.gross + utxoAmountSompi(entries[index]),
           leg.sellerSpk));
       }
-      const receiptOutputIndex = outputs.length;
-      outputs.push(new TransactionOutput(feeTotal,
+      const receiptOutputIndex = feeTotal > 0n ? outputs.length : -1;
+      if (receiptOutputIndex >= 0) outputs.push(new TransactionOutput(feeTotal,
         payToScriptHashScript(receipt.redeemScript),
         new CovenantBinding(0, new Hash(marketId))));
+      const ticketRefundIndex = ticketEntry ? outputs.length : -1;
+      if (ticketEntry) outputs.push(new TransactionOutput(utxoAmountSompi(ticketEntry),
+        payoutSpk));
       const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
-      const covenantInputSompi = entries.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n);
+      const covenantInputSompi = entries.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n) +
+        (ticketEntry ? utxoAmountSompi(ticketEntry) : 0n);
       const requiredFunding = outputSompi + priorityFee - covenantInputSompi + 10_000n;
       const fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding,
-        entries.map(entry => entry.outpoint), params.fundingOutpoint);
+        [...entries.map(entry => entry.outpoint),
+          ...(ticketEntry ? [ticketEntry.outpoint] : [])], params.fundingOutpoint);
       const fundingChange = covenantInputSompi + utxoAmountSompi(fundingEntry) -
         outputSompi - priorityFee;
       if (fundingChange <= 10_000n) throw new Error("buyer group funding change is too small");
@@ -4763,13 +4848,18 @@ export function createKcc20PsktBuilderEngine(
         inputs: [
           ...entries.map((entry, index) => ({ previousOutpoint: entry.outpoint, utxo: entry,
             sequence: 0n, sigOpCount: 0, computeBudget: index === 0 ? 1500 : 600 })),
+          ...(ticketEntry ? [{ previousOutpoint: ticketEntry.outpoint, utxo: ticketEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 }] : []),
           { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
             sequence: 0n, sigOpCount: 0, computeBudget: 30 },
         ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
       });
       setVersionOneInputMassFields(transaction, 1500);
       transaction.inputs[1].computeBudget = 600;
-      transaction.inputs[2].computeBudget = 30;
+      const ticketInputIndex = ticketEntry ? 2 : -1;
+      const fundingInputIndex = ticketEntry ? 3 : 2;
+      if (ticketEntry) transaction.inputs[ticketInputIndex].computeBudget = 300;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
       assertUniqueTransactionInputOutpoints(transaction, "fee-market buyer group");
       const legBytes = new Uint8Array(64);
       const view = new DataView(legBytes.buffer);
@@ -4787,9 +4877,10 @@ export function createKcc20PsktBuilderEngine(
       leader.addI64(2n);
       leader.addData(legBytes);
       leader.addData(vector);
-      for (const value of [-1, receiptOutputIndex, -1]) leader.addI64(BigInt(value));
-      leader.addData(receiptParts.prefix);
-      leader.addData(receiptParts.suffix);
+      for (const value of [ticketInputIndex, receiptOutputIndex, ticketRefundIndex])
+        leader.addI64(BigInt(value));
+      leader.addData(feeTotal > 0n ? receiptParts.prefix : new Uint8Array());
+      leader.addData(feeTotal > 0n ? receiptParts.suffix : new Uint8Array());
       leader.addData(holderParts.prefix);
       leader.addData(holderParts.suffix);
       leader.addData(dispatchTagFor(artifacts.ask, "buyAsks"));
@@ -4801,12 +4892,15 @@ export function createKcc20PsktBuilderEngine(
       follower.addData(dispatchTagFor(artifacts.ask, "delegateBuyerGroup"));
       transaction.inputs[1].signatureScript = encodeCovenantP2shSignatureScript(
         follower.drain(), legs[1].askScript.redeemScript);
+      const scripts = ticketEntry ? [feeTicketBurnScriptHint(ticketInputIndex,
+        ticket.script, ticket.burnDispatchTag, ticketRefundIndex,
+        ticket.burnTakesRefundOutput)] : [];
       const feeResult = transactionWithPredictedSignedFeeChange(
         kw, transaction, fundingChangeIndex, network, "fee-market buyer group", candidate => {
           const serialized = candidate.serializeToSafeJSON();
           if (typeof serialized !== "string") throw new Error("buyer group preflight serialization failed");
-          const predicted = JSON.parse(serialized);
-          predicted.inputs[2].signatureScript = encodeP2pkSignatureScript(
+          const predicted = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predicted.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
             bytesToHex(dummySignatureBytes()));
           return typeof kw.Transaction.deserializeFromSafeJSON === "function"
             ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predicted))
@@ -4825,7 +4919,7 @@ export function createKcc20PsktBuilderEngine(
       }
       return { schema: OUTPUT_SCHEMA,
         psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
-        signInputs: [{ index: 2, sighashType: 1 }], scripts: [],
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
         submitTransactionSupported: true,
         metadata: { builderKey: "kcc20fee.buy-two-asks",
           operation: "fee-market-buy-two-asks", network, walletAddress,
@@ -4833,6 +4927,7 @@ export function createKcc20PsktBuilderEngine(
           grossSompi: legs.reduce((sum, leg) => sum + leg.gross, 0n).toString(),
           protocolFeeSompi: protocolTotal.toString(),
           creatorFeeSompi: creatorTotal.toString(), receiptOutputIndex,
+          ticketInputIndex, ticketRefundIndex,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(), storage: storageMass.toString() } },
       };

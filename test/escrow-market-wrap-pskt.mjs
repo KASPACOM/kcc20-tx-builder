@@ -8,6 +8,7 @@ import {
   prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding,
   prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk,
   prepareKcc20FeeMarketBid, buildKcc20FeeEscrowScript, templateParts,
+  saleCommon,
 } from "../dist/index.js";
 
 kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
@@ -506,7 +507,11 @@ test("fee-market cancel bid refunds gross and the full 2 KAS deposit", async () 
   assert(storage <= 450000n);
 });
 
-function buyAskFixture(fillAmount = 5n) {
+function buyAskFixture(fillAmount = 5n, { useTicket = false,
+  creatorFeeBps = 0 } = {}) {
+  const ticketRoot = useTicket ? "06".repeat(32) : "00".repeat(32);
+  const marketPolicy = creatorFeeBps > 0 ? { ...policy, creatorFeeBps,
+    creatorAccountId: "07".repeat(32) } : policy;
   const sellerKey = new kw.PrivateKey("04".padStart(64, "0"));
   const seller = sellerKey.toKeypair().xOnlyPublicKey.toString();
   const sellerWallet = sellerKey.toAddress("testnet-10").toString();
@@ -519,7 +524,7 @@ function buyAskFixture(fillAmount = 5n) {
   sellerScript.copy(payoutBytes, 11);
   const sellerPayoutHash = hex(blake3(payoutBytes));
   const plan = prepareKcc20FeeMarketAsk({ tokenId, marketId,
-    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    feeTicketId: ticketRoot, priceScale: 1n, policy: marketPolicy,
     wrapperProfile: "native", artifacts, owner: seller,
     ownerScheme: 0, payoutScriptHash: sellerPayoutHash,
     holderAmount: 5n, askAmount: 5n, askUnitPrice: 100000000n });
@@ -533,24 +538,68 @@ function buyAskFixture(fillAmount = 5n) {
     blockDaaScore: 0n, isCoinbase: false };
   const askUtxo = { txidHex: askEntry.outpoint.transactionId, vout: 0,
     address: askAddress, amountSompiExact: "50000000",
-    state: { ...plan.askState, feePolicyVersion: 1, creatorFeeBps: 0 } };
+    state: { ...plan.askState, feePolicyVersion: 1, creatorFeeBps } };
   const genesis = prepareKcc20FeeMarketGenesis({ tokenId,
-    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    feeTicketId: ticketRoot, priceScale: 1n, policy: marketPolicy,
     wrapperProfile: "native", artifacts });
+  const ticket = useTicket ? (() => {
+    const utilityTokenId = "08".repeat(32);
+    const script = saleCommon.buildKcc20FeeTicketScriptForState(artifacts.ticket.script, {
+      ownerIdentifier: Buffer.from(owner, "hex"), ownerScheme: 0, mode: 2,
+      utilityTokenId: Buffer.from(utilityTokenId, "hex"), denomination: 1n,
+    });
+    const spk = kw.payToScriptHashScript(script);
+    const address = kw.addressFromScriptPublicKey(spk, "testnet-10").toString();
+    const entry = { outpoint: { transactionId: "aa".repeat(32), index: 0 },
+      amount: 100000000n, scriptPublicKey: spk, blockDaaScore: 0n,
+      isCoinbase: false, covenantId: ticketRoot };
+    const utxo = { txidHex: entry.outpoint.transactionId, vout: 0, address,
+      amountSompiExact: "100000000",
+      state: { stateOwner: owner, ownerScheme: 0, stateMode: 2,
+        utilityTokenId, denomination: "1" } };
+    return { entry, utxo };
+  })() : null;
   const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
     request: { builderKey: "kcc20fee.buy-ask", network: "testnet-10",
       owner: { walletAddress: wallet, kcc20Owner: owner },
       params: { marketId, contractCanonicalTokenId: tokenId,
-        feeTicketId: "00".repeat(32), priceScale: "1",
-        fillAmount: fillAmount.toString(), feePolicy: policy,
-        policyId: genesis.policyId, askUtxo } } };
+        feeTicketId: ticketRoot, priceScale: "1",
+        fillAmount: fillAmount.toString(), feePolicy: marketPolicy,
+        policyId: genesis.policyId, askUtxo,
+        ...(ticket ? { feeTicketUtxo: ticket.utxo } : {}) } } };
   const engine = createKcc20PsktBuilderEngine({ wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({ entries:
-        addresses.includes(wallet) ? [fundingEntry] : [askEntry] }) }) });
-  return { engine, request, askEntry, fundingEntry, askUtxo, plan, sellerWallet };
+        addresses.flatMap(address => address === wallet ? [fundingEntry] :
+          address === ticket?.utxo.address ? [ticket.entry] : [askEntry]) }) }) });
+  return { engine, request, askEntry, fundingEntry, askUtxo, plan,
+    sellerWallet, ticket, marketPolicy };
+}
+
+function signBuyerTicketBuild(built) {
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  for (const script of built.scripts) {
+    const args = new kw.ScriptBuilder();
+    let signature = Buffer.from(kw.createInputSignature(signed,
+      script.inputIndex, key, kw.SighashType.All), "hex");
+    if (signature.length === 66 && signature[0] === 0x41) signature = signature.subarray(1);
+    if (script.signatureScript.mode === "signature-first-args") args.addData(signature);
+    for (const arg of script.signatureScript.args) {
+      if (arg.type === "signature") args.addData(signature);
+      else if (arg.type === "i64") args.addI64(BigInt(arg.value));
+      else if (arg.type === "data") args.addData(Buffer.from(arg.hex, "hex"));
+      else throw new Error(`unsupported buyer ticket witness ${arg.type}`);
+    }
+    signed.inputs[script.inputIndex].signatureScript = kw.ScriptBuilder.fromScript(
+      Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
+    ).encodePayToScriptHashSignatureScript(args.drain());
+  }
+  const fundingIndex = built.signInputs[0].index;
+  signed.inputs[fundingIndex].signatureScript = kw.createInputSignature(
+    signed, fundingIndex, key, kw.SighashType.All);
+  return signed;
 }
 
 test("fee-market buyer fills an ask with one authenticated fee receipt", async () => {
@@ -572,6 +621,44 @@ test("fee-market buyer fills an ask with one authenticated fee receipt", async (
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market buy ask");
   assert(non.transactionMass <= 450000n);
   assert(storage <= 450000n);
+});
+
+test("fee-market buyer burns one ticket and receives its exact deposit refund", async () => {
+  const f = buyAskFixture(5n, { useTicket: true });
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(built.metadata.protocolFeeSompi, "0");
+  assert.equal(built.metadata.creatorFeeSompi, "0");
+  assert.equal(built.metadata.receiptOutputIndex, -1);
+  assert.equal(built.metadata.ticketInputIndex, 1);
+  assert.equal(built.metadata.ticketRefundIndex, 2);
+  assert.equal(BigInt(json.outputs[2].value), f.ticket.entry.amount);
+  assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);
+  const signed = signBuyerTicketBuild(built);
+  const mass = f.engine.protocol.calculateToccataV1NonContextualMass(signed,
+    "fee-market ticket buy");
+  const storage = f.engine.protocol.calculateToccataStorageMass(signed,
+    "fee-market ticket buy");
+  assert(mass.computeMass <= 450000n);
+  assert(mass.transientMass <= 900000n);
+  assert(storage <= 450000n);
+});
+
+test("fee-market buyer ticket waives protocol fees while preserving creator fees", async () => {
+  const f = buyAskFixture(5n, { useTicket: true, creatorFeeBps: 500 });
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(built.metadata.protocolFeeSompi, "0");
+  assert.equal(built.metadata.creatorFeeSompi, "50000000");
+  assert.equal(BigInt(json.outputs[built.metadata.receiptOutputIndex].value), 50000000n);
+  assert.equal(BigInt(json.outputs[built.metadata.ticketRefundIndex].value),
+    f.ticket.entry.amount);
+});
+
+test("fee-market buyer rejects a ticket from another root", async () => {
+  const f = buyAskFixture(5n, { useTicket: true });
+  f.ticket.entry.covenantId = "ff".repeat(32);
+  await assert.rejects(f.engine.build(f.request), /covenant ID|FeeTicket/);
 });
 
 test("fee-market buyer group fills two asks with one receipt and exact refunds", async () => {
@@ -604,6 +691,40 @@ test("fee-market buyer group fills two asks with one receipt and exact refunds",
   signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
   const mass = engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market two asks");
   const storage = engine.protocol.calculateToccataStorageMass(signed, "fee-market two asks");
+  assert(mass.computeMass <= 450000n);
+  assert(mass.transientMass <= 900000n);
+  assert(storage <= 450000n);
+});
+
+test("fee-market buyer group burns one ticket across both asks", async () => {
+  const f = buyAskFixture(5n, { useTicket: true });
+  const secondEntry = { ...f.askEntry,
+    outpoint: { transactionId: "1c".repeat(32), index: 0 } };
+  const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+      "ArgentKCC20.reference.json": argent },
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.flatMap(address => address === wallet ? [f.fundingEntry] :
+          address === f.ticket.utxo.address ? [f.ticket.entry] :
+            [f.askEntry, secondEntry]) }) }) });
+  f.request.request.builderKey = "kcc20fee.buy-two-asks";
+  f.request.request.params.asks = [f.askUtxo, secondAsk];
+  const built = await engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(built.metadata.fillCount, 2);
+  assert.equal(built.metadata.protocolFeeSompi, "0");
+  assert.equal(built.metadata.receiptOutputIndex, -1);
+  assert.equal(built.metadata.ticketInputIndex, 2);
+  assert.equal(built.metadata.ticketRefundIndex, 4);
+  assert.equal(BigInt(json.outputs[4].value), f.ticket.entry.amount);
+  assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
+  const signed = signBuyerTicketBuild(built);
+  const mass = engine.protocol.calculateToccataV1NonContextualMass(signed,
+    "fee-market ticket buyer group");
+  const storage = engine.protocol.calculateToccataStorageMass(signed,
+    "fee-market ticket buyer group");
   assert(mass.computeMass <= 450000n);
   assert(mass.transientMass <= 900000n);
   assert(storage <= 450000n);
