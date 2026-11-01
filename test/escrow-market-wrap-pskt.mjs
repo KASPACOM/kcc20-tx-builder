@@ -165,7 +165,9 @@ test("fee-market final wrap has no native holder change output", async () => {
   assert.equal(json.outputs[3].covenant, null);
 });
 
-function unwrapFixture(unwrapAmount = 10n) {
+function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0) {
+  const marketPolicy = creatorFeeBps > 0 ? { ...policy, creatorFeeBps,
+    creatorAccountId: "07".repeat(32) } : policy;
   const payoutSpk = kw.payToAddressScript(wallet);
   const payoutScript = Buffer.from(String(payoutSpk.script), "hex");
   const payoutSerialized = Buffer.alloc(11 + payoutScript.length);
@@ -175,7 +177,7 @@ function unwrapFixture(unwrapAmount = 10n) {
   payoutScript.copy(payoutSerialized, 11);
   const holder = prepareKcc20FeeMarketWrappedHolder({
     tokenId, marketId, feeTicketId: "00".repeat(32), priceScale: 1n,
-    policy, wrapperProfile: "native", artifacts, recipientOwner: owner,
+    policy: marketPolicy, wrapperProfile: "native", artifacts, recipientOwner: owner,
     recipientOwnerScheme: 0, recipientPayoutScriptHash: hex(blake3(payoutSerialized)),
     tokenAmount: 10n,
   });
@@ -212,14 +214,14 @@ function unwrapFixture(unwrapAmount = 10n) {
   const wrapperUtxo = { txidHex: wrapperEntry.outpoint.transactionId, vout: 0,
     address: wrapperAddress, amountSompiExact: "50000000" };
   const genesis = prepareKcc20FeeMarketGenesis({ tokenId,
-    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy: marketPolicy,
     wrapperProfile: "native", artifacts });
   const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
     request: { builderKey: "kcc20fee.unwrap", network: "testnet-10",
       owner: { walletAddress: wallet, kcc20Owner: owner },
       params: { marketId, contractCanonicalTokenId: tokenId,
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: unwrapAmount.toString(),
-        feePolicy: policy, policyId: genesis.policyId,
+        feePolicy: marketPolicy, policyId: genesis.policyId,
         wrappedUtxo, reserveUtxo, wrapperUtxo } } };
   const engine = createKcc20PsktBuilderEngine({ wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
@@ -269,6 +271,39 @@ test("fee-market full unwrap returns the exact holder deposit and native reserve
     f.wrapperEntry.amount + f.fundingEntry.amount -
     json.outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
   assert(paidFee >= (transactionMass > storageMass ? transactionMass : storageMass) * 100n);
+});
+
+test("creator-fee market unwrap conserves reserve and deposit under its fixed policy", async () => {
+  const f = unwrapFixture(10n, 500);
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(json.outputs[0].covenant.covenantId, tokenId);
+  assert.equal(BigInt(json.outputs[0].value), f.reserveEntry.amount);
+  assert.equal(BigInt(json.outputs[1].value), f.wrappedEntry.amount);
+  assert.equal(BigInt(json.outputs[2].value), f.wrapperEntry.amount);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  const script = built.scripts[0];
+  let signature = Buffer.from(kw.createInputSignature(signed, 0, key,
+    kw.SighashType.All), "hex");
+  if (signature.length === 66 && signature[0] === 0x41) signature = signature.subarray(1);
+  const args = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
+  for (const arg of script.signatureScript.args) {
+    if (arg.type === "data") args.addData(Buffer.from(arg.hex, "hex"));
+    else if (arg.type === "i64") args.addI64(BigInt(arg.value));
+    else if (arg.type === "signature") args.addData(signature);
+    else throw new Error(`unsupported holder argument ${arg.type}`);
+  }
+  signed.inputs[0].signatureScript = kw.ScriptBuilder.fromScript(
+    Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
+  ).encodePayToScriptHashSignatureScript(args.drain());
+  signed.inputs[3].signatureScript = kw.createInputSignature(signed, 3, key,
+    kw.SighashType.All);
+  const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(
+    signed, "creator-fee unwrap");
+  const storageMass = f.engine.protocol.calculateToccataStorageMass(signed,
+    "creator-fee unwrap");
+  assert(transactionMass <= 450000n);
+  assert(storageMass <= 450000n);
 });
 
 test("fee-market partial unwrap preserves both reserve and wrapped holder deposits", async () => {

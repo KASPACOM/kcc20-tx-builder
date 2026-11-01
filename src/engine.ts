@@ -3640,9 +3640,6 @@ export function createKcc20PsktBuilderEngine(
     if (tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
       throw new Error("fee-market unwrap for this token profile needs its signed witness proof");
     }
-    if (params.feePolicy?.creatorFeeBps !== 0) {
-      throw new Error("creator-fee unwrap awaits authenticated market policy support");
-    }
     const kw = kaspaWasm;
     const payoutSpk = p2pkScriptPubKey(kw, recipientOwner);
     const payoutScript = hexToBytes(String(payoutSpk.script));
