@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { planTokenOwnerWitness } from "./token-authorization.js";
 import { sha256 } from "@noble/hashes/sha256";
+import { blake3 } from "@noble/hashes/blake3";
 import {
   authenticateTokenArtifact,
   authenticateTokenWrapper,
@@ -78,6 +79,14 @@ import {
 } from "./abi.js";
 import { KCC20_BUILDER_KEYS } from "./operations.js";
 import { buildKcc20InitialFeeAccount, planKcc20FeeAccountBinding } from "./escrow-account-setup.js";
+import { prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding, prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk, prepareKcc20FeeMarketBid } from "./escrow-market-setup.js";
+import { buildKcc20FeeMarketRoleScript } from "./escrow-market-artifacts.js";
+import { calculateKcc20EscrowFees } from "./escrow-fee.js";
+import { kcc20CreatorFeeConsent } from "./escrow-policy.js";
+import { encodeKcc20FeeVector, kcc20FeeGroupCommitment } from "./escrow-group.js";
+import { buildKcc20FeeEscrowScript } from "./escrow-receipt.js";
+import { verifyKcc20FeeReceiptForClaim, verifyKcc20FeeAccountForClaim } from "./escrow-receipt.js";
+import { planKcc20FeeClaimTransition } from "./escrow-claim-plan.js";
 import { createKcc20SnapshotPsktBuilder } from "./snapshot-operation.js";
 import { splitKcc20MintSupply } from "./protocol.js";
 import { buildKcc20DeployIntentOutputs } from "./deploy-receipt.js";
@@ -556,6 +565,20 @@ export function createKcc20PsktBuilderEngine(
     "fee-ticket.transfer": buildFeeTicketTransferPskt,
     "kcc20fee.create-account": buildFeeAccountCreatePskt,
     "kcc20fee.bind-account": buildFeeAccountBindPskt,
+    "kcc20fee.deploy-market-genesis": buildFeeMarketGenesisPskt,
+    "kcc20fee.bind-market": buildFeeMarketBindPskt,
+    "kcc20fee.wrap": buildFeeMarketWrapPskt,
+    "kcc20fee.unwrap": buildFeeMarketUnwrapPskt,
+    "kcc20fee.merge-holders": buildFeeMarketMergeHoldersPskt,
+    "kcc20fee.create-ask": buildFeeMarketCreateAskPskt,
+    "kcc20fee.cancel-ask": buildFeeMarketCancelAskPskt,
+    "kcc20fee.create-bid": buildFeeMarketCreateBidPskt,
+    "kcc20fee.cancel-bid": buildFeeMarketCancelBidPskt,
+    "kcc20fee.buy-ask": buildFeeMarketBuyAskPskt,
+    "kcc20fee.buy-two-asks": buildFeeMarketBuyTwoAsksPskt,
+    "kcc20fee.sell-into-bids": buildFeeMarketSellIntoBidsPskt,
+    "kcc20fee.claim": buildFeeMarketClaimPskt,
+    "kcc20fee.rotate-account": buildFeeMarketRotateAccountPskt,
     "kcc20wrapper.deploy-market": buildWrapperMarketDeployPskt,
     "kcc20wrapper.wrap": buildWrapperWrapPskt,
     "kcc20wrapper.unwrap": buildWrapperUnwrapPskt,
@@ -2929,6 +2952,2969 @@ export function createKcc20PsktBuilderEngine(
     );
     applyDummyFeeTicketAndFundingSignatures(kw, predicted, details);
     return predicted;
+  }
+
+  async function readFeeMarketArtifacts() {
+    const names = {
+      receipt: "KCC20FeeEscrowV1", root: "KCC20OrderbookFeeRootV1",
+      holder: "KCC20OrderbookFeeHolderV1", ask: "KCC20OrderbookFeeAskV1",
+      bid: "KCC20OrderbookFeeBidV1", ticket: "KCC20FeeTicket",
+      wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV1",
+    };
+    const entries = await Promise.all(Object.entries(names).map(async ([role, name]) => {
+      const key = `${name}.placeholder.json`;
+      const supplied = options.artifacts?.[key] ?? await options.artifactProvider?.(key);
+      const artifact = supplied?.artifact ?? supplied;
+      if (!artifact) throw new Error(`missing pinned ${name} artifact`);
+      return [role, artifact];
+    }));
+    return Object.fromEntries(entries);
+  }
+
+  function addFeeMarketWrapperState(builder, state) {
+    builder.addData(hexToBytes(state.canonicalTokenId));
+    addExplicitByte(builder, state.enabled ? 1 : 0);
+    builder.addI64(BigInt(state.priceScale));
+    builder.addData(hexToBytes(state.feeTicketId));
+    builder.addData(hexToBytes(state.feePolicy));
+    builder.addData(hexToBytes(state.authenticatedMarketId));
+  }
+
+  function addFeeMarketRoleState(builder, state) {
+    builder.addData(hexToBytes(state.canonicalTokenId));
+    builder.addData(hexToBytes(state.owner));
+    addExplicitByte(builder, state.owner_scheme);
+    for (const value of [state.amount, state.mode, state.unitPrice]) {
+      builder.addI64(BigInt(value));
+    }
+    builder.addData(hexToBytes(state.feeTicketId));
+    builder.addI64(BigInt(state.priceScale));
+    builder.addData(hexToBytes(state.feePolicy));
+    builder.addData(hexToBytes(state.payout_script_hash));
+    builder.addData(hexToBytes(state.wrapper_spk_hash));
+  }
+
+  function feeAccountStateTemplateArgs(state) {
+    return [i64TemplateArg(state.role),
+      ...[state.token, state.market, state.policy,
+        state.protocol_account, state.creator_account].map(value =>
+        dataTemplateArg(hexToBytes(value))),
+      i64TemplateArg(state.protocol_amount),
+      i64TemplateArg(state.creator_amount),
+      dataTemplateArg(hexToBytes(state.owner)),
+      byteTemplateArg(state.owner_scheme),
+      dataTemplateArg(hexToBytes(state.guard_template)),
+      i64TemplateArg(state.guard_prefix),
+      i64TemplateArg(state.guard_suffix),
+      dataTemplateArg(hexToBytes(state.action_hash)),
+      dataTemplateArg(hexToBytes(state.self_template)),
+      i64TemplateArg(state.self_prefix),
+      i64TemplateArg(state.self_suffix),
+    ];
+  }
+
+  async function buildFeeMarketGenesisPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const { appCanonicalTokenId, contractCanonicalTokenId } =
+      resolveWrapperMarketDeployTokenIds(params);
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "fee ticket id");
+    const principalSompi = parseU64(params.wrapperPrincipalSompi, "wrapper principal");
+    if (principalSompi < 50_000_000n) throw new Error("wrapper principal is below 0.5 KAS");
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_PRIORITY_FEE_SOMPI || DEFAULT_WRAPPER_DEPLOY_PRIORITY_FEE.toString(),
+      "priorityFee",
+    );
+    const evidence = params.tokenUtxo;
+    if (!evidence) throw new Error("authenticated token output is required before fee-market genesis");
+    const sourceState = kcc20StateFromUtxo(evidence, request.owner);
+    const sourceProfile = await resolveKcc20ArtifactForState(
+      sourceState, requireKaspaAddress(evidence.address), network,
+    );
+    requireTokenCapability(sourceProfile.profile, "wrap");
+    const wrapperProfile = sourceProfile.profile.id === "argent-reference-kcc20-v1" ? "argent" : "native";
+    if (wrapperProfile === "native" && sourceProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
+      throw new Error("unsupported fee-market token profile");
+    }
+    const priceScale = BigInt(resolveTokenProfilePriceScale(
+      sourceProfile.profile,
+      params.priceScale === undefined ? undefined : parsePositiveU64(params.priceScale, "priceScale"),
+      DEFAULT_KCC20_PRICE_SCALE,
+    ));
+    const artifacts = await readFeeMarketArtifacts();
+    if (wrapperProfile === "argent" && params.feePolicy?.creatorFeeBps !== 0) {
+      throw new Error("Argent token profile cannot authorize creator fees");
+    }
+    const genesis = prepareKcc20FeeMarketGenesis({
+      tokenId: contractCanonicalTokenId, feeTicketId, priceScale,
+      policy: params.feePolicy, wrapperProfile, artifacts,
+    });
+    if (genesis.policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market policy ID differs from authenticated policy");
+    }
+    const account = params.protocolAccount;
+    if (!account || requireHex32(account.accountId, "protocol account ID") !==
+        params.feePolicy.protocolAccountId.toLowerCase()) {
+      throw new Error("protocol fee account does not match immutable policy");
+    }
+    const accountPlan = buildKcc20InitialFeeAccount({
+      artifact: artifacts.receipt, tokenId: contractCanonicalTokenId,
+      ownerSchnorrPublicKey: account.state?.owner,
+      principalSompi: parseU64(account.amountSompiExact, "protocol account principal"),
+    });
+    if (account.scriptHashHex?.toLowerCase() !== accountPlan.scriptHash ||
+        account.state?.market !== ZERO_HASH || account.state?.policy !== ZERO_HASH) {
+      throw new Error("protocol fee account must be an authenticated unbound account");
+    }
+    assertScriptAddress(kaspaWasm, accountPlan.redeemScript,
+      requireKaspaAddress(account.address), network, "protocol fee account address");
+    const creatorAccount = params.feePolicy.creatorFeeBps > 0 ? params.creatorAccount : null;
+    if (params.feePolicy.creatorFeeBps > 0 &&
+        (!creatorAccount || requireHex32(creatorAccount.accountId, "creator account ID") !==
+          params.feePolicy.creatorAccountId.toLowerCase())) {
+      throw new Error("creator fee account does not match immutable policy");
+    }
+    const creatorPlan = creatorAccount ? buildKcc20InitialFeeAccount({
+      artifact: artifacts.receipt, tokenId: contractCanonicalTokenId,
+      ownerSchnorrPublicKey: creatorAccount.state?.owner,
+      principalSompi: parseU64(creatorAccount.amountSompiExact, "creator account principal"),
+    }) : null;
+    if (creatorAccount) {
+      if (creatorAccount.scriptHashHex?.toLowerCase() !== creatorPlan.scriptHash ||
+          creatorAccount.state?.market !== ZERO_HASH ||
+          creatorAccount.state?.policy !== ZERO_HASH) {
+        throw new Error("creator fee account must be an authenticated unbound account");
+      }
+      assertScriptAddress(kaspaWasm, creatorPlan.redeemScript,
+        requireKaspaAddress(creatorAccount.address), network, "creator fee account address");
+    }
+    const kw = kaspaWasm;
+    const { Encoding, GenesisCovenantGroup, RpcClient, Transaction,
+      TransactionOutput, covenantId, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [tokenUtxos, accountUtxos, creatorUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [requireKaspaAddress(evidence.address)]),
+        getUtxosByAddresses(rpc, [requireKaspaAddress(account.address)]),
+        creatorAccount ? getUtxosByAddresses(rpc, [requireKaspaAddress(creatorAccount.address)])
+          : Promise.resolve({ entries: [] }),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const tokenEntry = findUtxoEntry(tokenUtxos.entries,
+        requireHex32(evidence.txidHex, "token evidence txid"), parseVout(evidence.vout, "token evidence vout"));
+      if (!tokenEntry) throw new Error("token evidence is spent or unavailable");
+      requireMatchingCovenantId(tokenEntry, contractCanonicalTokenId, "fee-market token evidence");
+      const tokenSpk = tokenEntry.scriptPublicKey ??
+        tokenEntry.entry?.scriptPublicKey ?? tokenEntry.utxoEntry?.scriptPublicKey;
+      if (!tokenSpk || kw.addressFromScriptPublicKey(tokenSpk, network)?.toString() !== evidence.address) {
+        throw new Error("fee-market token evidence script differs from live RPC");
+      }
+      const accountEntry = findUtxoEntry(accountUtxos.entries,
+        requireHex32(account.txidHex, "protocol account txid"), parseVout(account.vout, "protocol account vout"));
+      if (!accountEntry) throw new Error("protocol fee account is spent or unavailable");
+      requireMatchingCovenantId(accountEntry, account.accountId, "protocol fee account");
+      const accountSpk = accountEntry.scriptPublicKey ??
+        accountEntry.entry?.scriptPublicKey ?? accountEntry.utxoEntry?.scriptPublicKey;
+      if (Number(accountSpk?.version) !== 0 ||
+          String(accountSpk?.script).toLowerCase() !== accountPlan.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(accountEntry) !== accountPlan.amountSompi) {
+        throw new Error("protocol fee account live UTXO differs from unbound account proof");
+      }
+      if (creatorAccount) {
+        const creatorEntry = findUtxoEntry(creatorUtxos.entries,
+          requireHex32(creatorAccount.txidHex, "creator account txid"),
+          parseVout(creatorAccount.vout, "creator account vout"));
+        if (!creatorEntry) throw new Error("creator fee account is spent or unavailable");
+        requireMatchingCovenantId(creatorEntry, creatorAccount.accountId, "creator fee account");
+        const creatorSpk = creatorEntry.scriptPublicKey ??
+          creatorEntry.entry?.scriptPublicKey ?? creatorEntry.utxoEntry?.scriptPublicKey;
+        if (Number(creatorSpk?.version) !== 0 ||
+            String(creatorSpk?.script).toLowerCase() !== creatorPlan.scriptPublicKey.scriptHex ||
+            utxoAmountSompi(creatorEntry) !== creatorPlan.amountSompi) {
+          throw new Error("creator fee account live UTXO differs from unbound account proof");
+        }
+      }
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        principalSompi + priorityFee + 10_000n, [], params.fundingOutpoint);
+      const fundingAmount = utxoAmountSompi(fundingEntry);
+      const change = fundingAmount - principalSompi - priorityFee;
+      if (change <= 10_000n) throw new Error("fee-market genesis funding change is too small");
+      const transaction = new Transaction({
+        version: 1, lockTime: 0n,
+        inputs: [{ previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+          sequence: 0n, sigOpCount: 0, computeBudget: 30 }],
+        outputs: [
+          new TransactionOutput(principalSompi, payToScriptHashScript(genesis.wrapper.redeemScript)),
+          new TransactionOutput(change, payToAddressScript(walletAddress)),
+        ],
+        subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 30);
+      transaction.populateGenesisCovenants([new GenesisCovenantGroup(0, [0])]);
+      transaction.finalize();
+      const marketId = transaction.outputs[0]?.covenant?.covenantId?.toString();
+      if (!marketId || marketId !== covenantId(fundingEntry.outpoint,
+          [{ index: 0, output: transaction.outputs[0] }]).toString()) {
+        throw new Error("fee-market genesis covenant ID mismatch");
+      }
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, 1, network, "fee-market genesis", candidate => {
+          const predicted = cloneTransactionForMassPreflight(kw, candidate, "fee-market genesis");
+          predicted.inputs[0].signatureScript = encodeP2pkSignatureScript(bytesToHex(dummySignatureBytes()));
+          return predicted;
+        },
+      );
+      const nonContextualMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market genesis").transactionMass;
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market genesis");
+      if (nonContextualMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market genesis exceeds the signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { nonContextualMass, storageMass });
+      }
+      if (marketId !== covenantId(fundingEntry.outpoint,
+          [{ index: 0, output: feeResult.transaction.outputs[0] }]).toString()) {
+        throw new Error("fee-market genesis ID changed after fee calculation");
+      }
+      return {
+        schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 0, sighashType: 1 }], scripts: [],
+        submitTransactionSupported: true,
+        metadata: {
+          builderKey: "kcc20fee.deploy-market-genesis", operation: "fee-market-genesis",
+          network, walletAddress, tokenId: appCanonicalTokenId,
+          contractCanonicalTokenId, wrapperProfile, policyId: genesis.policyId,
+          marketId, wrapperPrincipalSompi: principalSompi.toString(),
+          wrapperGenesisHint: {
+            vout: 0,
+            address: kw.addressFromScriptPublicKey(
+              payToScriptHashScript(genesis.wrapper.redeemScript), network).toString(),
+            covenantIdHex: marketId, scriptHashHex: genesis.wrapper.scriptHash,
+            amountSompiExact: principalSompi.toString(), state: genesis.state,
+          },
+        },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  function verifyReusableCreatorConsent(params, tokenId, marketId, feeTicketId,
+    priceScale, requireAccount) {
+    if (params.feePolicy?.creatorFeeBps === 0) return null;
+    const evidence = params.creatorEvidence;
+    const approval = params.creatorConsent;
+    const creatorOwner = requireHex32(evidence?.creatorOwner, "verified creator owner");
+    if (evidence?.claimVerified !== true || evidence?.verificationStatus !== "verified" ||
+        evidence?.classificationStatus !== "matched" || evidence?.ownerScheme !== 0 ||
+        evidence?.creatorConsentAvailable !== true ||
+        evidence?.contractCanonicalTokenId !== tokenId ||
+        requireHex32(approval?.creatorOwner, "consenting creator owner") !== creatorOwner ||
+        (requireAccount && requireHex32(params.creatorAccount?.accountId,
+          "creator account ID") !== requireHex32(params.feePolicy.creatorAccountId,
+          "policy creator account ID"))) {
+      throw new Error("creator fees require verified token creator evidence and the fixed fee account");
+    }
+    const signature = String(approval?.signature || "").toLowerCase();
+    if (!/^[0-9a-f]{128}$/.test(signature)) {
+      throw new Error("creator consent signature must be a 64-byte Schnorr signature");
+    }
+    const consent = kcc20CreatorFeeConsent({ tokenId, marketId, feeTicketId,
+      priceScale, policy: params.feePolicy });
+    if (typeof kaspaWasm.verifyMessage !== "function" ||
+        !kaspaWasm.verifyMessage({ message: consent.message,
+          signature, publicKey: creatorOwner })) {
+      throw new Error("creator consent does not authorize this exact market and fee policy");
+    }
+    return { commitment: consent.commitment, owner: creatorOwner, signature };
+  }
+
+  async function buildFeeMarketBindPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "fee ticket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const rootOwner = requireHex32(request.owner?.kcc20Owner, "root owner");
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    assertFeeAccountSchnorrWalletOwner(walletAddress, rootOwner);
+    const wrapperProfile = params.wrapperProfile;
+    if (wrapperProfile !== "native" && wrapperProfile !== "argent") {
+      throw new Error("unsupported fee-market wrapper profile");
+    }
+    const creatorConsent = verifyReusableCreatorConsent(params, tokenId, marketId,
+      feeTicketId, priceScale, true);
+    const creatorConsentCommitment = creatorConsent?.commitment ?? null;
+    const creatorConsentOwner = creatorConsent?.owner ?? null;
+    const principalSompi = parseU64(params.rootPrincipalSompi, "root principal");
+    if (principalSompi < 50_000_000n) throw new Error("root principal is below 0.5 KAS");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_PRIORITY_FEE_SOMPI || DEFAULT_WRAPPER_DEPLOY_PRIORITY_FEE.toString(),
+      "priorityFee",
+    );
+    const computeBudget = parsePositiveNumber(
+      env.KCC20_FEE_MARKET_BIND_COMPUTE_BUDGET || 2000, "computeBudget",
+    );
+    const kw = kaspaWasm;
+    const payoutSpk = p2pkScriptPubKey(kw, rootOwner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const serializedPayout = new Uint8Array(11 + payoutScript.length);
+    serializedPayout[0] = 0xe3;
+    new DataView(serializedPayout.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(serializedPayout.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    serializedPayout.set(payoutScript, 11);
+    const rootPayoutScriptHash = bytesToHex(blake3(serializedPayout));
+    const artifacts = await readFeeMarketArtifacts();
+    const plan = prepareKcc20FeeMarketBinding({
+      tokenId, feeTicketId, priceScale: BigInt(priceScale), policy: params.feePolicy,
+      wrapperProfile, artifacts, marketId, rootOwner, rootOwnerScheme: 0,
+      rootPayoutScriptHash,
+    });
+    if (plan.genesis.policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market binding policy ID mismatch");
+    }
+    const hint = params.wrapperGenesisHint;
+    if (!hint || requireHex32(hint.covenantIdHex, "genesis market ID") !== marketId ||
+        hint.scriptHashHex?.toLowerCase() !== plan.genesis.wrapper.scriptHash ||
+        !hint.state || Object.keys(hint.state).length !== Object.keys(plan.genesis.state).length ||
+        Object.entries(plan.genesis.state).some(([field, value]) => hint.state[field] !== value)) {
+      throw new Error("unbound wrapper genesis hint differs from pinned policy and artifact");
+    }
+    const wrapperAddress = requireKaspaAddress(hint.address);
+    assertScriptAddress(kw, plan.genesis.wrapper.redeemScript, wrapperAddress,
+      network, "unbound wrapper address");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [wrapperUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [wrapperAddress]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const txid = requireHex32(hint.txidHex, "wrapper genesis txid");
+      const vout = parseVout(hint.vout, "wrapper genesis vout");
+      const wrapperEntry = findUtxoEntry(wrapperUtxos.entries, txid, vout);
+      if (!wrapperEntry) throw new Error("unbound wrapper is spent or unavailable");
+      requireMatchingCovenantId(wrapperEntry, marketId, "unbound wrapper");
+      const wrapperSpk = wrapperEntry.scriptPublicKey ??
+        wrapperEntry.entry?.scriptPublicKey ?? wrapperEntry.utxoEntry?.scriptPublicKey;
+      if (Number(wrapperSpk?.version) !== 0 ||
+          String(wrapperSpk?.script).toLowerCase() !== plan.genesis.wrapper.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(wrapperEntry).toString() !== hint.amountSompiExact) {
+        throw new Error("unbound wrapper live UTXO differs from genesis hint");
+      }
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        principalSompi + priorityFee + 10_000n,
+        [wrapperEntry.outpoint], params.fundingOutpoint);
+      const fundingAmount = utxoAmountSompi(fundingEntry);
+      const change = fundingAmount - principalSompi - priorityFee;
+      if (change <= 10_000n) throw new Error("fee-market binding funding change is too small");
+      const unsignedTx = new Transaction({
+        version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: wrapperEntry.outpoint, utxo: wrapperEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ],
+        outputs: [
+          new TransactionOutput(utxoAmountSompi(wrapperEntry),
+            payToScriptHashScript(plan.wrapper.redeemScript), new CovenantBinding(0, new Hash(marketId))),
+          new TransactionOutput(principalSompi,
+            payToScriptHashScript(plan.root.redeemScript), new CovenantBinding(0, new Hash(marketId))),
+          new TransactionOutput(change, payToAddressScript(walletAddress)),
+        ],
+        subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(unsignedTx, computeBudget);
+      unsignedTx.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(unsignedTx, "fee-market binding");
+      const wrapperArtifact = artifacts[wrapperProfile === "native" ? "wrapper" : "argentWrapper"];
+      const rootTemplate = plan.root.template;
+      const rootScript = plan.root.redeemScript;
+      const rootPrefix = rootScript.slice(0, rootTemplate.prefixLength);
+      const rootSuffix = rootScript.slice(rootScript.length - rootTemplate.suffixLength);
+      const scripts = [{
+        inputIndex: 0,
+        scriptHex: bytesToHex(plan.genesis.wrapper.redeemScript),
+        signType: 1,
+        signatureScript: { mode: "ordered-args", args: [
+          i64TemplateArg(0), i64TemplateArg(1),
+          dataTemplateArg(rootPrefix), dataTemplateArg(rootSuffix),
+          dataTemplateArg(hexToBytes(rootOwner)), byteTemplateArg(0),
+          dataTemplateArg(hexToBytes(rootPayoutScriptHash)),
+          dataTemplateArg(hexToBytes(plan.wrapper.scriptHash)),
+          dataTemplateArg(dispatchTagFor(wrapperArtifact, "bindMarket")),
+        ] },
+      }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, unsignedTx, 2, network, "fee-market binding", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("fee-market binding preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        },
+      );
+      const nonContextualMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market binding").transactionMass;
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market binding");
+      if (nonContextualMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market binding exceeds the signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { nonContextualMass, storageMass });
+      }
+      const psktTransactionJson = feeResult.transaction.serializeToSafeJSON();
+      if (typeof psktTransactionJson !== "string") throw new Error("fee-market binding PSKT serialization failed");
+      return {
+        schema: OUTPUT_SCHEMA, psktTransactionJson,
+        signInputs: [{ index: 1, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: {
+          builderKey: "kcc20fee.bind-market", operation: "bind-fee-market",
+          network, walletAddress, tokenId, marketId, policyId: plan.genesis.policyId,
+          creatorConsentCommitment, creatorConsentOwner,
+          wrapperPrincipalSompi: utxoAmountSompi(wrapperEntry).toString(),
+          rootPrincipalSompi: principalSompi.toString(),
+          wrapperAddress: kw.addressFromScriptPublicKey(
+            payToScriptHashScript(plan.wrapper.redeemScript), network).toString(),
+          rootAddress: kw.addressFromScriptPublicKey(
+            payToScriptHashScript(plan.root.redeemScript), network).toString(),
+        },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketWrapPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const tokenAmount = parsePositiveU64(params.tokenAmount, "wrapped token amount");
+    const recipientOwner = requireHex32(params.recipientOwner || request.owner?.kcc20Owner,
+      "wrapped recipient owner");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    assertFeeAccountSchnorrWalletOwner(walletAddress, recipientOwner);
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const source = params.tokenUtxo;
+    const wrapperUtxo = params.wrapperUtxo;
+    if (!source || !wrapperUtxo) throw new Error("current token and bound wrapper UTXOs are required");
+    const tokenState = kcc20StateFromUtxo(source, request.owner);
+    assertKcc20HolderStateForWrap(tokenState);
+    if (tokenState.ownerScheme !== 0 || bytesToHex(tokenState.owner) !== recipientOwner) {
+      throw new Error("token holder is not controlled by the signing wallet");
+    }
+    if (tokenState.amount < tokenAmount) throw new Error("wrapped amount exceeds token input");
+    const tokenProfile = await resolveKcc20ArtifactForState(
+      tokenState, requireKaspaAddress(source.address), network);
+    requireTokenCapability(tokenProfile.profile, "wrap");
+    if (tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
+      throw new Error("fee-market wrap for this token profile needs its signed witness proof");
+    }
+    const creatorConsent = verifyReusableCreatorConsent(params, tokenId, marketId, feeTicketId,
+      priceScale, false);
+    let creatorHolderExtension = new Uint8Array(0);
+    if (creatorConsent) {
+      creatorHolderExtension = hexToBytes(String(params.creatorHolderExtensionHex || ""));
+      if (creatorHolderExtension.length !== 202 || creatorHolderExtension[0] !== 1 ||
+          bytesToHex(creatorHolderExtension.subarray(1, 33)) !== creatorConsent.owner ||
+          new DataView(creatorHolderExtension.buffer,
+            creatorHolderExtension.byteOffset + 97, 8).getBigInt64(0, true) !== priceScale ||
+          bytesToHex(blake3(new Uint8Array([
+            ...new TextEncoder().encode("KASPACOM/KCC20/HOLDER/V1"),
+            ...creatorHolderExtension,
+          ]))) !== bytesToHex(tokenState.extensionCommitment)) {
+        throw new Error("creator holder extension differs from the authenticated token input");
+      }
+    }
+    const kw = kaspaWasm;
+    const payoutSpk = p2pkScriptPubKey(kw, recipientOwner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const serializedPayout = new Uint8Array(11 + payoutScript.length);
+    serializedPayout[0] = 0xe3;
+    new DataView(serializedPayout.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(serializedPayout.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    serializedPayout.set(payoutScript, 11);
+    const payoutHash = bytesToHex(blake3(serializedPayout));
+    const artifacts = await readFeeMarketArtifacts();
+    const plan = prepareKcc20FeeMarketWrappedHolder({
+      tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId, recipientOwner,
+      recipientOwnerScheme: 0, recipientPayoutScriptHash: payoutHash,
+      tokenAmount,
+    });
+    if (prepareKcc20FeeMarketGenesis({ tokenId, feeTicketId, priceScale,
+      policy: params.feePolicy, wrapperProfile: "native", artifacts }).policyId !==
+        requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market wrap policy ID mismatch");
+    }
+    const tokenScript = buildKcc20ScriptForState(tokenProfile.artifact, tokenState);
+    assertScriptAddress(kw, tokenScript, requireKaspaAddress(source.address),
+      network, "fee-market token source address");
+    assertScriptAddress(kw, plan.wrapper.redeemScript,
+      requireKaspaAddress(wrapperUtxo.address), network, "fee-market wrapper address");
+    const tokenOutputSompi = parseU64(
+      env.KCC20_WRAP_TOKEN_OUTPUT_SOMPI || DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
+      "tokenOutputSompi");
+    if (tokenOutputSompi < 50_000_000n) throw new Error("fee-market token deposit below 0.5 KAS");
+    const priorityFee = parseU64(
+      env.KCC20_WRAP_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(), "priorityFee");
+    const computeBudget = parsePositiveNumber(
+      env.KCC20_FEE_MARKET_WRAP_COMPUTE_BUDGET || 300, "computeBudget");
+    const tokenComputeBudget = parsePositiveNumber(
+      env.KCC20_FEE_MARKET_WRAP_TOKEN_COMPUTE_BUDGET || 100, "tokenComputeBudget");
+    if (computeBudget < 300 || tokenComputeBudget < 100) {
+      throw new Error("fee-market wrap compute budgets are below the signed proof bounds");
+    }
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction, TransactionOutput,
+      payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [covenantUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [source.address, wrapperUtxo.address]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const tokenEntry = findUtxoEntry(covenantUtxos.entries,
+        requireHex32(source.txidHex, "token txid"), parseVout(source.vout, "token vout"));
+      const wrapperEntry = findUtxoEntry(covenantUtxos.entries,
+        requireHex32(wrapperUtxo.txidHex, "wrapper txid"), parseVout(wrapperUtxo.vout, "wrapper vout"));
+      if (!tokenEntry || !wrapperEntry) throw new Error("fee-market wrap input is spent or unavailable");
+      requireMatchingCovenantId(tokenEntry, tokenId, "fee-market token input");
+      requireMatchingCovenantId(wrapperEntry, marketId, "fee-market wrapper input");
+      const tokenSpk = tokenEntry.scriptPublicKey ?? tokenEntry.entry?.scriptPublicKey ??
+        tokenEntry.utxoEntry?.scriptPublicKey;
+      const wrapperSpk = wrapperEntry.scriptPublicKey ?? wrapperEntry.entry?.scriptPublicKey ??
+        wrapperEntry.utxoEntry?.scriptPublicKey;
+      if (Number(tokenSpk?.version) !== 0 ||
+          String(tokenSpk?.script).toLowerCase() !==
+            String(payToScriptHashScript(tokenScript).script).toLowerCase() ||
+          Number(wrapperSpk?.version) !== 0 ||
+          String(wrapperSpk?.script).toLowerCase() !== plan.wrapper.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(tokenEntry).toString() !== String(source.amountSompiExact) ||
+          utxoAmountSompi(wrapperEntry).toString() !== String(wrapperUtxo.amountSompiExact)) {
+        throw new Error("fee-market wrap input differs from live node UTXO");
+      }
+      const lockedState = { ...tokenState, owner: hexToBytes(plan.wrapper.scriptHash),
+        ownerIdentifier: hexToBytes(plan.wrapper.scriptHash), ownerScheme: 3,
+        identifierType: 3, borrowScheme: 0, borrowGuard: hexToBytes(ZERO_HASH),
+        amount: tokenAmount };
+      const remaining = tokenState.amount - tokenAmount;
+      const changeState = remaining > 0n ? { ...tokenState, amount: remaining } : null;
+      const outputs = [
+        tokenOutput(kw, tokenProfile.artifact, lockedState, tokenOutputSompi, tokenId, 0),
+        new TransactionOutput(tokenOutputSompi,
+          payToScriptHashScript(plan.holder.redeemScript),
+          new CovenantBinding(1, new Hash(marketId))),
+        new TransactionOutput(utxoAmountSompi(wrapperEntry),
+          payToScriptHashScript(plan.wrapper.redeemScript),
+          new CovenantBinding(1, new Hash(marketId))),
+      ];
+      if (changeState) outputs.push(tokenOutput(kw, tokenProfile.artifact,
+        changeState, utxoAmountSompi(tokenEntry), tokenId, 0));
+      const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const covenantInputSompi = utxoAmountSompi(tokenEntry) + utxoAmountSompi(wrapperEntry);
+      const requiredFunding = outputSompi + priorityFee > covenantInputSompi
+        ? outputSompi + priorityFee - covenantInputSompi + 10_000n
+        : priorityFee + 10_000n;
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding,
+        [tokenEntry.outpoint, wrapperEntry.outpoint], params.fundingOutpoint);
+      const fundingChange = covenantInputSompi + utxoAmountSompi(fundingEntry) - outputSompi - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("fee-market wrap funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({
+        version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: tokenEntry.outpoint, utxo: tokenEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: tokenComputeBudget },
+          { previousOutpoint: wrapperEntry.outpoint, utxo: wrapperEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ],
+        outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, computeBudget);
+      transaction.inputs[0].computeBudget = tokenComputeBudget;
+      transaction.inputs[2].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market wrap");
+      const wrapperPrefix = covenantScriptBuilder(kw);
+      addFeeMarketWrapperState(wrapperPrefix, plan.wrapperState);
+      addFeeMarketWrapperState(wrapperPrefix, plan.wrapperState);
+      for (const index of [0, 0, 1, 2]) wrapperPrefix.addI64(BigInt(index));
+      wrapperPrefix.addData(hexToBytes(recipientOwner));
+      addExplicitByte(wrapperPrefix, 0);
+      wrapperPrefix.addData(hexToBytes(payoutHash));
+      wrapperPrefix.addI64(tokenAmount);
+      const holderParts = templateParts(normalizeSilverScriptArtifact(artifacts.holder));
+      wrapperPrefix.addData(holderParts.prefix);
+      wrapperPrefix.addData(holderParts.suffix);
+      addKcc20State(wrapperPrefix, lockedState);
+      addFeeMarketRoleState(wrapperPrefix, plan.holderState);
+      wrapperPrefix.addData(creatorHolderExtension);
+      wrapperPrefix.addData(creatorConsent
+        ? hexToBytes(creatorConsent.signature) : new Uint8Array(64));
+      wrapperPrefix.addData(dispatchTagFor(artifacts.wrapper, "wrap"));
+      transaction.inputs[1].signatureScript = encodeCovenantP2shSignatureScript(
+        wrapperPrefix.drain(), plan.wrapper.redeemScript);
+      const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(tokenScript),
+        signType: 1, signatureScript: { mode: "ordered-args",
+          args: kcc20TransferOrderedArgs(tokenProfile.artifact,
+            changeState ? [lockedState, changeState] : [lockedState]) } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market wrap", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("fee-market wrap preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[2].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market wrap");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market wrap");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market wrap exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", {
+            computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass,
+            storageMass,
+          });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 2, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.wrap", operation: "fee-market-wrap",
+          network, walletAddress, tokenId, marketId, policyId: params.policyId,
+          tokenAmount: tokenAmount.toString(), remainingTokenAmount: remaining.toString(),
+          reserveOutputIndex: 0, holderOutputIndex: 1, wrapperOutputIndex: 2,
+          tokenChangeOutputIndex: changeState ? 3 : -1,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketUnwrapPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const tokenAmount = parsePositiveU64(params.tokenAmount, "unwrapped token amount");
+    const recipientOwner = requireHex32(params.recipientOwner || request.owner?.kcc20Owner,
+      "unwrapped recipient owner");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    assertFeeAccountSchnorrWalletOwner(walletAddress, recipientOwner);
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const wrappedUtxo = params.wrappedUtxo;
+    const reserveUtxo = params.reserveUtxo;
+    const wrapperUtxo = params.wrapperUtxo;
+    if (!wrappedUtxo || !reserveUtxo || !wrapperUtxo) {
+      throw new Error("current wrapped holder, reserve and wrapper UTXOs are required");
+    }
+    const wrappedAmount = parsePositiveU64(wrappedUtxo.state?.amount,
+      "wrapped holder amount");
+    if (wrappedAmount < tokenAmount) throw new Error("unwrapped amount exceeds wrapped holder");
+    if (String(wrappedUtxo.state?.mode) !== "0" ||
+        Number(wrappedUtxo.state?.owner_scheme) !== 0 ||
+        String(wrappedUtxo.state?.owner).toLowerCase() !== recipientOwner) {
+      throw new Error("wrapped holder is not owned by the signing wallet");
+    }
+    const reserveState = kcc20StateFromUtxo(reserveUtxo, request.owner);
+    assertKcc20HolderStateForWrap(reserveState);
+    if (reserveState.ownerScheme !== 3 || reserveState.amount < tokenAmount) {
+      throw new Error("fee-market reserve has wrong owner scheme or insufficient tokens");
+    }
+    const tokenProfile = await resolveKcc20ArtifactForState(
+      reserveState, requireKaspaAddress(reserveUtxo.address), network);
+    requireTokenCapability(tokenProfile.profile, "unwrap");
+    if (tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
+      throw new Error("fee-market unwrap for this token profile needs its signed witness proof");
+    }
+    const kw = kaspaWasm;
+    const payoutSpk = p2pkScriptPubKey(kw, recipientOwner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const serializedPayout = new Uint8Array(11 + payoutScript.length);
+    serializedPayout[0] = 0xe3;
+    new DataView(serializedPayout.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(serializedPayout.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    serializedPayout.set(payoutScript, 11);
+    const payoutHash = bytesToHex(blake3(serializedPayout));
+    if (String(wrappedUtxo.state?.payout_script_hash).toLowerCase() !== payoutHash) {
+      throw new Error("wrapped holder refund destination differs from wallet");
+    }
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId, recipientOwner,
+      recipientOwnerScheme: 0, recipientPayoutScriptHash: payoutHash };
+    const plan = prepareKcc20FeeMarketWrappedHolder({ ...planInput,
+      tokenAmount: wrappedAmount });
+    if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
+        requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market unwrap policy ID mismatch");
+    }
+    if (bytesToHex(reserveState.owner) !== plan.wrapper.scriptHash) {
+      throw new Error("native reserve belongs to a different wrapper script");
+    }
+    const reserveScript = buildKcc20ScriptForState(tokenProfile.artifact, reserveState);
+    assertScriptAddress(kw, reserveScript, requireKaspaAddress(reserveUtxo.address),
+      network, "fee-market reserve address");
+    assertScriptAddress(kw, plan.holder.redeemScript,
+      requireKaspaAddress(wrappedUtxo.address), network, "fee-market holder address");
+    assertScriptAddress(kw, plan.wrapper.redeemScript,
+      requireKaspaAddress(wrapperUtxo.address), network, "fee-market wrapper address");
+    const recipientOutputSompi = parseU64(
+      env.KCC20_UNWRAP_TOKEN_OUTPUT_SOMPI || DEFAULT_TOKEN_OUTPUT_SOMPI.toString(),
+      "recipientOutputSompi");
+    if (recipientOutputSompi < 50_000_000n) throw new Error("token recipient deposit below 0.5 KAS");
+    const priorityFee = parseU64(
+      env.KCC20_UNWRAP_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(), "priorityFee");
+    const wrapperBudget = parsePositiveNumber(
+      env.KCC20_FEE_MARKET_UNWRAP_WRAPPER_COMPUTE_BUDGET || 300, "wrapperBudget");
+    const holderBudget = parsePositiveNumber(
+      env.KCC20_FEE_MARKET_UNWRAP_HOLDER_COMPUTE_BUDGET || 300, "holderBudget");
+    const tokenBudget = parsePositiveNumber(
+      env.KCC20_FEE_MARKET_UNWRAP_TOKEN_COMPUTE_BUDGET || 100, "tokenBudget");
+    if (wrapperBudget < 300 || holderBudget < 300 || tokenBudget < 100) {
+      throw new Error("fee-market unwrap compute budgets are below signed proof bounds");
+    }
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction, TransactionOutput,
+      payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [covenantUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [wrappedUtxo.address, reserveUtxo.address,
+          wrapperUtxo.address]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const getExact = (utxo, label) => {
+        const entry = findUtxoEntry(covenantUtxos.entries,
+          requireHex32(utxo.txidHex, `${label} txid`), parseVout(utxo.vout, `${label} vout`));
+        if (!entry) throw new Error(`${label} is spent or unavailable`);
+        return entry;
+      };
+      const wrappedEntry = getExact(wrappedUtxo, "wrapped holder");
+      const reserveEntry = getExact(reserveUtxo, "native reserve");
+      const wrapperEntry = getExact(wrapperUtxo, "fee-market wrapper");
+      for (const [entry, expected, label] of [
+        [wrappedEntry, marketId, "wrapped holder"],
+        [reserveEntry, tokenId, "native reserve"],
+        [wrapperEntry, marketId, "fee-market wrapper"],
+      ]) requireMatchingCovenantId(entry, expected, label);
+      for (const [entry, utxo, script, label] of [
+        [wrappedEntry, wrappedUtxo, plan.holder.redeemScript, "wrapped holder"],
+        [reserveEntry, reserveUtxo, reserveScript, "native reserve"],
+        [wrapperEntry, wrapperUtxo, plan.wrapper.redeemScript, "fee-market wrapper"],
+      ]) {
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        if (Number(spk?.version) !== 0 ||
+            String(spk?.script).toLowerCase() !==
+              String(payToScriptHashScript(script).script).toLowerCase() ||
+            utxoAmountSompi(entry).toString() !== String(utxo.amountSompiExact)) {
+          throw new Error(`${label} differs from live node UTXO`);
+        }
+      }
+      const recipientState = { ...reserveState, owner: hexToBytes(recipientOwner),
+        ownerIdentifier: hexToBytes(recipientOwner), ownerScheme: 0, identifierType: 0,
+        amount: tokenAmount };
+      const reserveRemaining = reserveState.amount - tokenAmount;
+      const wrappedRemaining = wrappedAmount - tokenAmount;
+      const reserveChangeState = { ...reserveState, amount: reserveRemaining };
+      const wrappedChangeState = { ...plan.holderState,
+        amount: wrappedRemaining.toString() };
+      const outputs = [tokenOutput(kw, tokenProfile.artifact, recipientState,
+        reserveRemaining > 0n ? recipientOutputSompi : utxoAmountSompi(reserveEntry),
+        tokenId, 1)];
+      const reserveChangeIndex = reserveRemaining > 0n ? outputs.length : -1;
+      if (reserveRemaining > 0n) outputs.push(tokenOutput(kw, tokenProfile.artifact,
+        reserveChangeState, utxoAmountSompi(reserveEntry), tokenId, 1));
+      const wrappedChangeIndex = wrappedRemaining > 0n ? outputs.length : -1;
+      if (wrappedRemaining > 0n) {
+        const changedHolder = prepareKcc20FeeMarketWrappedHolder({ ...planInput,
+          tokenAmount: wrappedRemaining });
+        outputs.push(new TransactionOutput(utxoAmountSompi(wrappedEntry),
+          payToScriptHashScript(changedHolder.holder.redeemScript),
+          new CovenantBinding(0, new Hash(marketId))));
+      }
+      const refundIndex = wrappedRemaining === 0n ? outputs.length : -1;
+      if (wrappedRemaining === 0n) {
+        outputs.push(new TransactionOutput(utxoAmountSompi(wrappedEntry), payoutSpk));
+      }
+      const wrapperOutputIndex = outputs.length;
+      outputs.push(new TransactionOutput(utxoAmountSompi(wrapperEntry),
+        payToScriptHashScript(plan.wrapper.redeemScript),
+        new CovenantBinding(2, new Hash(marketId))));
+      const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const covenantInputSompi = utxoAmountSompi(wrappedEntry) +
+        utxoAmountSompi(reserveEntry) + utxoAmountSompi(wrapperEntry);
+      const requiredFunding = outputSompi + priorityFee > covenantInputSompi
+        ? outputSompi + priorityFee - covenantInputSompi + 10_000n
+        : priorityFee + 10_000n;
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding,
+        [wrappedEntry.outpoint, reserveEntry.outpoint, wrapperEntry.outpoint],
+        params.fundingOutpoint);
+      const fundingChange = covenantInputSompi + utxoAmountSompi(fundingEntry) -
+        outputSompi - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("fee-market unwrap funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({
+        version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: wrappedEntry.outpoint, utxo: wrappedEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: holderBudget },
+          { previousOutpoint: reserveEntry.outpoint, utxo: reserveEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: tokenBudget },
+          { previousOutpoint: wrapperEntry.outpoint, utxo: wrapperEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: wrapperBudget },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, wrapperBudget);
+      transaction.inputs[0].computeBudget = holderBudget;
+      transaction.inputs[1].computeBudget = tokenBudget;
+      transaction.inputs[3].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market unwrap");
+      const wrapperPrefix = covenantScriptBuilder(kw);
+      addFeeMarketWrapperState(wrapperPrefix, plan.wrapperState);
+      addFeeMarketWrapperState(wrapperPrefix, plan.wrapperState);
+      for (const index of [0, 1, 0, reserveChangeIndex,
+        wrappedChangeIndex, wrapperOutputIndex]) wrapperPrefix.addI64(BigInt(index));
+      wrapperPrefix.addData(hexToBytes(recipientOwner));
+      addExplicitByte(wrapperPrefix, 0);
+      wrapperPrefix.addI64(tokenAmount);
+      addKcc20State(wrapperPrefix, recipientState);
+      addKcc20State(wrapperPrefix, reserveChangeState);
+      addFeeMarketRoleState(wrapperPrefix, wrappedChangeState);
+      wrapperPrefix.addData(dispatchTagFor(artifacts.wrapper, "unwrap"));
+      transaction.inputs[2].signatureScript = encodeCovenantP2shSignatureScript(
+        wrapperPrefix.drain(), plan.wrapper.redeemScript);
+      const reservePrefix = buildKcc20TransferSigScript(kw, tokenProfile.artifact, {
+        nextStates: reserveRemaining > 0n
+          ? [recipientState, reserveChangeState] : [recipientState],
+        witness: Uint8Array.of(0, 2),
+      });
+      transaction.inputs[1].signatureScript = encodeCovenantP2shSignatureScript(
+        reservePrefix, reserveScript);
+      const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(plan.holder.redeemScript),
+        signType: 1, signatureScript: { mode: "ordered-args", args: [
+          { type: "signature" }, i64TemplateArg(2), i64TemplateArg(tokenAmount),
+          i64TemplateArg(wrappedChangeIndex), i64TemplateArg(refundIndex),
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "unwrap")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market unwrap", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("fee-market unwrap preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[3].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market unwrap");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market unwrap");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market unwrap exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 3, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.unwrap", operation: "fee-market-unwrap",
+          network, walletAddress, tokenId, marketId, policyId: params.policyId,
+          tokenAmount: tokenAmount.toString(), reserveRemaining: reserveRemaining.toString(),
+          wrappedRemaining: wrappedRemaining.toString(), tokenRecipientOutputIndex: 0,
+          reserveChangeIndex, wrappedChangeIndex, refundIndex, wrapperOutputIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketMergeHoldersPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const owner = requireHex32(request.owner?.kcc20Owner, "holder owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const sources = params.holderUtxos;
+    if (!Array.isArray(sources) || sources.length < 2 || sources.length > 3) {
+      throw new Error("fee-market holder merge requires two or three current holders");
+    }
+    const kw = kaspaWasm;
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const payoutSpk = p2pkScriptPubKey(kw, owner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(11 + payoutScript.length);
+    payoutBytes[0] = 0xe3;
+    new DataView(payoutBytes.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(payoutBytes.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    payoutBytes.set(payoutScript, 11);
+    const payoutHash = bytesToHex(blake3(payoutBytes));
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: params.wrapperProfile || "native", artifacts, marketId,
+      recipientOwner: owner, recipientOwnerScheme: 0,
+      recipientPayoutScriptHash: payoutHash };
+    if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
+        requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market holder merge policy ID mismatch");
+    }
+    let mergedAmount = 0n;
+    const sourcePlans = sources.map((source, index) => {
+      if (String(source?.state?.mode) !== "0" ||
+          Number(source.state?.owner_scheme) !== 0 ||
+          String(source.state?.owner).toLowerCase() !== owner) {
+        throw new Error(`fee-market merge holder ${index} is not owned by the signing wallet`);
+      }
+      const amount = parsePositiveU64(source.state.amount, `holder ${index} amount`);
+      const plan = prepareKcc20FeeMarketWrappedHolder({ ...planInput,
+        tokenAmount: amount });
+      if (String(source.state?.canonicalTokenId).toLowerCase() !== tokenId ||
+          String(source.state?.feeTicketId).toLowerCase() !== feeTicketId ||
+          BigInt(source.state?.priceScale ?? -1) !== priceScale ||
+          String(source.state?.feePolicy).toLowerCase() !== plan.holderState.feePolicy ||
+          String(source.state?.payout_script_hash).toLowerCase() !== payoutHash ||
+          String(source.state?.wrapper_spk_hash).toLowerCase() !==
+            plan.wrapper.scriptHash) {
+        throw new Error(`fee-market merge holder ${index} differs from fixed policy`);
+      }
+      assertScriptAddress(kw, plan.holder.redeemScript,
+        requireKaspaAddress(source.address), network, `fee-market merge holder ${index}`);
+      mergedAmount += amount;
+      if (mergedAmount > (1n << 63n) - 1n) {
+        throw new Error("fee-market merged amount exceeds contract range");
+      }
+      return plan;
+    });
+    const mergedPlan = prepareKcc20FeeMarketWrappedHolder({ ...planInput,
+      tokenAmount: mergedAmount });
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ORDER_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [sourceUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [...new Set(sources.map(source =>
+          requireKaspaAddress(source.address)))]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const entries = sources.map((source, index) => {
+        const entry = findUtxoEntry(sourceUtxos.entries,
+          requireHex32(source.txidHex, `holder ${index} txid`),
+          parseVout(source.vout, `holder ${index} vout`));
+        if (!entry) throw new Error(`fee-market merge holder ${index} is spent or unavailable`);
+        requireMatchingCovenantId(entry, marketId, `fee-market merge holder ${index}`);
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        if (Number(spk?.version) !== 0 ||
+            String(spk?.script).toLowerCase() !==
+              sourcePlans[index].holder.scriptPublicKey.scriptHex ||
+            utxoAmountSompi(entry).toString() !== String(source.amountSompiExact) ||
+            utxoAmountSompi(entry) < 50_000_000n) {
+          throw new Error(`fee-market merge holder ${index} differs from live node UTXO`);
+        }
+        return entry;
+      });
+      const inputSompi = entries.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n);
+      const refundSompi = inputSompi - 50_000_000n;
+      if (refundSompi < 50_000_000n) {
+        throw new Error("fee-market merge refund is below the output floor");
+      }
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        priorityFee + 10_000n, entries.map(entry => entry.outpoint),
+        params.fundingOutpoint);
+      const fundingChange = utxoAmountSompi(fundingEntry) - priorityFee;
+      if (fundingChange <= 10_000n) {
+        throw new Error("fee-market merge funding change is too small");
+      }
+      const outputs = [
+        new TransactionOutput(50_000_000n,
+          payToScriptHashScript(mergedPlan.holder.redeemScript),
+          new CovenantBinding(0, new Hash(marketId))),
+        new TransactionOutput(refundSompi, payToAddressScript(walletAddress)),
+        new TransactionOutput(fundingChange, payToAddressScript(walletAddress)),
+      ];
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          ...entries.map(entry => ({ previousOutpoint: entry.outpoint, utxo: entry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 750 })),
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 750);
+      transaction.inputs[entries.length].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market holder merge");
+      const scripts = sourcePlans.map((plan, index) => ({ inputIndex: index,
+        scriptHex: bytesToHex(plan.holder.redeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: index === 0 ? [
+          { type: "signature" },
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "mergeHolders")),
+        ] : [
+          { type: "signature" }, i64TemplateArg(0),
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "delegateHolderMerge")),
+        ] } }));
+      const feeResult = transactionWithPredictedSignedFeeChange(kw,
+        transaction, 2, network, "fee-market holder merge", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") {
+            throw new Error("holder merge preflight serialization failed");
+          }
+          const predictedJson = transactionJsonWithScriptHints(kw,
+            JSON.parse(serialized), scripts);
+          predictedJson.inputs[entries.length].signatureScript =
+            encodeP2pkSignatureScript(bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market holder merge");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market holder merge");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market holder merge exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: entries.length, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.merge-holders",
+          operation: "fee-market-merge-holders", network, walletAddress,
+          tokenId, marketId, policyId: params.policyId,
+          sourceCount: entries.length, mergedAmount: mergedAmount.toString(),
+          refundSompi: refundSompi.toString(), mergedOutputIndex: 0,
+          refundOutputIndex: 1,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketCreateAskPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const askAmount = parsePositiveU64(params.askAmount, "ask amount");
+    const askUnitPrice = parsePositiveU64(params.askUnitPriceSompi, "ask unit price");
+    const gross = exactGrossSompi(askAmount, askUnitPrice, priceScale, "fee-market ask");
+    if (gross < MIN_FILL_GROSS_SOMPI) throw minimumFillGrossError("fee-market ask is below 0.5 KAS");
+    if (gross > (1n << 63n) - 1n) throw new Error("fee-market ask gross exceeds contract range");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const owner = requireHex32(request.owner?.kcc20Owner, "ask owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const source = params.holderUtxo;
+    if (!source) throw new Error("current wrapped holder UTXO is required");
+    if (String(source.state?.mode) !== "0" || Number(source.state?.owner_scheme) !== 0 ||
+        String(source.state?.owner).toLowerCase() !== owner) {
+      throw new Error("fee-market ask source is not the signing wallet's holder");
+    }
+    const holderAmount = parsePositiveU64(source.state.amount, "holder amount");
+    const kw = kaspaWasm;
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const payoutSpk = p2pkScriptPubKey(kw, owner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(11 + payoutScript.length);
+    payoutBytes[0] = 0xe3;
+    new DataView(payoutBytes.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(payoutBytes.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    payoutBytes.set(payoutScript, 11);
+    const payoutHash = bytesToHex(blake3(payoutBytes));
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId, owner, ownerScheme: 0,
+      payoutScriptHash: payoutHash, holderAmount, askAmount, askUnitPrice };
+    const plan = prepareKcc20FeeMarketAsk(planInput);
+    if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
+        requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market ask policy ID mismatch");
+    }
+    if (String(source.state?.payout_script_hash).toLowerCase() !== payoutHash ||
+        String(source.state?.wrapper_spk_hash).toLowerCase() !== plan.holder.wrapper.scriptHash ||
+        String(source.state?.feePolicy).toLowerCase() !== plan.holder.holderState.feePolicy ||
+        String(source.state?.canonicalTokenId).toLowerCase() !== tokenId ||
+        String(source.state?.feeTicketId).toLowerCase() !== feeTicketId ||
+        BigInt(source.state?.priceScale ?? -1) !== priceScale) {
+      throw new Error("fee-market holder state differs from fixed policy");
+    }
+    const sourceAddress = requireKaspaAddress(source.address);
+    assertScriptAddress(kw, plan.holder.holder.redeemScript, sourceAddress,
+      network, "fee-market holder address");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ORDER_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [sourceUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [sourceAddress]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const holderEntry = findUtxoEntry(sourceUtxos.entries,
+        requireHex32(source.txidHex, "holder txid"), parseVout(source.vout, "holder vout"));
+      if (!holderEntry) throw new Error("fee-market holder is spent or unavailable");
+      requireMatchingCovenantId(holderEntry, marketId, "fee-market holder");
+      const spk = holderEntry.scriptPublicKey ?? holderEntry.entry?.scriptPublicKey ??
+        holderEntry.utxoEntry?.scriptPublicKey;
+      if (Number(spk?.version) !== 0 ||
+          String(spk?.script).toLowerCase() !== plan.holder.holder.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(holderEntry).toString() !== String(source.amountSompiExact)) {
+        throw new Error("fee-market holder differs from live node UTXO");
+      }
+      const outputs = [new TransactionOutput(utxoAmountSompi(holderEntry),
+        payToScriptHashScript(plan.ask.redeemScript),
+        new CovenantBinding(0, new Hash(marketId)))];
+      const changeIndex = plan.change ? 1 : -1;
+      if (plan.change) outputs.push(new TransactionOutput(50_000_000n,
+        payToScriptHashScript(plan.change.holder.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const requiredFunding = outputSompi + priorityFee > utxoAmountSompi(holderEntry)
+        ? outputSompi + priorityFee - utxoAmountSompi(holderEntry) + 10_000n
+        : priorityFee + 10_000n;
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding,
+        [holderEntry.outpoint], params.fundingOutpoint);
+      const fundingChange = utxoAmountSompi(holderEntry) + utxoAmountSompi(fundingEntry) -
+        outputSompi - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("fee-market ask funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: holderEntry.outpoint, utxo: holderEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 300);
+      transaction.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market create ask");
+      const askParts = templateParts(normalizeSilverScriptArtifact(artifacts.ask));
+      const scripts = [{ inputIndex: 0,
+        scriptHex: bytesToHex(plan.holder.holder.redeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: [
+          { type: "signature" }, i64TemplateArg(askAmount), i64TemplateArg(askUnitPrice),
+          dataTemplateArg(hexToBytes(payoutHash)), i64TemplateArg(0),
+          i64TemplateArg(changeIndex), dataTemplateArg(askParts.prefix),
+          dataTemplateArg(askParts.suffix),
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "createAsk")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market create ask", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("ask preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market create ask");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market create ask");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market ask exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 1, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.create-ask", operation: "fee-market-create-ask",
+          network, walletAddress, tokenId, marketId, policyId: params.policyId,
+          askAmount: askAmount.toString(), askUnitPriceSompi: askUnitPrice.toString(),
+          grossSompi: gross.toString(), askOutputIndex: 0, holderChangeIndex: changeIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketCancelAskPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const owner = requireHex32(request.owner?.kcc20Owner, "ask owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const source = params.askUtxo;
+    if (!source || String(source.state?.mode) !== "2" ||
+        Number(source.state?.owner_scheme) !== 0 ||
+        String(source.state?.owner).toLowerCase() !== owner) {
+      throw new Error("current fee-market ask owned by signing wallet is required");
+    }
+    const askAmount = parsePositiveU64(source.state.amount, "ask amount");
+    const askUnitPrice = parsePositiveU64(source.state.unitPrice, "ask price");
+    const payoutHash = requireHex32(source.state.payout_script_hash, "ask payout hash");
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const kw = kaspaWasm;
+    const payoutSpk = p2pkScriptPubKey(kw, owner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(11 + payoutScript.length);
+    payoutBytes[0] = 0xe3;
+    new DataView(payoutBytes.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(payoutBytes.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    payoutBytes.set(payoutScript, 11);
+    if (bytesToHex(blake3(payoutBytes)) !== payoutHash) {
+      throw new Error("ask payout differs from signing wallet");
+    }
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId, owner, ownerScheme: 0,
+      payoutScriptHash: payoutHash, holderAmount: askAmount, askAmount, askUnitPrice };
+    const plan = prepareKcc20FeeMarketAsk(planInput);
+    if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
+        requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market cancel ask policy ID mismatch");
+    }
+    for (const field of ["canonicalTokenId", "feeTicketId", "feePolicy", "wrapper_spk_hash"]) {
+      const expected = field === "canonicalTokenId" ? tokenId :
+        field === "feeTicketId" ? feeTicketId :
+        field === "feePolicy" ? plan.askState.feePolicy : plan.askState.wrapper_spk_hash;
+      if (String(source.state?.[field]).toLowerCase() !== expected) {
+        throw new Error(`fee-market ask ${field} differs from fixed policy`);
+      }
+    }
+    if (BigInt(source.state?.priceScale ?? -1) !== priceScale) {
+      throw new Error("fee-market ask price scale differs from fixed policy");
+    }
+    const sourceAddress = requireKaspaAddress(source.address);
+    assertScriptAddress(kw, plan.ask.redeemScript, sourceAddress, network, "fee-market ask address");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ORDER_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [sourceUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [sourceAddress]), getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const askEntry = findUtxoEntry(sourceUtxos.entries,
+        requireHex32(source.txidHex, "ask txid"), parseVout(source.vout, "ask vout"));
+      if (!askEntry) throw new Error("fee-market ask is spent or unavailable");
+      requireMatchingCovenantId(askEntry, marketId, "fee-market ask");
+      const spk = askEntry.scriptPublicKey ?? askEntry.entry?.scriptPublicKey ??
+        askEntry.utxoEntry?.scriptPublicKey;
+      if (Number(spk?.version) !== 0 ||
+          String(spk?.script).toLowerCase() !== plan.ask.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(askEntry).toString() !== String(source.amountSompiExact)) {
+        throw new Error("fee-market ask differs from live node UTXO");
+      }
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, priorityFee + 10_000n,
+        [askEntry.outpoint], params.fundingOutpoint);
+      const outputs = [new TransactionOutput(utxoAmountSompi(askEntry),
+        payToScriptHashScript(plan.holder.holder.redeemScript),
+        new CovenantBinding(0, new Hash(marketId)))];
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(utxoAmountSompi(fundingEntry) - priorityFee,
+        payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: askEntry.outpoint, utxo: askEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 300);
+      transaction.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market cancel ask");
+      const holderParts = templateParts(normalizeSilverScriptArtifact(artifacts.holder));
+      const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(plan.ask.redeemScript),
+        signType: 1, signatureScript: { mode: "ordered-args", args: [
+          { type: "signature" }, i64TemplateArg(0),
+          dataTemplateArg(holderParts.prefix), dataTemplateArg(holderParts.suffix),
+          dataTemplateArg(dispatchTagFor(artifacts.ask, "cancelAsk")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market cancel ask", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("cancel ask preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market cancel ask");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market cancel ask");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market cancel ask exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 1, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.cancel-ask", operation: "fee-market-cancel-ask",
+          network, walletAddress, tokenId, marketId, policyId: params.policyId,
+          askAmount: askAmount.toString(), holderOutputIndex: 0,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketCreateBidPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const bidAmount = parsePositiveU64(params.bidAmount, "bid amount");
+    const bidUnitPrice = parsePositiveU64(params.bidUnitPriceSompi, "bid unit price");
+    const gross = exactGrossSompi(bidAmount, bidUnitPrice, priceScale, "fee-market bid");
+    if (gross < MIN_FILL_GROSS_SOMPI) throw minimumFillGrossError("fee-market bid is below 0.5 KAS");
+    const bidDeposit = 200_000_000n;
+    if (gross > (1n << 63n) - 1n - bidDeposit) {
+      throw new Error("fee-market bid gross exceeds contract range");
+    }
+    const rootUtxo = params.rootUtxo;
+    if (!rootUtxo || String(rootUtxo.state?.mode) !== "1" ||
+        String(rootUtxo.state?.amount) !== "0") {
+      throw new Error("current fee-market root UTXO is required");
+    }
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const buyer = requireHex32(request.owner?.kcc20Owner, "bid buyer");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, buyer);
+    const kw = kaspaWasm;
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const payoutSpk = p2pkScriptPubKey(kw, buyer);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(11 + payoutScript.length);
+    payoutBytes[0] = 0xe3;
+    new DataView(payoutBytes.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(payoutBytes.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    payoutBytes.set(payoutScript, 11);
+    const payoutHash = bytesToHex(blake3(payoutBytes));
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId,
+      rootOwner: requireHex32(rootUtxo.state.owner, "root owner"),
+      rootOwnerScheme: Number(rootUtxo.state.owner_scheme),
+      rootPayoutScriptHash: requireHex32(rootUtxo.state.payout_script_hash,
+        "root payout hash"),
+      buyer, buyerScheme: 0, buyerPayoutScriptHash: payoutHash,
+      bidAmount, bidUnitPrice };
+    const plan = prepareKcc20FeeMarketBid(planInput);
+    if (plan.binding.genesis.policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market bid policy ID mismatch");
+    }
+    for (const field of ["canonicalTokenId", "feeTicketId", "feePolicy", "wrapper_spk_hash"]) {
+      const expected = plan.binding.rootState[field];
+      if (String(rootUtxo.state?.[field]).toLowerCase() !== expected) {
+        throw new Error(`fee-market root ${field} differs from fixed policy`);
+      }
+    }
+    if (BigInt(rootUtxo.state?.priceScale ?? -1) !== priceScale) {
+      throw new Error("fee-market root price scale differs from fixed policy");
+    }
+    const rootAddress = requireKaspaAddress(rootUtxo.address);
+    assertScriptAddress(kw, plan.binding.root.redeemScript,
+      rootAddress, network, "fee-market root address");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ORDER_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [rootUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [rootAddress]), getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const rootEntry = findUtxoEntry(rootUtxos.entries,
+        requireHex32(rootUtxo.txidHex, "root txid"), parseVout(rootUtxo.vout, "root vout"));
+      if (!rootEntry) throw new Error("fee-market root is spent or unavailable");
+      requireMatchingCovenantId(rootEntry, marketId, "fee-market root");
+      const spk = rootEntry.scriptPublicKey ?? rootEntry.entry?.scriptPublicKey ??
+        rootEntry.utxoEntry?.scriptPublicKey;
+      if (Number(spk?.version) !== 0 ||
+          String(spk?.script).toLowerCase() !== plan.binding.root.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(rootEntry).toString() !== String(rootUtxo.amountSompiExact)) {
+        throw new Error("fee-market root differs from live node UTXO");
+      }
+      const outputs = [new TransactionOutput(gross + bidDeposit,
+        payToScriptHashScript(plan.bid.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))),
+      new TransactionOutput(utxoAmountSompi(rootEntry),
+        payToScriptHashScript(plan.binding.root.redeemScript),
+        new CovenantBinding(0, new Hash(marketId)))];
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        gross + bidDeposit + priorityFee + 10_000n,
+        [rootEntry.outpoint], params.fundingOutpoint);
+      const fundingChange = utxoAmountSompi(fundingEntry) - gross - bidDeposit - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("fee-market bid funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: rootEntry.outpoint, utxo: rootEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 300);
+      transaction.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market create bid");
+      const bidParts = templateParts(normalizeSilverScriptArtifact(artifacts.bid));
+      const prefix = covenantScriptBuilder(kw);
+      prefix.addData(hexToBytes(buyer));
+      addExplicitByte(prefix, 0);
+      prefix.addData(hexToBytes(payoutHash));
+      for (const value of [bidAmount, bidUnitPrice, 0, 1]) prefix.addI64(BigInt(value));
+      prefix.addData(bidParts.prefix);
+      prefix.addData(bidParts.suffix);
+      prefix.addData(dispatchTagFor(artifacts.root, "createBid"));
+      transaction.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(
+        prefix.drain(), plan.binding.root.redeemScript);
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market create bid", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("bid preflight serialization failed");
+          const predictedJson = JSON.parse(serialized);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market create bid");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market create bid");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market bid exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 1, sighashType: 1 }], scripts: [],
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.create-bid", operation: "fee-market-create-bid",
+          network, walletAddress, tokenId, marketId, policyId: params.policyId,
+          bidAmount: bidAmount.toString(), bidUnitPriceSompi: bidUnitPrice.toString(),
+          grossSompi: gross.toString(), bidDepositSompi: bidDeposit.toString(),
+          bidOutputIndex: 0, rootOutputIndex: 1,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketCancelBidPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const owner = requireHex32(request.owner?.kcc20Owner, "bid owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const source = params.bidUtxo;
+    if (!source || String(source.state?.mode) !== "3" ||
+        Number(source.state?.owner_scheme) !== 0 ||
+        String(source.state?.owner).toLowerCase() !== owner) {
+      throw new Error("current fee-market bid owned by signing wallet is required");
+    }
+    const bidAmount = parsePositiveU64(source.state.amount, "bid amount");
+    const bidUnitPrice = parsePositiveU64(source.state.unitPrice, "bid price");
+    const kw = kaspaWasm;
+    const payoutSpk = p2pkScriptPubKey(kw, owner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(11 + payoutScript.length);
+    payoutBytes[0] = 0xe3;
+    new DataView(payoutBytes.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(payoutBytes.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    payoutBytes.set(payoutScript, 11);
+    const payoutHash = bytesToHex(blake3(payoutBytes));
+    if (String(source.state?.payout_script_hash).toLowerCase() !== payoutHash) {
+      throw new Error("bid payout differs from signing wallet");
+    }
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId,
+      rootOwner: owner, rootOwnerScheme: 0, rootPayoutScriptHash: payoutHash,
+      buyer: owner, buyerScheme: 0, buyerPayoutScriptHash: payoutHash,
+      bidAmount, bidUnitPrice };
+    const plan = prepareKcc20FeeMarketBid(planInput);
+    if (plan.binding.genesis.policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market cancel bid policy ID mismatch");
+    }
+    for (const field of ["canonicalTokenId", "feeTicketId", "feePolicy", "wrapper_spk_hash"]) {
+      if (String(source.state?.[field]).toLowerCase() !== plan.bidState[field]) {
+        throw new Error(`fee-market bid ${field} differs from fixed policy`);
+      }
+    }
+    if (BigInt(source.state?.priceScale ?? -1) !== priceScale) {
+      throw new Error("fee-market bid price scale differs from fixed policy");
+    }
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const sourceAddress = requireKaspaAddress(source.address);
+    assertScriptAddress(kw, plan.bid.redeemScript, sourceAddress, network, "fee-market bid address");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ORDER_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { Encoding, RpcClient, Transaction, TransactionOutput,
+      payToAddressScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [bidUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [sourceAddress]), getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const bidEntry = findUtxoEntry(bidUtxos.entries,
+        requireHex32(source.txidHex, "bid txid"), parseVout(source.vout, "bid vout"));
+      if (!bidEntry) throw new Error("fee-market bid is spent or unavailable");
+      requireMatchingCovenantId(bidEntry, marketId, "fee-market bid");
+      const spk = bidEntry.scriptPublicKey ?? bidEntry.entry?.scriptPublicKey ??
+        bidEntry.utxoEntry?.scriptPublicKey;
+      if (Number(spk?.version) !== 0 ||
+          String(spk?.script).toLowerCase() !== plan.bid.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(bidEntry).toString() !== String(source.amountSompiExact)) {
+        throw new Error("fee-market bid differs from live node UTXO");
+      }
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, priorityFee + 10_000n,
+        [bidEntry.outpoint], params.fundingOutpoint);
+      const outputs = [new TransactionOutput(utxoAmountSompi(bidEntry),
+        payToAddressScript(walletAddress))];
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(utxoAmountSompi(fundingEntry) - priorityFee,
+        payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: bidEntry.outpoint, utxo: bidEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 300);
+      transaction.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market cancel bid");
+      const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(plan.bid.redeemScript),
+        signType: 1, signatureScript: { mode: "ordered-args", args: [
+          { type: "signature" }, i64TemplateArg(0),
+          dataTemplateArg(dispatchTagFor(artifacts.bid, "cancelBid")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market cancel bid", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("cancel bid preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market cancel bid");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market cancel bid");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market cancel bid exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 1, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.cancel-bid", operation: "fee-market-cancel-bid",
+          network, walletAddress, tokenId, marketId, policyId: params.policyId,
+          bidAmount: bidAmount.toString(), refundOutputIndex: 0,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function feeMarketTicketForTaker(params, owner, taker, network, feeTicketId) {
+    const ticketRequest = params.feeTicketUtxo || null;
+    if (!ticketRequest) return null;
+    if (feeTicketId === ZERO_HASH) {
+      throw new Error("a fee-market ticket waiver requires the bound FeeTicket root");
+    }
+    const state = kcc20FeeTicketStateFromUtxo(ticketRequest, owner);
+    if (state.mode !== 2 || bytesToHex(state.ownerIdentifier) !== taker) {
+      throw new Error("fee-market ticket must be owned by the taker wallet");
+    }
+    const address = requireKaspaAddress(ticketRequest.address);
+    const info = selectFeeTicketArtifactForState(await readFeeTicketArtifacts(),
+      state, address, network, "fee-market FeeTicket");
+    const pinned = templateParts(normalizeSilverScriptArtifact(info.artifact));
+    const expected = params.feePolicy.ticketTemplate;
+    if (bytesToHex(templateHash(pinned.prefix, pinned.suffix)) !==
+          requireHex32(expected?.hash, "ticket template") ||
+        pinned.prefix.length !== Number(expected?.prefixLength) ||
+        pinned.suffix.length !== Number(expected?.suffixLength)) {
+      throw new Error("fee-market ticket artifact differs from fixed policy");
+    }
+    return { ...info, state, address,
+      txid: requireHex32(ticketRequest.txidHex, "FeeTicket txid"),
+      vout: parseVout(ticketRequest.vout, "FeeTicket vout"),
+      amountSompiExact: String(ticketRequest.amountSompiExact) };
+  }
+
+  async function buildFeeMarketBuyAskPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const fillAmount = parsePositiveU64(params.fillAmount, "fill amount");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const buyer = requireHex32(request.owner?.kcc20Owner, "buyer");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, buyer);
+    const askUtxo = params.askUtxo;
+    if (!askUtxo || String(askUtxo.state?.mode) !== "2") {
+      throw new Error("current fee-market ask UTXO is required");
+    }
+    const askAmount = parsePositiveU64(askUtxo.state.amount, "ask amount");
+    const askUnitPrice = parsePositiveU64(askUtxo.state.unitPrice, "ask unit price");
+    if (fillAmount > askAmount) throw new Error("fill amount exceeds ask");
+    const gross = exactGrossSompi(fillAmount, askUnitPrice, priceScale, "fee-market buy");
+    if (gross < MIN_FILL_GROSS_SOMPI || gross > (1n << 63n) - 1n) {
+      throw new Error("fee-market fill gross is outside contract range");
+    }
+    const remainder = askAmount - fillAmount;
+    if (remainder > 0n &&
+        exactGrossSompi(remainder, askUnitPrice, priceScale, "fee-market ask remainder") < MIN_FILL_GROSS_SOMPI) {
+      throw new Error("partial ask remainder is below 0.5 KAS");
+    }
+    const kw = kaspaWasm;
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const ticket = await feeMarketTicketForTaker(params, request.owner,
+      buyer, network, feeTicketId);
+    const payoutHashForOwner = owner => {
+      const spk = p2pkScriptPubKey(kw, owner);
+      const script = hexToBytes(String(spk.script));
+      const serialized = new Uint8Array(11 + script.length);
+      serialized[0] = 0xe3;
+      new DataView(serialized.buffer).setUint16(1, Number(spk.version), true);
+      new DataView(serialized.buffer).setBigUint64(3, BigInt(script.length), true);
+      serialized.set(script, 11);
+      return { spk, hash: bytesToHex(blake3(serialized)) };
+    };
+    const buyerPayout = payoutHashForOwner(buyer);
+    const seller = requireHex32(askUtxo.state.owner, "ask seller");
+    const sellerScheme = Number(askUtxo.state.owner_scheme);
+    if (!Number.isInteger(sellerScheme) || sellerScheme < 0 || sellerScheme > 4) {
+      throw new Error("unsupported ask seller authority");
+    }
+    const sellerPayout = sellerScheme === 0
+      ? payoutHashForOwner(seller)
+      : (() => {
+          const address = requireKaspaAddress(params.sellerPayoutAddress);
+          const spk = kw.payToAddressScript(address);
+          const script = hexToBytes(String(spk.script));
+          const serialized = new Uint8Array(11 + script.length);
+          serialized[0] = 0xe3;
+          new DataView(serialized.buffer).setUint16(1, Number(spk.version), true);
+          new DataView(serialized.buffer).setBigUint64(3, BigInt(script.length), true);
+          serialized.set(script, 11);
+          return { spk, hash: bytesToHex(blake3(serialized)) };
+        })();
+    if (String(askUtxo.state.payout_script_hash).toLowerCase() !== sellerPayout.hash) {
+      throw new Error("ask seller payout does not match authenticated owner");
+    }
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId,
+      recipientOwner: buyer, recipientOwnerScheme: 0,
+      recipientPayoutScriptHash: buyerPayout.hash, tokenAmount: fillAmount };
+    const buyerPlan = prepareKcc20FeeMarketWrappedHolder(planInput);
+    const policyId = prepareKcc20FeeMarketGenesis(planInput).policyId;
+    if (policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market buy policy ID mismatch");
+    }
+    if (String(askUtxo.state.canonicalTokenId).toLowerCase() !== tokenId ||
+        String(askUtxo.state.feeTicketId).toLowerCase() !== feeTicketId ||
+        String(askUtxo.state.feePolicy).toLowerCase() !== buyerPlan.holderState.feePolicy ||
+        String(askUtxo.state.wrapper_spk_hash).toLowerCase() !== buyerPlan.wrapper.scriptHash ||
+        BigInt(askUtxo.state.priceScale ?? -1) !== priceScale) {
+      throw new Error("fee-market ask differs from fixed market policy");
+    }
+    const sellerPlan = prepareKcc20FeeMarketAsk({ tokenId, feeTicketId,
+      priceScale, policy: params.feePolicy, wrapperProfile: "native", artifacts,
+      marketId, owner: seller, ownerScheme: sellerScheme,
+      payoutScriptHash: sellerPayout.hash, holderAmount: askAmount,
+      askAmount, askUnitPrice });
+    const askScript = sellerPlan.ask;
+    const remainingState = remainder > 0n
+      ? { ...sellerPlan.askState, amount: remainder.toString() } : null;
+    const remainingScript = remainingState
+      ? buildKcc20FeeMarketRoleScript({ artifact: artifacts.ask,
+        role: "ask", state: remainingState }) : null;
+    const fees = calculateKcc20EscrowFees({ grossSompi: gross,
+      creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: Boolean(ticket) });
+    const vector = encodeKcc20FeeVector([{ protocolFeeSompi: fees.protocolFeeSompi,
+      creatorFeeSompi: fees.creatorFeeSompi }]);
+    const askAddress = requireKaspaAddress(askUtxo.address);
+    assertScriptAddress(kw, askScript.redeemScript, askAddress, network,
+      "fee-market ask address");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_TRADE_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [askUtxos, ticketUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [askAddress]),
+        ticket ? getUtxosByAddresses(rpc, [ticket.address]) : Promise.resolve({ entries: [] }),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const askEntry = findUtxoEntry(askUtxos.entries,
+        requireHex32(askUtxo.txidHex, "ask txid"), parseVout(askUtxo.vout, "ask vout"));
+      if (!askEntry) throw new Error("fee-market ask is spent or unavailable");
+      requireMatchingCovenantId(askEntry, marketId, "fee-market ask");
+      const spk = askEntry.scriptPublicKey ?? askEntry.entry?.scriptPublicKey ??
+        askEntry.utxoEntry?.scriptPublicKey;
+      if (Number(spk?.version) !== 0 ||
+          String(spk?.script).toLowerCase() !== askScript.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(askEntry).toString() !== String(askUtxo.amountSompiExact)) {
+        throw new Error("fee-market ask differs from live node UTXO");
+      }
+      const ticketEntry = ticket ? findUtxoEntry(ticketUtxos.entries,
+        ticket.txid, ticket.vout) : null;
+      if (ticket) {
+        if (!ticketEntry) throw new Error("fee-market FeeTicket is spent or unavailable");
+        requireMatchingCovenantId(ticketEntry, feeTicketId, "fee-market FeeTicket");
+        const ticketSpk = ticketEntry.scriptPublicKey ?? ticketEntry.entry?.scriptPublicKey ??
+          ticketEntry.utxoEntry?.scriptPublicKey;
+        const expectedSpk = kw.payToScriptHashScript(ticket.script);
+        if (Number(ticketSpk?.version) !== Number(expectedSpk.version) ||
+            String(ticketSpk?.script).toLowerCase() !== String(expectedSpk.script).toLowerCase() ||
+            utxoAmountSompi(ticketEntry).toString() !== ticket.amountSompiExact) {
+          throw new Error("fee-market FeeTicket differs from live node UTXO");
+        }
+      }
+      const groupHash = kcc20FeeGroupCommitment({ tokenId, marketId,
+        policyId, taker: buyer, marketInputs: [askEntry.outpoint],
+        feeSlots: [{ protocolFeeSompi: fees.protocolFeeSompi,
+          creatorFeeSompi: fees.creatorFeeSompi }],
+        ticketOutpoint: ticketEntry?.outpoint });
+      const receiptState = { role: "0", token: tokenId, market: marketId,
+        policy: policyId, protocol_account: params.feePolicy.protocolAccountId,
+        creator_account: params.feePolicy.creatorAccountId,
+        protocol_amount: fees.protocolFeeSompi.toString(),
+        creator_amount: fees.creatorFeeSompi.toString(),
+        owner: ZERO_HASH, owner_scheme: 0, guard_template: ZERO_HASH,
+        guard_prefix: "0", guard_suffix: "0", action_hash: groupHash,
+        self_template: params.feePolicy.receiptTemplate.hash,
+        self_prefix: String(params.feePolicy.receiptTemplate.prefixLength),
+        self_suffix: String(params.feePolicy.receiptTemplate.suffixLength) };
+      const receipt = buildKcc20FeeEscrowScript(artifacts.receipt, receiptState);
+      const outputs = [new TransactionOutput(50_000_000n,
+        payToScriptHashScript(buyerPlan.holder.redeemScript),
+        new CovenantBinding(0, new Hash(marketId)))];
+      const continuationIndex = remainingScript ? 1 : 0;
+      if (remainingScript) outputs.push(new TransactionOutput(utxoAmountSompi(askEntry),
+        payToScriptHashScript(remainingScript.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const sellerOutputIndex = outputs.length;
+      outputs.push(new TransactionOutput(gross + (remainingScript ? 0n : utxoAmountSompi(askEntry)),
+        sellerPayout.spk));
+      const receiptOutputIndex = fees.totalFeeSompi > 0n ? outputs.length : -1;
+      if (receiptOutputIndex >= 0) outputs.push(new TransactionOutput(fees.totalFeeSompi,
+        payToScriptHashScript(receipt.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const ticketRefundIndex = ticketEntry ? outputs.length : -1;
+      if (ticketEntry) outputs.push(new TransactionOutput(utxoAmountSompi(ticketEntry),
+        payoutHashForOwner(buyer).spk));
+      const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const covenantSompi = utxoAmountSompi(askEntry) +
+        (ticketEntry ? utxoAmountSompi(ticketEntry) : 0n);
+      const requiredFunding = outputSompi + priorityFee - covenantSompi + 10_000n;
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding,
+        ticketEntry ? [askEntry.outpoint, ticketEntry.outpoint] : [askEntry.outpoint],
+        params.fundingOutpoint);
+      const fundingChange = covenantSompi + utxoAmountSompi(fundingEntry) -
+        outputSompi - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("fee-market buy funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: askEntry.outpoint, utxo: askEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 1500 },
+          ...(ticketEntry ? [{ previousOutpoint: ticketEntry.outpoint, utxo: ticketEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 }] : []),
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 1500);
+      const ticketInputIndex = ticketEntry ? 1 : -1;
+      const fundingInputIndex = ticketEntry ? 2 : 1;
+      if (ticketEntry) transaction.inputs[ticketInputIndex].computeBudget = 300;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market buy ask");
+      const legs = new Uint8Array(32);
+      const legView = new DataView(legs.buffer);
+      for (const [index, value] of [fillAmount, 0, continuationIndex,
+        sellerOutputIndex].entries()) legView.setBigInt64(index * 8, BigInt(value), true);
+      const receiptParts = templateParts(normalizeSilverScriptArtifact(artifacts.receipt));
+      const holderParts = templateParts(normalizeSilverScriptArtifact(artifacts.holder));
+      const prefix = covenantScriptBuilder(kw);
+      prefix.addData(hexToBytes(buyer));
+      addExplicitByte(prefix, 0);
+      prefix.addData(hexToBytes(buyerPayout.hash));
+      prefix.addI64(1n);
+      prefix.addData(legs);
+      prefix.addData(vector);
+      for (const index of [ticketInputIndex, receiptOutputIndex, ticketRefundIndex])
+        prefix.addI64(BigInt(index));
+      prefix.addData(fees.totalFeeSompi > 0n ? receiptParts.prefix : new Uint8Array());
+      prefix.addData(fees.totalFeeSompi > 0n ? receiptParts.suffix : new Uint8Array());
+      prefix.addData(holderParts.prefix);
+      prefix.addData(holderParts.suffix);
+      prefix.addData(dispatchTagFor(artifacts.ask, "buyAsks"));
+      transaction.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(
+        prefix.drain(), askScript.redeemScript);
+      const scripts = ticketEntry ? [feeTicketBurnScriptHint(ticketInputIndex,
+        ticket.script, ticket.burnDispatchTag, ticketRefundIndex,
+        ticket.burnTakesRefundOutput)] : [];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market buy ask", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("buy ask preflight serialization failed");
+          const predictedJson = JSON.parse(serialized);
+          const predictedWithTicket = transactionJsonWithScriptHints(kw, predictedJson, scripts);
+          predictedWithTicket.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedWithTicket))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedWithTicket));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market buy ask");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market buy ask");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market buy ask exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.buy-ask", operation: "fee-market-buy-ask",
+          network, walletAddress, tokenId, marketId, policyId,
+          fillAmount: fillAmount.toString(), grossSompi: gross.toString(),
+          protocolFeeSompi: fees.protocolFeeSompi.toString(),
+          creatorFeeSompi: fees.creatorFeeSompi.toString(),
+          buyerHolderOutputIndex: 0, askContinuationOutputIndex: remainingScript ? 1 : -1,
+          sellerOutputIndex, receiptOutputIndex, ticketInputIndex, ticketRefundIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketBuyTwoAsksPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const asks = params.asks;
+    if (!Array.isArray(asks) || asks.length !== 2) {
+      throw new Error("fee-market buyer group requires exactly two complete asks");
+    }
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const buyer = requireHex32(request.owner?.kcc20Owner, "buyer");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, buyer);
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const ticket = await feeMarketTicketForTaker(params, request.owner,
+      buyer, network, feeTicketId);
+    const kw = kaspaWasm;
+    const payoutSpk = p2pkScriptPubKey(kw, buyer);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(11 + payoutScript.length);
+    payoutBytes[0] = 0xe3;
+    new DataView(payoutBytes.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(payoutBytes.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    payoutBytes.set(payoutScript, 11);
+    const buyerPayoutHash = bytesToHex(blake3(payoutBytes));
+    const artifacts = await readFeeMarketArtifacts();
+    const base = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId };
+    const policyId = prepareKcc20FeeMarketGenesis(base).policyId;
+    if (policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market buyer group policy ID mismatch");
+    }
+    const legs = asks.map((ask, index) => {
+      if (!ask || String(ask.state?.mode) !== "2") {
+        throw new Error(`fee-market ask ${index} is not an active ask`);
+      }
+      const amount = parsePositiveU64(ask.state.amount, `ask ${index} amount`);
+      const price = parsePositiveU64(ask.state.unitPrice, `ask ${index} unit price`);
+      const gross = exactGrossSompi(amount, price, priceScale, "fee-market buyer group");
+      if (gross < MIN_FILL_GROSS_SOMPI || gross > (1n << 63n) - 1n) {
+        throw new Error(`fee-market ask ${index} gross is outside contract range`);
+      }
+      const seller = requireHex32(ask.state.owner, `ask ${index} seller`);
+      if (Number(ask.state.owner_scheme) !== 0) {
+        throw new Error("buyer group requires wallet-owned asks in this builder version");
+      }
+      const sellerSpk = p2pkScriptPubKey(kw, seller);
+      const sellerScript = hexToBytes(String(sellerSpk.script));
+      const sellerBytes = new Uint8Array(11 + sellerScript.length);
+      sellerBytes[0] = 0xe3;
+      new DataView(sellerBytes.buffer).setUint16(1, Number(sellerSpk.version), true);
+      new DataView(sellerBytes.buffer).setBigUint64(3, BigInt(sellerScript.length), true);
+      sellerBytes.set(sellerScript, 11);
+      const sellerPayoutHash = bytesToHex(blake3(sellerBytes));
+      const holder = prepareKcc20FeeMarketWrappedHolder({ ...base,
+        recipientOwner: buyer, recipientOwnerScheme: 0,
+        recipientPayoutScriptHash: buyerPayoutHash, tokenAmount: amount });
+      if (String(ask.state.canonicalTokenId).toLowerCase() !== tokenId ||
+          String(ask.state.feeTicketId).toLowerCase() !== feeTicketId ||
+          String(ask.state.feePolicy).toLowerCase() !== holder.holderState.feePolicy ||
+          String(ask.state.wrapper_spk_hash).toLowerCase() !== holder.wrapper.scriptHash ||
+          String(ask.state.payout_script_hash).toLowerCase() !== sellerPayoutHash ||
+          BigInt(ask.state.priceScale ?? -1) !== priceScale) {
+        throw new Error(`fee-market ask ${index} differs from fixed policy or payout`);
+      }
+      const sellerPlan = prepareKcc20FeeMarketAsk({ ...base, owner: seller,
+        ownerScheme: 0, payoutScriptHash: sellerPayoutHash,
+        holderAmount: amount, askAmount: amount, askUnitPrice: price });
+      const address = requireKaspaAddress(ask.address);
+      assertScriptAddress(kw, sellerPlan.ask.redeemScript, address,
+        network, `fee-market ask ${index} address`);
+      const fee = calculateKcc20EscrowFees({ grossSompi: gross,
+        creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: Boolean(ticket) });
+      return { ask, amount, gross, sellerSpk, address, holder,
+        askScript: sellerPlan.ask, fee };
+    });
+    if (asks[0].txidHex === asks[1].txidHex && Number(asks[0].vout) === Number(asks[1].vout)) {
+      throw new Error("buyer group cannot spend the same ask twice");
+    }
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_TRADE_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [sourceUtxos, ticketUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, legs.map(leg => leg.address)),
+        ticket ? getUtxosByAddresses(rpc, [ticket.address]) : Promise.resolve({ entries: [] }),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const entries = legs.map((leg, index) => {
+        const entry = findUtxoEntry(sourceUtxos.entries,
+          requireHex32(leg.ask.txidHex, `ask ${index} txid`),
+          parseVout(leg.ask.vout, `ask ${index} vout`));
+        if (!entry) throw new Error(`fee-market ask ${index} is spent or unavailable`);
+        requireMatchingCovenantId(entry, marketId, `fee-market ask ${index}`);
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        if (Number(spk?.version) !== 0 ||
+            String(spk?.script).toLowerCase() !== leg.askScript.scriptPublicKey.scriptHex ||
+            utxoAmountSompi(entry).toString() !== String(leg.ask.amountSompiExact)) {
+          throw new Error(`fee-market ask ${index} differs from live node UTXO`);
+        }
+        return entry;
+      });
+      const ticketEntry = ticket ? findUtxoEntry(ticketUtxos.entries,
+        ticket.txid, ticket.vout) : null;
+      if (ticket) {
+        if (!ticketEntry) throw new Error("fee-market FeeTicket is spent or unavailable");
+        requireMatchingCovenantId(ticketEntry, feeTicketId, "fee-market FeeTicket");
+        const ticketSpk = ticketEntry.scriptPublicKey ?? ticketEntry.entry?.scriptPublicKey ??
+          ticketEntry.utxoEntry?.scriptPublicKey;
+        const expectedSpk = kw.payToScriptHashScript(ticket.script);
+        if (Number(ticketSpk?.version) !== Number(expectedSpk.version) ||
+            String(ticketSpk?.script).toLowerCase() !== String(expectedSpk.script).toLowerCase() ||
+            utxoAmountSompi(ticketEntry).toString() !== ticket.amountSompiExact) {
+          throw new Error("fee-market FeeTicket differs from live node UTXO");
+        }
+      }
+      const feeSlots = legs.map(leg => ({ protocolFeeSompi: leg.fee.protocolFeeSompi,
+        creatorFeeSompi: leg.fee.creatorFeeSompi }));
+      const protocolTotal = feeSlots.reduce((sum, fee) => sum + fee.protocolFeeSompi, 0n);
+      const creatorTotal = feeSlots.reduce((sum, fee) => sum + fee.creatorFeeSompi, 0n);
+      const feeTotal = protocolTotal + creatorTotal;
+      const vector = encodeKcc20FeeVector(feeSlots);
+      const groupHash = kcc20FeeGroupCommitment({ tokenId, marketId, policyId,
+        taker: buyer, marketInputs: entries.map(entry => entry.outpoint), feeSlots,
+        ticketOutpoint: ticketEntry?.outpoint });
+      const receiptState = { role: "0", token: tokenId, market: marketId,
+        policy: policyId, protocol_account: params.feePolicy.protocolAccountId,
+        creator_account: params.feePolicy.creatorAccountId,
+        protocol_amount: protocolTotal.toString(), creator_amount: creatorTotal.toString(),
+        owner: ZERO_HASH, owner_scheme: 0, guard_template: ZERO_HASH,
+        guard_prefix: "0", guard_suffix: "0", action_hash: groupHash,
+        self_template: params.feePolicy.receiptTemplate.hash,
+        self_prefix: String(params.feePolicy.receiptTemplate.prefixLength),
+        self_suffix: String(params.feePolicy.receiptTemplate.suffixLength) };
+      const receipt = buildKcc20FeeEscrowScript(artifacts.receipt, receiptState);
+      const outputs = [];
+      for (let index = 0; index < legs.length; index++) {
+        const leg = legs[index];
+        outputs.push(new TransactionOutput(50_000_000n,
+          payToScriptHashScript(leg.holder.holder.redeemScript),
+          new CovenantBinding(index, new Hash(marketId))));
+        outputs.push(new TransactionOutput(leg.gross + utxoAmountSompi(entries[index]),
+          leg.sellerSpk));
+      }
+      const receiptOutputIndex = feeTotal > 0n ? outputs.length : -1;
+      if (receiptOutputIndex >= 0) outputs.push(new TransactionOutput(feeTotal,
+        payToScriptHashScript(receipt.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const ticketRefundIndex = ticketEntry ? outputs.length : -1;
+      if (ticketEntry) outputs.push(new TransactionOutput(utxoAmountSompi(ticketEntry),
+        payoutSpk));
+      const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const covenantInputSompi = entries.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n) +
+        (ticketEntry ? utxoAmountSompi(ticketEntry) : 0n);
+      const requiredFunding = outputSompi + priorityFee - covenantInputSompi + 10_000n;
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding,
+        [...entries.map(entry => entry.outpoint),
+          ...(ticketEntry ? [ticketEntry.outpoint] : [])], params.fundingOutpoint);
+      const fundingChange = covenantInputSompi + utxoAmountSompi(fundingEntry) -
+        outputSompi - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("buyer group funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          ...entries.map((entry, index) => ({ previousOutpoint: entry.outpoint, utxo: entry,
+            sequence: 0n, sigOpCount: 0, computeBudget: index === 0 ? 1500 : 600 })),
+          ...(ticketEntry ? [{ previousOutpoint: ticketEntry.outpoint, utxo: ticketEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 300 }] : []),
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 1500);
+      transaction.inputs[1].computeBudget = 600;
+      const ticketInputIndex = ticketEntry ? 2 : -1;
+      const fundingInputIndex = ticketEntry ? 3 : 2;
+      if (ticketEntry) transaction.inputs[ticketInputIndex].computeBudget = 300;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market buyer group");
+      const legBytes = new Uint8Array(64);
+      const view = new DataView(legBytes.buffer);
+      for (let index = 0; index < 2; index++) {
+        for (const [slot, value] of [legs[index].amount, index * 2, 0, index * 2 + 1].entries()) {
+          view.setBigInt64(index * 32 + slot * 8, BigInt(value), true);
+        }
+      }
+      const receiptParts = templateParts(normalizeSilverScriptArtifact(artifacts.receipt));
+      const holderParts = templateParts(normalizeSilverScriptArtifact(artifacts.holder));
+      const leader = covenantScriptBuilder(kw);
+      leader.addData(hexToBytes(buyer));
+      addExplicitByte(leader, 0);
+      leader.addData(hexToBytes(buyerPayoutHash));
+      leader.addI64(2n);
+      leader.addData(legBytes);
+      leader.addData(vector);
+      for (const value of [ticketInputIndex, receiptOutputIndex, ticketRefundIndex])
+        leader.addI64(BigInt(value));
+      leader.addData(feeTotal > 0n ? receiptParts.prefix : new Uint8Array());
+      leader.addData(feeTotal > 0n ? receiptParts.suffix : new Uint8Array());
+      leader.addData(holderParts.prefix);
+      leader.addData(holderParts.suffix);
+      leader.addData(dispatchTagFor(artifacts.ask, "buyAsks"));
+      transaction.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(
+        leader.drain(), legs[0].askScript.redeemScript);
+      const follower = covenantScriptBuilder(kw);
+      for (const value of [0, 1, 2, -1]) follower.addI64(BigInt(value));
+      addExplicitByte(follower, 0);
+      follower.addData(dispatchTagFor(artifacts.ask, "delegateBuyerGroup"));
+      transaction.inputs[1].signatureScript = encodeCovenantP2shSignatureScript(
+        follower.drain(), legs[1].askScript.redeemScript);
+      const scripts = ticketEntry ? [feeTicketBurnScriptHint(ticketInputIndex,
+        ticket.script, ticket.burnDispatchTag, ticketRefundIndex,
+        ticket.burnTakesRefundOutput)] : [];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market buyer group", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("buyer group preflight serialization failed");
+          const predicted = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predicted.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predicted))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predicted));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market buyer group");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market buyer group");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market buyer group exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
+        // Follower input 1 has a 600-unit budget without constrained consensus proof.
+        submitTransactionSupported: false,
+        metadata: { builderKey: "kcc20fee.buy-two-asks",
+          operation: "fee-market-buy-two-asks", network, walletAddress,
+          tokenId, marketId, policyId, fillCount: 2,
+          grossSompi: legs.reduce((sum, leg) => sum + leg.gross, 0n).toString(),
+          protocolFeeSompi: protocolTotal.toString(),
+          creatorFeeSompi: creatorTotal.toString(), receiptOutputIndex,
+          ticketInputIndex, ticketRefundIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(), storage: storageMass.toString() } },
+      };
+    } finally { await rpc.disconnect(); }
+  }
+
+  async function buildFeeMarketSellIntoBidsPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const bids = params.bids;
+    if (!Array.isArray(bids) || bids.length < 1 || bids.length > 10) {
+      throw new Error("fee-market seller group requires one to ten bids");
+    }
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const seller = requireHex32(request.owner?.kcc20Owner, "seller");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, seller);
+    const ticketRequest = params.feeTicketUtxo || null;
+    if (ticketRequest && feeTicketId === ZERO_HASH) {
+      throw new Error("a fee-market ticket waiver requires the bound FeeTicket root");
+    }
+    const source = params.holderUtxo;
+    if (!source || String(source.state?.mode) !== "0" ||
+        Number(source.state.owner_scheme) !== 0 ||
+        String(source.state.owner).toLowerCase() !== seller) {
+      throw new Error("current wallet-owned fee-market holder UTXO is required");
+    }
+    const holderAmount = parsePositiveU64(source.state.amount, "holder amount");
+    const kw = kaspaWasm;
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const sellerSpk = p2pkScriptPubKey(kw, seller);
+    const sellerScript = hexToBytes(String(sellerSpk.script));
+    const sellerPayoutBytes = new Uint8Array(11 + sellerScript.length);
+    sellerPayoutBytes[0] = 0xe3;
+    new DataView(sellerPayoutBytes.buffer).setUint16(1, Number(sellerSpk.version), true);
+    new DataView(sellerPayoutBytes.buffer).setBigUint64(3, BigInt(sellerScript.length), true);
+    sellerPayoutBytes.set(sellerScript, 11);
+    const sellerPayoutHash = bytesToHex(blake3(sellerPayoutBytes));
+    const artifacts = await readFeeMarketArtifacts();
+    let ticket = null;
+    if (ticketRequest) {
+      const ticketState = kcc20FeeTicketStateFromUtxo(ticketRequest, request.owner);
+      if (ticketState.mode !== 2 || bytesToHex(ticketState.ownerIdentifier) !== seller) {
+        throw new Error("fee-market ticket must be owned by the selling wallet");
+      }
+      const ticketArtifacts = await readFeeTicketArtifacts();
+      const address = requireKaspaAddress(ticketRequest.address);
+      const info = selectFeeTicketArtifactForState(ticketArtifacts,
+        ticketState, address, network, "fee-market FeeTicket");
+      const pinned = templateParts(normalizeSilverScriptArtifact(info.artifact));
+      const expected = params.feePolicy.ticketTemplate;
+      if (bytesToHex(templateHash(pinned.prefix, pinned.suffix)) !==
+            requireHex32(expected?.hash, "ticket template") ||
+          pinned.prefix.length !== Number(expected?.prefixLength) ||
+          pinned.suffix.length !== Number(expected?.suffixLength)) {
+        throw new Error("fee-market ticket artifact differs from fixed policy");
+      }
+      ticket = { ...info, state: ticketState, address,
+        txid: requireHex32(ticketRequest.txidHex, "FeeTicket txid"),
+        vout: parseVout(ticketRequest.vout, "FeeTicket vout"),
+        amountSompiExact: String(ticketRequest.amountSompiExact) };
+    }
+    const base = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: "native", artifacts, marketId };
+    const policyId = prepareKcc20FeeMarketGenesis(base).policyId;
+    if (policyId !== requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market seller group policy ID mismatch");
+    }
+    const holderPlan = prepareKcc20FeeMarketWrappedHolder({ ...base,
+      recipientOwner: seller, recipientOwnerScheme: 0,
+      recipientPayoutScriptHash: sellerPayoutHash, tokenAmount: holderAmount });
+    if (String(source.state.canonicalTokenId).toLowerCase() !== tokenId ||
+        String(source.state.feeTicketId).toLowerCase() !== feeTicketId ||
+        BigInt(source.state.priceScale ?? -1) !== priceScale ||
+        String(source.state.feePolicy).toLowerCase() !== holderPlan.holderState.feePolicy ||
+        String(source.state.wrapper_spk_hash).toLowerCase() !== holderPlan.wrapper.scriptHash ||
+        String(source.state.payout_script_hash).toLowerCase() !== sellerPayoutHash) {
+      throw new Error("fee-market seller holder differs from fixed policy or payout");
+    }
+    const holderAddress = requireKaspaAddress(source.address);
+    assertScriptAddress(kw, holderPlan.holder.redeemScript, holderAddress,
+      network, "fee-market seller holder address");
+    let sold = 0n;
+    const legs = bids.map((bid, slot) => {
+      const utxo = bid?.bidUtxo;
+      if (!utxo || String(utxo.state?.mode) !== "3") {
+        throw new Error(`fee-market bid ${slot} is not active`);
+      }
+      const amount = parsePositiveU64(utxo.state.amount, `bid ${slot} amount`);
+      const price = parsePositiveU64(utxo.state.unitPrice, `bid ${slot} unit price`);
+      const fill = parsePositiveU64(bid.fillAmount, `bid ${slot} fill amount`);
+      if (fill > amount) throw new Error(`bid ${slot} fill exceeds available tokens`);
+      const gross = exactGrossSompi(fill, price, priceScale, "fee-market seller fill");
+      if (gross < MIN_FILL_GROSS_SOMPI || gross > (1n << 63n) - 1n) {
+        throw new Error(`bid ${slot} fill gross is outside contract range`);
+      }
+      const remaining = amount - fill;
+      if (remaining > 0n && exactGrossSompi(remaining, price, priceScale,
+        "fee-market remaining bid") < MIN_FILL_GROSS_SOMPI) {
+        throw new Error(`bid ${slot} remainder is below 0.5 KAS`);
+      }
+      sold += fill;
+      const buyer = requireHex32(utxo.state.owner, `bid ${slot} buyer`);
+      const scheme = Number(utxo.state.owner_scheme);
+      if (!Number.isInteger(scheme) || scheme < 0 || scheme > 4) {
+        throw new Error(`bid ${slot} has an unsupported owner scheme`);
+      }
+      const payoutHash = requireHex32(utxo.state.payout_script_hash,
+        `bid ${slot} buyer payout hash`);
+      if (String(utxo.state.canonicalTokenId).toLowerCase() !== tokenId ||
+          String(utxo.state.feeTicketId).toLowerCase() !== feeTicketId ||
+          BigInt(utxo.state.priceScale ?? -1) !== priceScale ||
+          String(utxo.state.feePolicy).toLowerCase() !== holderPlan.holderState.feePolicy ||
+          String(utxo.state.wrapper_spk_hash).toLowerCase() !== holderPlan.wrapper.scriptHash) {
+        throw new Error(`bid ${slot} differs from fixed market policy`);
+      }
+      const bidScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid,
+        role: "bid", state: utxo.state });
+      const buyerPlan = prepareKcc20FeeMarketWrappedHolder({ ...base,
+        recipientOwner: buyer, recipientOwnerScheme: scheme,
+        recipientPayoutScriptHash: payoutHash, tokenAmount: fill });
+      const continuation = remaining > 0n
+        ? buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid,
+          role: "bid", state: { ...utxo.state, amount: remaining.toString() } })
+        : null;
+      const fee = calculateKcc20EscrowFees({ grossSompi: gross,
+        creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: Boolean(ticket) });
+      if (gross <= fee.totalFeeSompi) {
+        throw new Error(`bid ${slot} leaves no seller proceeds after fees`);
+      }
+      const address = requireKaspaAddress(utxo.address);
+      assertScriptAddress(kw, bidScript.redeemScript, address, network,
+        `fee-market bid ${slot} address`);
+      return { utxo, amount, fill, gross, remaining, buyerPlan, bidScript,
+        continuation, fee, address };
+    });
+    if (sold > holderAmount) throw new Error("seller group exceeds holder token amount");
+    const seenBids = new Set(legs.map(leg => `${leg.utxo.txidHex}:${leg.utxo.vout}`));
+    if (seenBids.size !== legs.length) throw new Error("seller group repeats a bid UTXO");
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_TRADE_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [sourceUtxos, bidUtxos, ticketUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [holderAddress]),
+        getUtxosByAddresses(rpc, legs.map(leg => leg.address)),
+        ticket ? getUtxosByAddresses(rpc, [ticket.address]) : Promise.resolve({ entries: [] }),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const holderEntry = findUtxoEntry(sourceUtxos.entries,
+        requireHex32(source.txidHex, "holder txid"), parseVout(source.vout, "holder vout"));
+      if (!holderEntry) throw new Error("fee-market seller holder is spent or unavailable");
+      requireMatchingCovenantId(holderEntry, marketId, "fee-market seller holder");
+      const holderSpk = holderEntry.scriptPublicKey ?? holderEntry.entry?.scriptPublicKey ??
+        holderEntry.utxoEntry?.scriptPublicKey;
+      if (Number(holderSpk?.version) !== 0 ||
+          String(holderSpk?.script).toLowerCase() !== holderPlan.holder.scriptPublicKey.scriptHex ||
+          utxoAmountSompi(holderEntry).toString() !== String(source.amountSompiExact)) {
+        throw new Error("fee-market seller holder differs from live node UTXO");
+      }
+      const bidEntries = legs.map((leg, slot) => {
+        const entry = findUtxoEntry(bidUtxos.entries,
+          requireHex32(leg.utxo.txidHex, `bid ${slot} txid`),
+          parseVout(leg.utxo.vout, `bid ${slot} vout`));
+        if (!entry) throw new Error(`fee-market bid ${slot} is spent or unavailable`);
+        requireMatchingCovenantId(entry, marketId, `fee-market bid ${slot}`);
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        if (Number(spk?.version) !== 0 ||
+            String(spk?.script).toLowerCase() !== leg.bidScript.scriptPublicKey.scriptHex ||
+            utxoAmountSompi(entry).toString() !== String(leg.utxo.amountSompiExact)) {
+          throw new Error(`fee-market bid ${slot} differs from live node UTXO`);
+        }
+        const originalGross = exactGrossSompi(leg.amount,
+          BigInt(leg.utxo.state.unitPrice), priceScale, "fee-market bid gross");
+        const deposit = utxoAmountSompi(entry) - originalGross;
+        if (deposit < MIN_FILL_GROSS_SOMPI || deposit > 200_000_000n) {
+          throw new Error(`fee-market bid ${slot} has an invalid locked deposit`);
+        }
+        return { entry, deposit };
+      });
+      const ticketEntry = ticket ? findUtxoEntry(ticketUtxos.entries,
+        ticket.txid, ticket.vout) : null;
+      if (ticket) {
+        if (!ticketEntry) throw new Error("fee-market FeeTicket is spent or unavailable");
+        requireMatchingCovenantId(ticketEntry, feeTicketId, "fee-market FeeTicket");
+        const spk = ticketEntry.scriptPublicKey ?? ticketEntry.entry?.scriptPublicKey ??
+          ticketEntry.utxoEntry?.scriptPublicKey;
+        const expectedSpk = kw.payToScriptHashScript(ticket.script);
+        if (Number(spk?.version) !== Number(expectedSpk.version) ||
+            String(spk?.script).toLowerCase() !== String(expectedSpk.script).toLowerCase() ||
+            utxoAmountSompi(ticketEntry).toString() !== ticket.amountSompiExact) {
+          throw new Error("fee-market FeeTicket differs from live node UTXO");
+        }
+      }
+      const feeSlots = legs.map(leg => ({ protocolFeeSompi: leg.fee.protocolFeeSompi,
+        creatorFeeSompi: leg.fee.creatorFeeSompi }));
+      const protocolTotal = feeSlots.reduce((sum, fee) => sum + fee.protocolFeeSompi, 0n);
+      const creatorTotal = feeSlots.reduce((sum, fee) => sum + fee.creatorFeeSompi, 0n);
+      const feeTotal = protocolTotal + creatorTotal;
+      const vector = encodeKcc20FeeVector(feeSlots);
+      const groupHash = kcc20FeeGroupCommitment({ tokenId, marketId, policyId,
+        taker: seller, marketInputs: [holderEntry.outpoint,
+          ...bidEntries.map(({ entry }) => entry.outpoint)], feeSlots,
+        ticketOutpoint: ticketEntry?.outpoint });
+      const receiptState = { role: "0", token: tokenId, market: marketId,
+        policy: policyId, protocol_account: params.feePolicy.protocolAccountId,
+        creator_account: params.feePolicy.creatorAccountId,
+        protocol_amount: protocolTotal.toString(), creator_amount: creatorTotal.toString(),
+        owner: ZERO_HASH, owner_scheme: 0, guard_template: ZERO_HASH,
+        guard_prefix: "0", guard_suffix: "0", action_hash: groupHash,
+        self_template: params.feePolicy.receiptTemplate.hash,
+        self_prefix: String(params.feePolicy.receiptTemplate.prefixLength),
+        self_suffix: String(params.feePolicy.receiptTemplate.suffixLength) };
+      const receipt = buildKcc20FeeEscrowScript(artifacts.receipt, receiptState);
+      const outputs = [];
+      const legIndexes = [];
+      for (let slot = 0; slot < legs.length; slot++) {
+        const leg = legs[slot];
+        const { entry, deposit } = bidEntries[slot];
+        const buyerIndex = outputs.length;
+        outputs.push(new TransactionOutput(leg.remaining > 0n ? 50_000_000n : deposit,
+          payToScriptHashScript(leg.buyerPlan.holder.redeemScript),
+          new CovenantBinding(0, new Hash(marketId))));
+        const continuationIndex = leg.continuation ? outputs.length : -1;
+        if (leg.continuation) {
+          const remainingGross = exactGrossSompi(leg.remaining,
+            BigInt(leg.utxo.state.unitPrice), priceScale, "fee-market bid continuation");
+          outputs.push(new TransactionOutput(remainingGross + deposit,
+            payToScriptHashScript(leg.continuation.redeemScript),
+            new CovenantBinding(slot + 1, new Hash(marketId))));
+        }
+        const sellerIndex = outputs.length;
+        outputs.push(new TransactionOutput(leg.gross - leg.fee.totalFeeSompi, sellerSpk));
+        legIndexes.push({ buyerIndex, continuationIndex, sellerIndex });
+      }
+      const holderRemainder = holderAmount - sold;
+      const changeIndex = holderRemainder > 0n ? outputs.length : -1;
+      if (holderRemainder > 0n) {
+        const change = prepareKcc20FeeMarketWrappedHolder({ ...base,
+          recipientOwner: seller, recipientOwnerScheme: 0,
+          recipientPayoutScriptHash: sellerPayoutHash, tokenAmount: holderRemainder });
+        outputs.push(new TransactionOutput(utxoAmountSompi(holderEntry),
+          payToScriptHashScript(change.holder.redeemScript),
+          new CovenantBinding(0, new Hash(marketId))));
+      }
+      const receiptOutputIndex = feeTotal > 0n ? outputs.length : -1;
+      if (feeTotal > 0n) outputs.push(new TransactionOutput(feeTotal,
+        payToScriptHashScript(receipt.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const refundIndex = holderRemainder === 0n ? outputs.length : -1;
+      if (refundIndex >= 0) {
+        outputs.push(new TransactionOutput(utxoAmountSompi(holderEntry), sellerSpk));
+      }
+      const ticketRefundIndex = ticketEntry ? outputs.length : -1;
+      if (ticketEntry) outputs.push(new TransactionOutput(utxoAmountSompi(ticketEntry), sellerSpk));
+      const covenantInputs = [holderEntry, ...bidEntries.map(({ entry }) => entry)];
+      const spentEntries = ticketEntry ? [...covenantInputs, ticketEntry] : covenantInputs;
+      const covenantSompi = spentEntries.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n);
+      const outputSompi = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const fundingNeeded = outputSompi + priorityFee > covenantSompi
+        ? outputSompi + priorityFee - covenantSompi + 10_000n
+        : priorityFee + 10_000n;
+      const fundingEntry = selectFundingEntry(walletUtxos.entries, fundingNeeded,
+        spentEntries.map(entry => entry.outpoint), params.fundingOutpoint);
+      const fundingChange = covenantSompi + utxoAmountSompi(fundingEntry) - outputSompi - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("seller group funding change is too small");
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: holderEntry.outpoint, utxo: holderEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 1000 },
+          ...bidEntries.map(({ entry }) => ({ previousOutpoint: entry.outpoint, utxo: entry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 100 })),
+          ...(ticketEntry ? [{ previousOutpoint: ticketEntry.outpoint, utxo: ticketEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 600 }] : []),
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      // Pinned signed consensus proof uses 394 units for ten-bid leader and
+      // 43 for each bid delegator. Leave more than 2x headroom per role.
+      setVersionOneInputMassFields(transaction, 1000);
+      for (let slot = 0; slot < legs.length; slot++) transaction.inputs[slot + 1].computeBudget = 100;
+      const ticketInputIndex = ticketEntry ? legs.length + 1 : -1;
+      if (ticketEntry) transaction.inputs[ticketInputIndex].computeBudget = 600;
+      const fundingInputIndex = legs.length + 1 + (ticketEntry ? 1 : 0);
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market seller group");
+      const legBytes = new Uint8Array(legs.length * 32);
+      const view = new DataView(legBytes.buffer);
+      for (let slot = 0; slot < legs.length; slot++) {
+        const indexes = legIndexes[slot];
+        for (const [field, value] of [legs[slot].fill, indexes.buyerIndex,
+          indexes.continuationIndex < 0 ? 0 : indexes.continuationIndex,
+          indexes.sellerIndex].entries()) {
+          view.setBigInt64(slot * 32 + field * 8, BigInt(value), true);
+        }
+      }
+      const receiptParts = templateParts(normalizeSilverScriptArtifact(artifacts.receipt));
+      const scripts = [{ inputIndex: 0,
+        scriptHex: bytesToHex(holderPlan.holder.redeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: [
+          { type: "signature" }, i64TemplateArg(legs.length), dataTemplateArg(legBytes),
+          dataTemplateArg(vector), i64TemplateArg(ticketInputIndex), i64TemplateArg(receiptOutputIndex),
+          i64TemplateArg(changeIndex), i64TemplateArg(refundIndex), i64TemplateArg(ticketRefundIndex),
+          dataTemplateArg(feeTotal > 0n ? receiptParts.prefix : new Uint8Array()),
+          dataTemplateArg(feeTotal > 0n ? receiptParts.suffix : new Uint8Array()),
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "sellIntoBids")),
+        ] } }];
+      if (ticketEntry) scripts.push(feeTicketBurnScriptHint(ticketInputIndex,
+        ticket.script, ticket.burnDispatchTag, ticketRefundIndex,
+        ticket.burnTakesRefundOutput));
+      for (let slot = 0; slot < legs.length; slot++) {
+        const delegate = covenantScriptBuilder(kw);
+        for (const value of [0, slot, legs[slot].remaining,
+          legIndexes[slot].continuationIndex]) delegate.addI64(BigInt(value));
+        delegate.addData(dispatchTagFor(artifacts.bid, "delegateSellerGroup"));
+        transaction.inputs[slot + 1].signatureScript = encodeCovenantP2shSignatureScript(
+          delegate.drain(), legs[slot].bidScript.redeemScript);
+      }
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market seller group", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("seller group preflight serialization failed");
+          const predicted = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predicted.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predicted))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predicted));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market seller group");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market seller group");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market seller group exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.sell-into-bids",
+          operation: "fee-market-sell-into-bids", network, walletAddress,
+          tokenId, marketId, policyId, fillCount: legs.length,
+          soldAmount: sold.toString(),
+          grossSompi: legs.reduce((sum, leg) => sum + leg.gross, 0n).toString(),
+          protocolFeeSompi: protocolTotal.toString(),
+          creatorFeeSompi: creatorTotal.toString(), receiptOutputIndex,
+          ticketInputIndex, ticketRefundIndex,
+          sellerChangeIndex: changeIndex, sellerRefundIndex: refundIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(), storage: storageMass.toString() } },
+      };
+    } finally { await rpc.disconnect(); }
+  }
+
+  async function buildFeeMarketClaimPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const party = params.party;
+    if (party !== "protocol" && party !== "creator") {
+      throw new Error("fee-market claim party must be protocol or creator");
+    }
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const policyId = requireHex32(params.policyId, "fee-market policy ID");
+    const protocolAccountId = requireHex32(params.protocolAccountId, "protocol account ID");
+    const creatorAccountId = requireHex32(params.creatorAccountId || ZERO_HASH,
+      "creator account ID");
+    const accountId = party === "protocol" ? protocolAccountId : creatorAccountId;
+    if (accountId === ZERO_HASH) throw new Error("creator claim is disabled by this market policy");
+    const indexedReceipts = params.receipts;
+    const indexedAccount = params.account;
+    if (!Array.isArray(indexedReceipts) || indexedReceipts.length < 1 ||
+        indexedReceipts.length > 5 || !indexedAccount) {
+      throw new Error("fee-market claim requires one to five receipts and an account");
+    }
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const owner = requireHex32(request.owner?.kcc20Owner, "claim owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
+    const accountOwner = accountOwnerScheme === 1
+      ? bytesToHex(blake3(hexToBytes(owner))) : owner;
+    if ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
+        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner) {
+      throw new Error("fee account is not controlled by the signing wallet");
+    }
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const artifact = (await readFeeMarketArtifacts()).receipt;
+    const kw = kaspaWasm;
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const payoutSpk = payToAddressScript(walletAddress);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(2 + payoutScript.length);
+    new DataView(payoutBytes.buffer).setUint16(0, Number(payoutSpk.version), true);
+    payoutBytes.set(payoutScript, 2);
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_CLAIM_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const sourceAddresses = [...indexedReceipts, indexedAccount]
+      .map(item => requireKaspaAddress(item.address));
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [covenantUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, sourceAddresses),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const getLive = (indexed, label) => {
+        const entry = findUtxoEntry(covenantUtxos.entries,
+          requireHex32(indexed.txidHex, `${label} txid`),
+          parseVout(indexed.vout, `${label} vout`));
+        if (!entry) throw new Error(`${label} is spent or unavailable`);
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        return { entry, live: { outpoint: entry.outpoint,
+          amountSompi: utxoAmountSompi(entry),
+          covenantIdHex: requireMatchingCovenantId(entry,
+            indexed.covenantIdHex, `${label} live`),
+          scriptPublicKey: { version: Number(spk?.version),
+            scriptHex: String(spk?.script).toLowerCase() } } };
+      };
+      const checkedReceipts = indexedReceipts.map(indexed => {
+        const { entry, live } = getLive(indexed, "fee receipt");
+        const checked = verifyKcc20FeeReceiptForClaim({ artifact,
+          indexed, live, expected: { tokenId, marketId, policyId,
+            protocolAccountId, creatorAccountId } });
+        assertScriptAddress(kw, checked.redeemScript, indexed.address,
+          network, "fee receipt address");
+        return { entry, ...checked };
+      });
+      const { entry: accountEntry, live: accountLive } = getLive(indexedAccount,
+        "fee account");
+      const checkedAccount = verifyKcc20FeeAccountForClaim({ artifact,
+        indexed: indexedAccount, live: accountLive,
+        expected: { tokenId, marketId, policyId, accountId } });
+      assertScriptAddress(kw, checkedAccount.redeemScript, indexedAccount.address,
+        network, "fee account address");
+      const transition = planKcc20FeeClaimTransition({
+        receipts: checkedReceipts.map(item => item.receipt), party,
+        account: checkedAccount.account,
+        escrowTemplate: checkedAccount.escrowTemplate,
+        payoutScriptPublicKey: payoutBytes,
+      });
+      const successor = buildKcc20FeeEscrowScript(artifact,
+        transition.successorAccountState);
+      const remainder = transition.remainderReceiptState
+        ? buildKcc20FeeEscrowScript(artifact, transition.remainderReceiptState)
+        : null;
+      const accountInputIndex = checkedReceipts.length;
+      const fundingInputIndex = accountInputIndex + 1;
+      const outputs = [new TransactionOutput(transition.claimSompi, payoutSpk),
+        new TransactionOutput(transition.accountPrincipalSompi,
+          payToScriptHashScript(successor.redeemScript),
+          new CovenantBinding(accountInputIndex, new Hash(accountId)))];
+      if (remainder) outputs.push(new TransactionOutput(transition.remainderSompi,
+        payToScriptHashScript(remainder.redeemScript),
+        new CovenantBinding(0, new Hash(marketId))));
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        priorityFee + 10_000n,
+        [...checkedReceipts.map(item => item.entry.outpoint), accountEntry.outpoint],
+        params.fundingOutpoint);
+      const fundingChangeIndex = outputs.length;
+      outputs.push(new TransactionOutput(utxoAmountSompi(fundingEntry) - priorityFee,
+        payoutSpk));
+      const inputs = [
+        ...checkedReceipts.map((item, index) => ({
+          previousOutpoint: item.entry.outpoint, utxo: item.entry,
+          sequence: 0n, sigOpCount: 0, computeBudget: index === 0 ? 200 : 50,
+        })),
+        { previousOutpoint: accountEntry.outpoint, utxo: accountEntry,
+          sequence: 0n, sigOpCount: 0, computeBudget: 100 },
+        { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+          sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+      ];
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs, outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 200);
+      checkedReceipts.forEach((_, index) => {
+        transaction.inputs[index].computeBudget = index === 0 ? 200 : 50;
+      });
+      transaction.inputs[accountInputIndex].computeBudget = 100;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market claim");
+      for (const [index, checked] of checkedReceipts.entries()) {
+        const prefix = covenantScriptBuilder(kw);
+        addExplicitByte(prefix, party === "creator" ? 1 : 0);
+        for (const value of [accountInputIndex, 1, 0]) prefix.addI64(BigInt(value));
+        prefix.addData(payoutBytes);
+        prefix.addI64(remainder ? 2n : -1n);
+        prefix.addData(dispatchTagFor(artifact, "claim"));
+        transaction.inputs[index].signatureScript = encodeCovenantP2shSignatureScript(
+          prefix.drain(), checked.redeemScript);
+      }
+      const scripts = [{ inputIndex: accountInputIndex,
+        scriptHex: bytesToHex(checkedAccount.redeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: [
+          i64TemplateArg(1),
+          ...feeAccountStateTemplateArgs(transition.successorAccountState),
+          i64TemplateArg(1), { type: "signature",
+            ...(accountOwnerScheme === 1 ? { prefixHex: owner } : {}) },
+          i64TemplateArg(-1), i64TemplateArg(-1),
+          ...feeAccountStateTemplateArgs(transition.successorAccountState),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(dispatchTagFor(artifact, "authorize")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, fundingChangeIndex, network, "fee-market claim", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("claim preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[fundingInputIndex].signatureScript =
+            encodeP2pkSignatureScript(bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market claim");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market claim");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market claim exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.claim", operation: "fee-market-claim",
+          network, walletAddress, tokenId, marketId, policyId, party, accountId,
+          receiptCount: checkedReceipts.length,
+          claimSompi: transition.claimSompi.toString(),
+          remainderSompi: transition.remainderSompi.toString(),
+          payoutOutputIndex: 0, accountOutputIndex: 1,
+          remainderOutputIndex: remainder ? 2 : -1,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketRotateAccountPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const policyId = requireHex32(params.policyId, "fee-market policy ID");
+    const accountId = requireHex32(params.accountId, "fee account ID");
+    const indexedAccount = params.account;
+    if (!indexedAccount) throw new Error("current fee account UTXO is required");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const currentOwner = requireHex32(request.owner?.kcc20Owner, "current fee account owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, currentOwner);
+    const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
+    const accountOwner = accountOwnerScheme === 1
+      ? bytesToHex(blake3(hexToBytes(currentOwner))) : currentOwner;
+    if ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
+        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner) {
+      throw new Error("fee account is not controlled by the signing wallet");
+    }
+    const newOwner = requireHex32(params.newOwner, "new fee account owner");
+    const newScheme = Number(params.newOwnerScheme);
+    if (!Number.isInteger(newScheme) || newScheme < 0 || newScheme > 4) {
+      throw new Error("unsupported new fee account owner scheme");
+    }
+    if (newScheme === 1 || newScheme === 2) {
+      const keyHex = String(params.newOwnerPublicKey || "");
+      const width = newScheme === 1 ? 64 : 66;
+      if (!new RegExp(`^[0-9a-fA-F]{${width}}$`).test(keyHex) ||
+          bytesToHex(blake3(hexToBytes(keyHex))) !== newOwner) {
+        throw new Error("new fee account key does not match its owner hash");
+      }
+    }
+    const zero = ZERO_HASH;
+    const guardTemplate = requireHex32(params.newGuardTemplate || zero,
+      "new fee account guard template");
+    const guardPrefix = parseU64(params.newGuardPrefix ?? 0, "new guard prefix");
+    const guardSuffix = parseU64(params.newGuardSuffix ?? 0, "new guard suffix");
+    if ((newScheme <= 2 && (guardTemplate !== zero || guardPrefix !== 0n || guardSuffix !== 0n)) ||
+        (newScheme === 3 && (guardTemplate === zero || guardPrefix !== 0n || guardSuffix !== 0n)) ||
+        (newScheme === 4 && (guardTemplate === zero || guardPrefix === 0n || guardSuffix === 0n))) {
+      throw new Error("new fee account authority guard is invalid");
+    }
+    if (newOwner === currentOwner && newScheme === 0) {
+      throw new Error("fee account rotation must change authority");
+    }
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const artifact = (await readFeeMarketArtifacts()).receipt;
+    const kw = kaspaWasm;
+    if (newScheme === 3) {
+      const redeemHex = String(params.newOwnerP2shRedeemScriptHex || "");
+      if (!/^(?:[0-9a-fA-F]{2}){1,10000}$/.test(redeemHex)) {
+        throw new Error("new P2SH fee account owner script is required");
+      }
+      const program = kw.payToScriptHashScript(hexToBytes(redeemHex));
+      if (String(program.script).slice(4, 68).toLowerCase() !== newOwner) {
+        throw new Error("new P2SH fee account owner does not match its script");
+      }
+    }
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const accountAddress = requireKaspaAddress(indexedAccount.address);
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ROTATE_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [accountUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [accountAddress]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const accountEntry = findUtxoEntry(accountUtxos.entries,
+        requireHex32(indexedAccount.txidHex, "account txid"),
+        parseVout(indexedAccount.vout, "account vout"));
+      if (!accountEntry) throw new Error("fee account is spent or unavailable");
+      const spk = accountEntry.scriptPublicKey ?? accountEntry.entry?.scriptPublicKey ??
+        accountEntry.utxoEntry?.scriptPublicKey;
+      const checked = verifyKcc20FeeAccountForClaim({ artifact,
+        indexed: indexedAccount,
+        live: { outpoint: accountEntry.outpoint,
+          amountSompi: utxoAmountSompi(accountEntry),
+          covenantIdHex: requireMatchingCovenantId(accountEntry,
+            accountId, "fee account live"),
+          scriptPublicKey: { version: Number(spk?.version),
+            scriptHex: String(spk?.script).toLowerCase() } },
+        expected: { tokenId, marketId, policyId, accountId } });
+      assertScriptAddress(kw, checked.redeemScript, accountAddress,
+        network, "fee account address");
+      const nextState = { ...checked.account.state, owner: newOwner,
+        owner_scheme: newScheme, guard_template: guardTemplate,
+        guard_prefix: guardPrefix.toString(), guard_suffix: guardSuffix.toString(),
+        action_hash: zero };
+      const successor = buildKcc20FeeEscrowScript(artifact, nextState);
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        priorityFee + 10_000n, [accountEntry.outpoint], params.fundingOutpoint);
+      const fundingChange = utxoAmountSompi(fundingEntry) - priorityFee;
+      if (fundingChange <= 10_000n) throw new Error("fee account rotation funding is too small");
+      const outputs = [new TransactionOutput(checked.account.principalSompi,
+        payToScriptHashScript(successor.redeemScript),
+        new CovenantBinding(0, new Hash(accountId))),
+      new TransactionOutput(fundingChange, payToAddressScript(walletAddress))];
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          { previousOutpoint: accountEntry.outpoint, utxo: accountEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 100 },
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 100);
+      transaction.inputs[1].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee account rotation");
+      const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(checked.redeemScript),
+        signType: 1, signatureScript: { mode: "ordered-args", args: [
+          i64TemplateArg(2), ...feeAccountStateTemplateArgs(nextState),
+          i64TemplateArg(0), { type: "signature",
+            ...(accountOwnerScheme === 1 ? { prefixHex: currentOwner } : {}) },
+          i64TemplateArg(-1), i64TemplateArg(-1),
+          ...feeAccountStateTemplateArgs(nextState),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(new Uint8Array(0)),
+          dataTemplateArg(dispatchTagFor(artifact, "authorize")),
+        ] } }];
+      const feeResult = transactionWithPredictedSignedFeeChange(
+        kw, transaction, 1, network, "fee account rotation", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") throw new Error("rotation preflight serialization failed");
+          const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+            bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee account rotation");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee account rotation");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee account rotation exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: 1, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.rotate-account",
+          operation: "fee-market-rotate-account", network, walletAddress,
+          tokenId, marketId, policyId, accountId, newOwner,
+          newOwnerScheme: newScheme, accountOutputIndex: 0,
+          transfersAllUnclaimedEntitlements: true,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
   }
 
   async function buildWrapperMarketDeployPskt(input) {
