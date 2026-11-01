@@ -179,6 +179,19 @@ for (const count of [3, 10]) {
   });
 }
 
+test("seller sweep accepts indexed policy summaries without treating them as script state", async () => {
+  const f = fixture(3, { creatorFeeBps: 100, bidPriceSompi: 300_000_000n });
+  for (const bid of f.bids) {
+    bid.bidUtxo.state.creatorFeeBps = 100;
+    bid.bidUtxo.state.feePolicyVersion = 1;
+  }
+  const built = await f.engine.build(f.request);
+  assert.equal(built.metadata.fillCount, 3);
+  assert.equal(built.metadata.creatorFeeSompi, "150000000");
+  f.bids[0].bidUtxo.state.creatorFeeBps = 0;
+  await assert.rejects(f.engine.build(f.request), /indexed policy summary differs/);
+});
+
 test("seller sweep rejects a changed live bid lineage", async () => {
   const f = fixture(3);
   f.bids[0].entry.covenantId = "ff".repeat(32);
