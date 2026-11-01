@@ -5177,8 +5177,9 @@ export function createKcc20PsktBuilderEngine(
       return { schema: OUTPUT_SCHEMA,
         psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
         signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
-        // Follower input 1 has a 600-unit budget without constrained consensus proof.
-        submitTransactionSupported: false,
+        // The pinned two-ask follower and optional ticket budgets passed the
+        // signed consensus proof in kaspa-covenants PR #718.
+        submitTransactionSupported: true,
         metadata: { builderKey: "kcc20fee.buy-two-asks",
           operation: "fee-market-buy-two-asks", network, walletAddress,
           tokenId, marketId, policyId, fillCount: 2,
