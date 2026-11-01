@@ -1,0 +1,335 @@
+{
+  "schema": "kcom-claim-script-vectors/v1",
+  "source": "kaspa-covenants PR #499 synthetic real-engine tn10-proof-mixed fixture",
+  "graphId": "7d6f7270fa434aa962630988107d38f0d7b05b587f317c3f89318b9185771e3f",
+  "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+  "termsHash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+  "budgetRaw": "1000",
+  "liabilityRaw": "996",
+  "tokenId": "1111111111111111111111111111111111111111111111111111111111111111",
+  "extension": "0000000000000000000000000000000000000000000000000000000000000000",
+  "treasuryScheme": 0,
+  "treasury": "1b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f",
+  "tgeMs": "1797897600000",
+  "outputs": {
+    "initialize": {
+      "outputs": [
+        "aa207766d3139a7df6eb6338444c8cbdcf199b7b896987e29aa9b5e8f426a702c67a87",
+        "aa20c3aaaf30fb573dd1d3b5b9645f35c7a21deee1881e1e442f0c97b0889a4edb7687"
+      ],
+      "computeBudgets": [
+        40
+      ]
+    },
+    "fund-reserve": {
+      "outputs": [
+        "aa20c66373905d733c4292cc86c49d54024fa0adc5bf8a56fb4a1b295a6e291ad92287",
+        "aa2053a6616d65d995a35b53d037dd3798d33db8fa511d1a0833c75ab95c9fb57b2e87"
+      ],
+      "computeBudgets": [
+        52,
+        15
+      ]
+    },
+    "open-funded-campaign": {
+      "outputs": [
+        "aa20035f06d9c97f12596fbfe4f87de8612673e816dcea9fba69f8c6f5f53b78890287",
+        "aa206ebbfa2091ff9d367b03f71d0219ef167bb139c2b755e6727359f4d5614e1fac87"
+      ],
+      "computeBudgets": [
+        47,
+        5
+      ]
+    },
+    "seal-liabilities": {
+      "outputs": [
+        "aa20efe7e3e38736f6a3f659734837360cf21bb54a7a93b90ceb0dfa46e900f8e57387"
+      ],
+      "computeBudgets": [
+        28,
+        15
+      ]
+    },
+    "recover-partial": {
+      "outputs": [
+        "aa205f1fe6e0ed4fe2d56763b1ea0d3baea8b52c4d6efed013c1ca641c087202e47487",
+        "aa20568bf97f27fcf48fabe13f62fd055062d071bbe1ace7bf64837be7debf3a115c87",
+        "aa209ab74dde6c73ec0849aab4c10c82e85d3a61b49d7e6206820c6b1c18ed31555787"
+      ],
+      "computeBudgets": [
+        95,
+        25,
+        10
+      ]
+    },
+    "first-activation": {
+      "outputs": [
+        "aa20197a536aaf17c0a55da735182bc935b65653d96a4af4d18068023cc8f549cdf687",
+        "aa2067902873750781d20605eb400ee27ea40eca26858f66b0c41faaaf6f1785c96d87",
+        "aa20f8def4eb2f1406aa92202b8bffbac237c22f50d1af02de5f504c4227674a857d87",
+        "aa20f2ad380a8e0edf60a755c6ec0046d6437fb7f44435562c5a6032654170f1ca2a87"
+      ]
+    },
+    "create-shard": {
+      "outputs": [
+        "aa205b70907a5c1964c5638311a2997e4c7d1c7fb15712a42ea5164548900226bbb987",
+        "aa2029b998c363f81f55c001e3f8d0b79906beb08f310e928532a4a51fa71c2eb46587"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    },
+    "finish-initialization": {
+      "outputs": [
+        "aa20e45e1bc950de0bc3b4fce96058c808d68aef8d7a4f5addc9e419d7fe4c644b3987"
+      ],
+      "valuesSompi": [
+        "100000000"
+      ],
+      "computeBudgets": [
+        29
+      ]
+    }
+  },
+  "sourceCommit": "391738922796e38333a7960722515333b13ce0b5",
+  "factoryState": {
+    "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+    "terms_hash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+    "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+    "budget_raw": "1000",
+    "manifest_total": "198",
+    "eligibility_root": "df2310d9d3145686837e408ac131ccce0b940e7e1c59df128a37f33107b64458",
+    "empty_used_root": "e70ad62a8b2d97c90dcd51f3cff8d18468d9b0224f933f9d9697718d5dba7cfe",
+    "empty_summaries_root": "278c23621ba9cc49c169598eacb6492a7e3f1e2a73902e5c06569adf91424f0c",
+    "leaf_count": "4",
+    "shard_count": "4",
+    "next_shard": "0",
+    "shard_value": "100000000",
+    "first": "62c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7",
+    "second": "f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a",
+    "third": "989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f",
+    "opens_ms": "1794700800000",
+    "closes_ms": "1797292800000",
+    "tge_ms": "1797897600000",
+    "opened": true
+  },
+  "createShardSequence": [
+    {
+      "outputs": [
+        "aa205b70907a5c1964c5638311a2997e4c7d1c7fb15712a42ea5164548900226bbb987",
+        "aa2029b998c363f81f55c001e3f8d0b79906beb08f310e928532a4a51fa71c2eb46587"
+      ],
+      "valuesSompi": [
+        "400000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    },
+    {
+      "outputs": [
+        "aa201b995624ae4077ab3dc040853a4babdaec6b3fba49b33f24fab7f134aed496a487",
+        "aa20bda2895970881a9c4e8e66ae1d6bc69360eba54353e28d53325eb269963eeca187"
+      ],
+      "valuesSompi": [
+        "300000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    },
+    {
+      "outputs": [
+        "aa20ad6a562c9ac406602d0e172114ed8735d85f1cbb85d63591bbb40dd68734c3ea87",
+        "aa20c8bc0db1dd31f7fded8a483e5d38c2ecf48ff0b5e968d6d542b9054f6051486a87"
+      ],
+      "valuesSompi": [
+        "200000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    },
+    {
+      "outputs": [
+        "aa2079836fdd3f552a6dc94348059b1a579aa4acc4290ad977c8c9caabb873c6353687",
+        "aa20b5ab5d597f2d777419a4c55621c828b5816d60977fe2edfcc0e1eb43737cc6c387"
+      ],
+      "valuesSompi": [
+        "100000000",
+        "100000000"
+      ],
+      "computeBudgets": [
+        22
+      ]
+    }
+  ],
+  "firstActivation": {
+    "entitlementState": {
+      "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+      "terms_hash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+      "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "tge_ms": "1797897600000",
+      "budget_raw": "1000",
+      "manifest_total": "198",
+      "eligibility_root": "df2310d9d3145686837e408ac131ccce0b940e7e1c59df128a37f33107b64458",
+      "index": "1",
+      "original_authority": "462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b",
+      "tier": "3",
+      "beneficiary_scheme": 3,
+      "beneficiary": "3434343434343434343434343434343434343434343434343434343434343434",
+      "total": "276"
+    },
+    "inputs": [
+      {
+        "computeBudget": 79,
+        "index": 0,
+        "transactionId": "eb24e64953dda175c12f9c135b51410abfa539f5dd917345ad9259aa8fc140b3"
+      },
+      {
+        "computeBudget": 10,
+        "index": 1,
+        "transactionId": "8afb44dc0d7e5c5da7c7d6a89e9dad2b878279faaed1ce1fc87405cfe6d7b6d5"
+      },
+      {
+        "computeBudget": 25,
+        "index": 2,
+        "transactionId": "eb24e64953dda175c12f9c135b51410abfa539f5dd917345ad9259aa8fc140b3"
+      },
+      {
+        "computeBudget": 10,
+        "index": 0,
+        "transactionId": "b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1"
+      }
+    ],
+    "outputs": [
+      {
+        "covenantId": "7d6f7270fa434aa962630988107d38f0d7b05b587f317c3f89318b9185771e3f",
+        "scriptPublicKeyHex": "aa20197a536aaf17c0a55da735182bc935b65653d96a4af4d18068023cc8f549cdf687",
+        "valueSompi": "600000000"
+      },
+      {
+        "covenantId": "b0bf52e8f4b1d72bc32e68cfbd464f264762e66f1ded0be15a4d4f98d1fb5327",
+        "scriptPublicKeyHex": "aa2067902873750781d20605eb400ee27ea40eca26858f66b0c41faaaf6f1785c96d87",
+        "valueSompi": "100000000"
+      },
+      {
+        "covenantId": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scriptPublicKeyHex": "aa20f8def4eb2f1406aa92202b8bffbac237c22f50d1af02de5f504c4227674a857d87",
+        "valueSompi": "100000000"
+      },
+      {
+        "covenantId": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scriptPublicKeyHex": "aa20f2ad380a8e0edf60a755c6ec0046d6437fb7f44435562c5a6032654170f1ca2a87",
+        "valueSompi": "100000000"
+      }
+    ],
+    "positionId": "b0bf52e8f4b1d72bc32e68cfbd464f264762e66f1ded0be15a4d4f98d1fb5327",
+    "allocationRaw": "276",
+    "sourceTransactionId": "eb24e64953dda175c12f9c135b51410abfa539f5dd917345ad9259aa8fc140b3",
+    "sourceEntitlementTransactionId": "8afb44dc0d7e5c5da7c7d6a89e9dad2b878279faaed1ce1fc87405cfe6d7b6d5"
+  },
+  "lastActivation": {
+    "entitlementState": {
+      "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+      "terms_hash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+      "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "tge_ms": "1797897600000",
+      "budget_raw": "1000",
+      "manifest_total": "198",
+      "eligibility_root": "df2310d9d3145686837e408ac131ccce0b940e7e1c59df128a37f33107b64458",
+      "index": "2",
+      "original_authority": "4d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766",
+      "tier": "2",
+      "beneficiary_scheme": 0,
+      "beneficiary": "3333333333333333333333333333333333333333333333333333333333333333",
+      "total": "168"
+    },
+    "inputs": [
+      {
+        "computeBudget": 56,
+        "index": 0,
+        "transactionId": "72ebc6ef385d7079984b833772156477eb7b9337509c38dacbe0a8e9b631ad8c"
+      },
+      {
+        "computeBudget": 10,
+        "index": 1,
+        "transactionId": "1fa4017da5e3152bea3ac4b0628aefe50818ebb7e8db3289dda41684e1c3eb15"
+      },
+      {
+        "computeBudget": 15,
+        "index": 3,
+        "transactionId": "72ebc6ef385d7079984b833772156477eb7b9337509c38dacbe0a8e9b631ad8c"
+      }
+    ],
+    "outputs": [
+      {
+        "covenantId": "7d6f7270fa434aa962630988107d38f0d7b05b587f317c3f89318b9185771e3f",
+        "scriptPublicKeyHex": "aa20cf4bafd815e1ec54853af6d9532cad74f0a43eaf54badc84c39969bd4e966bd687",
+        "valueSompi": "600000000"
+      },
+      {
+        "covenantId": "58b2a6a6dfbc69409e96da61e541f91de91db2c5099f19c0a16661fae8a9db09",
+        "scriptPublicKeyHex": "aa2083c49381e9cba1768a7c483b6bd69dd64a002b164326a8697c2c311c4bc6afa487",
+        "valueSompi": "100000000"
+      },
+      {
+        "covenantId": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scriptPublicKeyHex": "aa20eebe9c1a838fcf0109547650506efe66a1cec475d19ed0d4a7d5e6f7f09f1ee587",
+        "valueSompi": "100000000"
+      }
+    ],
+    "positionId": "58b2a6a6dfbc69409e96da61e541f91de91db2c5099f19c0a16661fae8a9db09",
+    "allocationRaw": "168"
+  },
+  "seal": {
+    "collectorState": {
+      "campaign": "6161616161616161616161616161616161616161616161616161616161616161",
+      "eligibility_root": "df2310d9d3145686837e408ac131ccce0b940e7e1c59df128a37f33107b64458",
+      "leaf_count": "4",
+      "selected_count": "4",
+      "all_weight": "198",
+      "boosted_weight": "171",
+      "long_weight": "110",
+      "shard_count": "4",
+      "next_shard": "4",
+      "summaries_root": "f4958a6b1554e90115bec6a3b9142daf841788a4b497c1ee6212d1077144ff4b",
+      "collection_complete": true,
+      "terms_hash": "bba1e6ab5e63d41730bc10537962a7fb5dd4c349fbad4c32ee12de31225a91da",
+      "token_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "tge_ms": "1797897600000",
+      "budget_raw": "1000",
+      "manifest_total": "198",
+      "settled_count": "4",
+      "liability_raw": "996",
+      "settlement_complete": true,
+      "first": "62c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7",
+      "second": "f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a",
+      "third": "989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f",
+      "opens_ms": "1794700800000",
+      "closes_ms": "1797292800000"
+    },
+    "inputs": [
+      {
+        "computeBudget": 28,
+        "index": 1,
+        "transactionId": "9b13c4f5af64362073dc21b40122b56bcb460ef5d29b1456f91b883edaacbb4f"
+      },
+      {
+        "computeBudget": 15,
+        "index": 0,
+        "transactionId": "7a7fcd51986fa823926da86c8f6907a0dab21f61f6d1bc25bd94fe28417a2086"
+      }
+    ],
+    "outputs": [
+      {
+        "covenantId": "7d6f7270fa434aa962630988107d38f0d7b05b587f317c3f89318b9185771e3f",
+        "scriptPublicKeyHex": "aa20efe7e3e38736f6a3f659734837360cf21bb54a7a93b90ceb0dfa46e900f8e57387",
+        "valueSompi": "600000000"
+      }
+    ]
+  }
+}

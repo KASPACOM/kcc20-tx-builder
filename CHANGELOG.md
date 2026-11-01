@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1-kcom.1 (unpublished)
+
+- Combine the current fee-market builder with the KCOM vesting and claim transaction builders for branch integration tests.
+- Keep package publication and runtime enablement pending independent review and funded campaign evidence.
+
 ## 0.8.0-fee.6
 
 - Expose the existing fee-market holder merge and seller sweep PSKT handlers through the public builder key registry.

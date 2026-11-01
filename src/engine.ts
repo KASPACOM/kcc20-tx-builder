@@ -77,6 +77,8 @@ import {
   normalizeSilverScriptArtifact,
   ownerAuthorizationWitness,
 } from "./abi.js";
+import { createKcomVestingPsktBuilder } from "./kcom-vesting.js";
+import { createKcomClaimPsktBuilder } from "./kcom-claim-builder.js";
 import { KCC20_BUILDER_KEYS } from "./operations.js";
 import { buildKcc20InitialFeeAccount, planKcc20FeeAccountBinding } from "./escrow-account-setup.js";
 import { prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding, prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk, prepareKcc20FeeMarketBid } from "./escrow-market-setup.js";
@@ -551,7 +553,32 @@ export function createKcc20PsktBuilderEngine(
     rpcClientFactory: options.rpcClientFactory,
     transactionWithCalculatedFeeChange,
   });
+  const buildKcomVestingPskt = createKcomVestingPsktBuilder({
+    ...options,
+    transactionWithMinimumCalculatedFeeChange,
+  });
+  const buildKcomClaimPskt = createKcomClaimPsktBuilder({
+    ...options,
+    transactionWithMinimumCalculatedFeeChange,
+  });
   const psktBuilderByKey = Object.freeze({
+    "kcom-claim.fund-vault": buildKcomClaimPskt,
+    "kcom-claim.deploy-initializer": buildKcomClaimPskt,
+    "kcom-claim.initialize": buildKcomClaimPskt,
+    "kcom-claim.open": buildKcomClaimPskt,
+    "kcom-claim.select": buildKcomClaimPskt,
+    "kcom-claim.settle": buildKcomClaimPskt,
+    "kcom-claim.create-shard": buildKcomClaimPskt,
+    "kcom-claim.finish-initialization": buildKcomClaimPskt,
+    "kcom-claim.close": buildKcomClaimPskt,
+    "kcom-claim.collect": buildKcomClaimPskt,
+    "kcom-claim.seal": buildKcomClaimPskt,
+    "kcom-claim.finish-settlement": buildKcomClaimPskt,
+    "kcom-claim.activate": buildKcomClaimPskt,
+    "kcom-claim.recover": buildKcomClaimPskt,
+    "kcom-vesting.deploy": buildKcomVestingPskt,
+    "kcom-vesting.release": buildKcomVestingPskt,
+    "kcom-vesting.finish": buildKcomVestingPskt,
     "kcc20.deploy-token": buildKcc20DeployPskt,
     "kcc20.mint": buildKcc20MintPskt,
     "kcc20.set-public-mint-active": buildKcc20SetPublicMintActivePskt,
