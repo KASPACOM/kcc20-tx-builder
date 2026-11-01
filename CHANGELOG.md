@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-fee.5
+
+- Add signed fee-market setup, wrap, unwrap, orders, fills, two-ask buyer groups, seller sweeps, holder consolidation, claims and account rotation.
+- Check live covenant inputs and fixed market policy before signing. Carry reusable creator consent and the authenticated token holder extension in creator-fee wraps.
+- Keep legacy and snapshot builders available. New fee-market creation remains disabled in the application.
+
 ## 0.8.0-fee.4
 
 - Require the fee-account owner key to match the connected Schnorr funding wallet for creation and binding.
