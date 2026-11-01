@@ -817,6 +817,7 @@ test("fee-market buyer group fills two asks with one receipt and exact refunds",
   f.request.request.params.asks = [f.askUtxo, secondAsk];
   const built = await engine.build(f.request);
   const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(built.submitTransactionSupported, false);
   assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);
   assert.equal(json.outputs.length, 6);
   assert.equal(built.metadata.protocolFeeSompi, "100000000");

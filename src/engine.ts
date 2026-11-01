@@ -5156,7 +5156,8 @@ export function createKcc20PsktBuilderEngine(
       return { schema: OUTPUT_SCHEMA,
         psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
         signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
-        submitTransactionSupported: true,
+        // Follower input 1 has a 600-unit budget without constrained consensus proof.
+        submitTransactionSupported: false,
         metadata: { builderKey: "kcc20fee.buy-two-asks",
           operation: "fee-market-buy-two-asks", network, walletAddress,
           tokenId, marketId, policyId, fillCount: 2,
