@@ -20,6 +20,8 @@ export * from "./token-operation.js";
 export * from "./trade-fee.js";
 export * from "./escrow-fee.js";
 export * from "./escrow-policy.js";
+export * from "./escrow-market-artifacts.js";
+export * from "./escrow-market-setup.js";
 export * from "./escrow-group.js";
 export * from "./escrow-receipt.js";
 export * from "./escrow-claim-plan.js";

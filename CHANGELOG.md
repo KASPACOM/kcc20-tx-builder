@@ -1,9 +1,21 @@
 # Changelog
 
-## 0.8.1-kcom.0 (unpublished)
+## 0.8.1-kcom.1 (unpublished)
 
-- Combine the reviewed fee builder baseline with the KCOM vesting and claim transaction builders for branch integration tests.
+- Combine the current fee-market builder with the KCOM vesting and claim transaction builders for branch integration tests.
 - Keep package publication and runtime enablement pending independent review and funded campaign evidence.
+
+## 0.8.0-fee.6
+
+- Expose the existing fee-market holder merge and seller sweep PSKT handlers through the public builder key registry.
+- Keep transaction construction, contract artifacts, legacy operations and snapshot operations unchanged.
+
+## 0.8.0-fee.5
+
+- Add signed fee-market setup, wrap, unwrap, orders, fills, two-ask buyer groups, seller sweeps, holder consolidation, claims and account rotation.
+- Check live covenant inputs and fixed market policy before signing. Carry reusable creator consent and the authenticated token holder extension in creator-fee wraps.
+- Keep legacy and snapshot builders available. New fee-market creation remains disabled in the application.
+
 ## 0.8.0-fee.4
 
 - Require the fee-account owner key to match the connected Schnorr funding wallet for creation and binding.

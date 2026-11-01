@@ -34,9 +34,9 @@ export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
   "KCC20OrderbookFeeBidV1.placeholder.json":
     "9289b3b5fcd46f30af4f236c65f76f369bd856311319474d20e06c5ba919ea8f",
   "KCC20WrapperFeeV1.placeholder.json":
-    "970562614f538fc6374a778b4ff2435309ffd234f67efc507d57f8d098ace093",
+    "53338a33d4e57964ff76ffe2c95e25786995f7c1f96f9375b57bcac3c124d3ba",
   "KCC20WrapperFeeArgentV1.placeholder.json":
-    "069a592e3b5bab0ee1e34a694859d73ed5a665fafb9ffacadd54046e09c978cd",
+    "b7ebdf13e66a10407c36e56a24f9f91a0db27602508eb2a297da613d1c43cdbd",
 });
 
 /** Raw file pins cover the ABI and dispatch tags as well as the script bytes. */
@@ -47,12 +47,12 @@ export const KCC20_FEE_V1_ARTIFACT_SHA256 = Object.freeze({
   "KCC20OrderbookFeeHolderV1.placeholder.json": "1124365e746ebe108fe8e5a9a7d13ea351bba0768011fd3228567d35de0847d1",
   "KCC20OrderbookFeeAskV1.placeholder.json": "e2f04e79a64acf330ae45ad55bab61f92039c76d1c59e4d9b39d41b1c3296553",
   "KCC20OrderbookFeeBidV1.placeholder.json": "4a6150291bb9e459a4ca61609854af7063c5f7314e0f5c2438a7f462627d33d4",
-  "KCC20WrapperFeeV1.placeholder.json": "ef8c1518209577f2c106a65ce267e95b129d62ec2220c72e49427ad92d84ad25",
-  "KCC20WrapperFeeArgentV1.placeholder.json": "2a03ffa43c9951ac4d17b9ad6698c4c3528d292e2841db195f8a7385855ea578",
+  "KCC20WrapperFeeV1.placeholder.json": "345cbefc8f870b2daa408e2608c4fcf50d27d9f5ebb505439ee22092715f0007",
+  "KCC20WrapperFeeArgentV1.placeholder.json": "d14cdd05f9522b393e9b5e674a4645cf6b51f8831a5bb370882eb0e9a2f8d4b0",
 });
 
 export const KCC20_FEE_V1_POLICY_MANIFEST_SHA256 =
-  "7a96c07521fee2eab1e032b7dc9ca4d220eaca9feb287e1f25da45b7c0a943d2";
+  "b2c41a428d0ef68cbcb37606ef569e8ec57d2aa3add9e0f78daccc3eba9ed80a";
 
 /**
  * Canonical raw artifact pins and structural metadata for signerless snapshot

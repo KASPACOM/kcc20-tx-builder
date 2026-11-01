@@ -70,17 +70,17 @@
     },
     "wrapper": {
       "source": "contracts/kcc20-wrapper-fee-v1.sil",
-      "sourceSha256": "881e79b28fbff61136b6f424c14043789d75cda7633fa0a96b45880e0b69c0ed",
+      "sourceSha256": "19baef1fc0c3bbf13252afe1113e0227c1d7c123a1e0a82a919e24ae4f0ed10d",
       "walletArtifact": "vendor/kcc20-wrapper-fee-v1/KCC20WrapperFeeV1.placeholder.json",
       "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-wrapper-fee-v1/KCC20WrapperFeeV1.placeholder.json",
-      "artifactSha256": "ef8c1518209577f2c106a65ce267e95b129d62ec2220c72e49427ad92d84ad25"
+      "artifactSha256": "345cbefc8f870b2daa408e2608c4fcf50d27d9f5ebb505439ee22092715f0007"
     },
     "argentWrapper": {
       "source": "contracts/kcc20-wrapper-fee-argent-v1.sil",
-      "sourceSha256": "06a43609b4a80d1d380346f0d96c5c26326398ce3ba4fa312faf97d90f97ca37",
+      "sourceSha256": "28ca40eb53296025f2b07231bd74ff693999cb10386f967aef534066553d5c54",
       "walletArtifact": "vendor/kcc20-wrapper-fee-argent-v1/KCC20WrapperFeeArgentV1.placeholder.json",
       "decoderFixture": "crates/tn12-indexer-decoder/fixtures/kcc20-wrapper-fee-argent-v1/KCC20WrapperFeeArgentV1.placeholder.json",
-      "artifactSha256": "2a03ffa43c9951ac4d17b9ad6698c4c3528d292e2841db195f8a7385855ea578"
+      "artifactSha256": "d14cdd05f9522b393e9b5e674a4645cf6b51f8831a5bb370882eb0e9a2f8d4b0"
     }
   }
 }
