@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0-fee.6
+
+- Expose the existing fee-market holder merge and seller sweep PSKT handlers through the public builder key registry.
+- Keep transaction construction, contract artifacts, legacy operations and snapshot operations unchanged.
+
 ## 0.8.0-fee.5
 
 - Add signed fee-market setup, wrap, unwrap, orders, fills, two-ask buyer groups, seller sweeps, holder consolidation, claims and account rotation.

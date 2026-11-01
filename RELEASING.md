@@ -95,6 +95,12 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
+Version `0.8.0-fee.6` registers the previously implemented fee-market holder
+merge and seller-sweep keys for browser consumers. It changes no contract
+artifacts or signed transaction logic. Backend consumers must update their
+browser-only key allowlist in the same dependency upgrade. Funded grouped
+trades and the remaining market-enablement gates below are still open.
+
 Version `0.8.0-fee.5` adds signed fee-market setup, trade, claim, rotation,
 wrap and unwrap builders. A funded DEV TN10 0% market completed setup,
 wrap, trade, protocol claim, cancel and unwrap. A funded 1% market completed
