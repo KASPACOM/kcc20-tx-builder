@@ -7,6 +7,7 @@ import {
   buildKcc20FeeMarketRoleScript, createKcc20PsktBuilderEngine,
   prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketWrappedHolder,
   saleCommon, templateParts,
+  isKcc20BuilderKey,
 } from "../dist/index.js";
 
 kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
@@ -156,6 +157,7 @@ function signBuilt(built, f) {
 for (const count of [3, 10]) {
   test(`fee-market ${count}-bid seller sweep signs one receipt and returns deposits`, async () => {
     const f = fixture(count);
+    assert.equal(isKcc20BuilderKey(f.request.request.builderKey), true);
     const built = await f.engine.build(f.request);
     assert.equal(built.metadata.fillCount, count);
     assert.equal(built.metadata.protocolFeeSompi, String(count * 50_000_000));
