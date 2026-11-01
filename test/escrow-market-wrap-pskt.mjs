@@ -234,6 +234,112 @@ function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0) {
     holder, wrappedUtxo, reserveUtxo };
 }
 
+function mergeFixture(count = 3) {
+  const payoutSpk = kw.payToAddressScript(wallet);
+  const payoutScript = Buffer.from(String(payoutSpk.script), "hex");
+  const payoutSerialized = Buffer.alloc(11 + payoutScript.length);
+  payoutSerialized[0] = 0xe3;
+  payoutSerialized.writeUInt16LE(Number(payoutSpk.version), 1);
+  payoutSerialized.writeBigUInt64LE(BigInt(payoutScript.length), 3);
+  payoutScript.copy(payoutSerialized, 11);
+  const payoutHash = hex(blake3(payoutSerialized));
+  const marketPolicy = { ...policy, creatorFeeBps: 100,
+    creatorAccountId: "07".repeat(32) };
+  const plans = Array.from({ length: count }, (_, index) =>
+    prepareKcc20FeeMarketWrappedHolder({ tokenId, marketId,
+      feeTicketId: "00".repeat(32), priceScale: 1n, policy: marketPolicy,
+      wrapperProfile: "native", artifacts, recipientOwner: owner,
+      recipientOwnerScheme: 0, recipientPayoutScriptHash: payoutHash,
+      tokenAmount: BigInt(index + 1) }));
+  const entries = plans.map((plan, index) => {
+    const spk = kw.payToScriptHashScript(plan.holder.redeemScript);
+    return { outpoint: { transactionId: (index + 10).toString(16).padStart(2, "0").repeat(32),
+      index: 0 }, amount: BigInt(50_000_000 + index * 10_000_000),
+      scriptPublicKey: spk, blockDaaScore: 0n,
+      isCoinbase: false, covenantId: marketId };
+  });
+  const holderUtxos = entries.map((entry, index) => ({
+    txidHex: entry.outpoint.transactionId, vout: 0,
+    address: kw.addressFromScriptPublicKey(entry.scriptPublicKey,
+      "testnet-10").toString(),
+    amountSompiExact: entry.amount.toString(), state: plans[index].holderState,
+  }));
+  const fundingEntry = { outpoint: { transactionId: "ee".repeat(32), index: 0 },
+    amount: 500000000n, scriptPublicKey: payoutSpk,
+    blockDaaScore: 0n, isCoinbase: false };
+  const genesis = prepareKcc20FeeMarketGenesis({ tokenId,
+    feeTicketId: "00".repeat(32), priceScale: 1n,
+    policy: marketPolicy, wrapperProfile: "native", artifacts });
+  const request = { schema: "kcc20-in-process-pskt-builder-input/v1", request: {
+    builderKey: "kcc20fee.merge-holders", network: "testnet-10",
+    owner: { walletAddress: wallet, kcc20Owner: owner }, params: {
+      marketId, contractCanonicalTokenId: tokenId,
+      feeTicketId: "00".repeat(32), priceScale: "1",
+      feePolicy: marketPolicy, policyId: genesis.policyId, holderUtxos,
+    },
+  } };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: artifactMap,
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.includes(wallet) ? [fundingEntry] : entries }),
+    }) });
+  return { engine, request, entries, holderUtxos, fundingEntry };
+}
+
+test("creator-fee holders merge three UTXOs with exact deposit refund and signed mass", async () => {
+  const f = mergeFixture(3);
+  const built = await f.engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  const refund = f.entries.reduce((sum, entry) => sum + entry.amount, 0n) - 50_000_000n;
+  assert.equal(built.metadata.mergedAmount, "6");
+  assert.equal(built.metadata.refundSompi, refund.toString());
+  assert.equal(json.outputs[0].covenant.covenantId, marketId);
+  assert.equal(BigInt(json.outputs[0].value), 50_000_000n);
+  assert.equal(BigInt(json.outputs[1].value), refund);
+  assert.equal(json.outputs[1].covenant, null);
+  assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
+  const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  for (const script of built.scripts) {
+    let signature = Buffer.from(kw.createInputSignature(signed, script.inputIndex,
+      key, kw.SighashType.All), "hex");
+    if (signature.length === 66 && signature[0] === 0x41) signature = signature.subarray(1);
+    const args = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
+    for (const arg of script.signatureScript.args) {
+      if (arg.type === "data") args.addData(Buffer.from(arg.hex, "hex"));
+      else if (arg.type === "i64") args.addI64(BigInt(arg.value));
+      else if (arg.type === "signature") args.addData(signature);
+      else throw new Error(`unsupported merge argument ${arg.type}`);
+    }
+    signed.inputs[script.inputIndex].signatureScript = kw.ScriptBuilder.fromScript(
+      Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
+    ).encodePayToScriptHashSignatureScript(args.drain());
+  }
+  signed.inputs[3].signatureScript = kw.createInputSignature(signed, 3,
+    key, kw.SighashType.All);
+  const { computeMass, transientMass } = f.engine.protocol.calculateToccataV1NonContextualMass(
+    signed, "fee-market holder merge");
+  const storageMass = f.engine.protocol.calculateToccataStorageMass(signed,
+    "fee-market holder merge");
+  assert(computeMass <= 450000n);
+  assert(transientMass <= 900000n);
+  assert(storageMass <= 450000n);
+});
+
+test("holder merge rejects unsupported fan-in, incompatible states and spent inputs", async () => {
+  const oversized = mergeFixture(4);
+  await assert.rejects(oversized.engine.build(oversized.request),
+    /requires two or three current holders/);
+  const incompatible = mergeFixture(2);
+  incompatible.holderUtxos[1].state = { ...incompatible.holderUtxos[1].state,
+    feeTicketId: "ff".repeat(32) };
+  await assert.rejects(incompatible.engine.build(incompatible.request),
+    /differs from fixed policy/);
+  const spent = mergeFixture(2);
+  spent.holderUtxos[1].txidHex = "ff".repeat(32);
+  await assert.rejects(spent.engine.build(spent.request),
+    /spent or unavailable/);
+});
+
 test("fee-market full unwrap returns the exact holder deposit and native reserve", async () => {
   const f = unwrapFixture();
   const built = await f.engine.build(f.request);

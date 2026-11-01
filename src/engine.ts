@@ -569,6 +569,7 @@ export function createKcc20PsktBuilderEngine(
     "kcc20fee.bind-market": buildFeeMarketBindPskt,
     "kcc20fee.wrap": buildFeeMarketWrapPskt,
     "kcc20fee.unwrap": buildFeeMarketUnwrapPskt,
+    "kcc20fee.merge-holders": buildFeeMarketMergeHoldersPskt,
     "kcc20fee.create-ask": buildFeeMarketCreateAskPskt,
     "kcc20fee.cancel-ask": buildFeeMarketCancelAskPskt,
     "kcc20fee.create-bid": buildFeeMarketCreateBidPskt,
@@ -3846,6 +3847,182 @@ export function createKcc20PsktBuilderEngine(
           tokenAmount: tokenAmount.toString(), reserveRemaining: reserveRemaining.toString(),
           wrappedRemaining: wrappedRemaining.toString(), tokenRecipientOutputIndex: 0,
           reserveChangeIndex, wrappedChangeIndex, refundIndex, wrapperOutputIndex,
+          signedMass: { compute: signedMass.computeMass.toString(),
+            transient: signedMass.transientMass.toString(),
+            storage: storageMass.toString() } },
+      };
+    } finally {
+      await rpc.disconnect();
+    }
+  }
+
+  async function buildFeeMarketMergeHoldersPskt(input) {
+    const request = input.request || {};
+    const params = request.params || {};
+    const marketId = requireHex32(params.marketId, "fee-market ID");
+    const tokenId = requireHex32(params.contractCanonicalTokenId, "fee-market token ID");
+    const feeTicketId = requireHex32(params.feeTicketId || ZERO_HASH, "FeeTicket ID");
+    const priceScale = parsePositiveU64(params.priceScale, "priceScale");
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const owner = requireHex32(request.owner?.kcc20Owner, "holder owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
+    const sources = params.holderUtxos;
+    if (!Array.isArray(sources) || sources.length < 2 || sources.length > 3) {
+      throw new Error("fee-market holder merge requires two or three current holders");
+    }
+    const kw = kaspaWasm;
+    const network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const payoutSpk = p2pkScriptPubKey(kw, owner);
+    const payoutScript = hexToBytes(String(payoutSpk.script));
+    const payoutBytes = new Uint8Array(11 + payoutScript.length);
+    payoutBytes[0] = 0xe3;
+    new DataView(payoutBytes.buffer).setUint16(1, Number(payoutSpk.version), true);
+    new DataView(payoutBytes.buffer).setBigUint64(3, BigInt(payoutScript.length), true);
+    payoutBytes.set(payoutScript, 11);
+    const payoutHash = bytesToHex(blake3(payoutBytes));
+    const artifacts = await readFeeMarketArtifacts();
+    const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
+      wrapperProfile: params.wrapperProfile || "native", artifacts, marketId,
+      recipientOwner: owner, recipientOwnerScheme: 0,
+      recipientPayoutScriptHash: payoutHash };
+    if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
+        requireHex32(params.policyId, "policy ID")) {
+      throw new Error("fee-market holder merge policy ID mismatch");
+    }
+    let mergedAmount = 0n;
+    const sourcePlans = sources.map((source, index) => {
+      if (String(source?.state?.mode) !== "0" ||
+          Number(source.state?.owner_scheme) !== 0 ||
+          String(source.state?.owner).toLowerCase() !== owner) {
+        throw new Error(`fee-market merge holder ${index} is not owned by the signing wallet`);
+      }
+      const amount = parsePositiveU64(source.state.amount, `holder ${index} amount`);
+      const plan = prepareKcc20FeeMarketWrappedHolder({ ...planInput,
+        tokenAmount: amount });
+      if (String(source.state?.canonicalTokenId).toLowerCase() !== tokenId ||
+          String(source.state?.feeTicketId).toLowerCase() !== feeTicketId ||
+          BigInt(source.state?.priceScale ?? -1) !== priceScale ||
+          String(source.state?.feePolicy).toLowerCase() !== plan.holderState.feePolicy ||
+          String(source.state?.payout_script_hash).toLowerCase() !== payoutHash ||
+          String(source.state?.wrapper_spk_hash).toLowerCase() !==
+            plan.wrapper.scriptHash) {
+        throw new Error(`fee-market merge holder ${index} differs from fixed policy`);
+      }
+      assertScriptAddress(kw, plan.holder.redeemScript,
+        requireKaspaAddress(source.address), network, `fee-market merge holder ${index}`);
+      mergedAmount += amount;
+      if (mergedAmount > (1n << 63n) - 1n) {
+        throw new Error("fee-market merged amount exceeds contract range");
+      }
+      return plan;
+    });
+    const mergedPlan = prepareKcc20FeeMarketWrappedHolder({ ...planInput,
+      tokenAmount: mergedAmount });
+    const priorityFee = parseU64(
+      env.KCC20_FEE_MARKET_ORDER_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
+      "priorityFee");
+    const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
+      TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
+    const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [sourceUtxos, walletUtxos] = await Promise.all([
+        getUtxosByAddresses(rpc, [...new Set(sources.map(source =>
+          requireKaspaAddress(source.address)))]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const entries = sources.map((source, index) => {
+        const entry = findUtxoEntry(sourceUtxos.entries,
+          requireHex32(source.txidHex, `holder ${index} txid`),
+          parseVout(source.vout, `holder ${index} vout`));
+        if (!entry) throw new Error(`fee-market merge holder ${index} is spent or unavailable`);
+        requireMatchingCovenantId(entry, marketId, `fee-market merge holder ${index}`);
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ??
+          entry.utxoEntry?.scriptPublicKey;
+        if (Number(spk?.version) !== 0 ||
+            String(spk?.script).toLowerCase() !==
+              sourcePlans[index].holder.scriptPublicKey.scriptHex ||
+            utxoAmountSompi(entry).toString() !== String(source.amountSompiExact) ||
+            utxoAmountSompi(entry) < 50_000_000n) {
+          throw new Error(`fee-market merge holder ${index} differs from live node UTXO`);
+        }
+        return entry;
+      });
+      const inputSompi = entries.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n);
+      const refundSompi = inputSompi - 50_000_000n;
+      if (refundSompi < 50_000_000n) {
+        throw new Error("fee-market merge refund is below the output floor");
+      }
+      const fundingEntry = selectFundingEntry(walletUtxos.entries,
+        priorityFee + 10_000n, entries.map(entry => entry.outpoint),
+        params.fundingOutpoint);
+      const fundingChange = utxoAmountSompi(fundingEntry) - priorityFee;
+      if (fundingChange <= 10_000n) {
+        throw new Error("fee-market merge funding change is too small");
+      }
+      const outputs = [
+        new TransactionOutput(50_000_000n,
+          payToScriptHashScript(mergedPlan.holder.redeemScript),
+          new CovenantBinding(0, new Hash(marketId))),
+        new TransactionOutput(refundSompi, payToAddressScript(walletAddress)),
+        new TransactionOutput(fundingChange, payToAddressScript(walletAddress)),
+      ];
+      const transaction = new Transaction({ version: 1, lockTime: 0n,
+        inputs: [
+          ...entries.map(entry => ({ previousOutpoint: entry.outpoint, utxo: entry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 750 })),
+          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
+      });
+      setVersionOneInputMassFields(transaction, 750);
+      transaction.inputs[entries.length].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market holder merge");
+      const scripts = sourcePlans.map((plan, index) => ({ inputIndex: index,
+        scriptHex: bytesToHex(plan.holder.redeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: index === 0 ? [
+          { type: "signature" },
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "mergeHolders")),
+        ] : [
+          { type: "signature" }, i64TemplateArg(0),
+          dataTemplateArg(dispatchTagFor(artifacts.holder, "delegateHolderMerge")),
+        ] } }));
+      const feeResult = transactionWithPredictedSignedFeeChange(kw,
+        transaction, 2, network, "fee-market holder merge", candidate => {
+          const serialized = candidate.serializeToSafeJSON();
+          if (typeof serialized !== "string") {
+            throw new Error("holder merge preflight serialization failed");
+          }
+          const predictedJson = transactionJsonWithScriptHints(kw,
+            JSON.parse(serialized), scripts);
+          predictedJson.inputs[entries.length].signatureScript =
+            encodeP2pkSignatureScript(bytesToHex(dummySignatureBytes()));
+          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
+            : kw.Transaction.deserializeFromJSON(JSON.stringify(predictedJson));
+        });
+      const signedMass = calculateToccataV1NonContextualMass(
+        feeResult.predictedTransaction, "fee-market holder merge");
+      const storageMass = calculateToccataStorageMass(
+        feeResult.predictedTransaction, "fee-market holder merge");
+      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+        throw kcc20PsktBuilderError("fee-market holder merge exceeds signed mass target",
+          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+            transientMass: signedMass.transientMass, storageMass });
+      }
+      return { schema: OUTPUT_SCHEMA,
+        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+        signInputs: [{ index: entries.length, sighashType: 1 }], scripts,
+        submitTransactionSupported: true,
+        metadata: { builderKey: "kcc20fee.merge-holders",
+          operation: "fee-market-merge-holders", network, walletAddress,
+          tokenId, marketId, policyId: params.policyId,
+          sourceCount: entries.length, mergedAmount: mergedAmount.toString(),
+          refundSompi: refundSompi.toString(), mergedOutputIndex: 0,
+          refundOutputIndex: 1,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(),
             storage: storageMass.toString() } },
