@@ -157,7 +157,8 @@ test("creator consent authorizes only the exact accepted market and policy", asy
     scriptHashHex: creatorGenesis.wrapper.scriptHash,
     state: creatorGenesis.state };
   params.creatorEvidence = { contractCanonicalTokenId: tokenId,
-    creatorOwner: owner, claimVerified: true, verificationStatus: "verified" };
+    creatorOwner: owner, claimVerified: true, verificationStatus: "verified",
+    classificationStatus: "matched", ownerScheme: 0, creatorConsentAvailable: true };
   const consent = kcc20CreatorFeeConsent({ tokenId, marketId,
     feeTicketId: "00".repeat(32), priceScale: 1n, policy: creatorPolicy });
   params.creatorConsent = { creatorOwner: owner,

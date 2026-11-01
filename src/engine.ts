@@ -3205,6 +3205,36 @@ export function createKcc20PsktBuilderEngine(
     }
   }
 
+  function verifyReusableCreatorConsent(params, tokenId, marketId, feeTicketId,
+    priceScale, requireAccount) {
+    if (params.feePolicy?.creatorFeeBps === 0) return null;
+    const evidence = params.creatorEvidence;
+    const approval = params.creatorConsent;
+    const creatorOwner = requireHex32(evidence?.creatorOwner, "verified creator owner");
+    if (evidence?.claimVerified !== true || evidence?.verificationStatus !== "verified" ||
+        evidence?.classificationStatus !== "matched" || evidence?.ownerScheme !== 0 ||
+        evidence?.creatorConsentAvailable !== true ||
+        evidence?.contractCanonicalTokenId !== tokenId ||
+        requireHex32(approval?.creatorOwner, "consenting creator owner") !== creatorOwner ||
+        (requireAccount && requireHex32(params.creatorAccount?.accountId,
+          "creator account ID") !== requireHex32(params.feePolicy.creatorAccountId,
+          "policy creator account ID"))) {
+      throw new Error("creator fees require verified token creator evidence and the fixed fee account");
+    }
+    const signature = String(approval?.signature || "").toLowerCase();
+    if (!/^[0-9a-f]{128}$/.test(signature)) {
+      throw new Error("creator consent signature must be a 64-byte Schnorr signature");
+    }
+    const consent = kcc20CreatorFeeConsent({ tokenId, marketId, feeTicketId,
+      priceScale, policy: params.feePolicy });
+    if (typeof kaspaWasm.verifyMessage !== "function" ||
+        !kaspaWasm.verifyMessage({ message: consent.message,
+          signature, publicKey: creatorOwner })) {
+      throw new Error("creator consent does not authorize this exact market and fee policy");
+    }
+    return { commitment: consent.commitment, owner: creatorOwner, signature };
+  }
+
   async function buildFeeMarketBindPskt(input) {
     const request = input.request || {};
     const params = request.params || {};
@@ -3220,33 +3250,10 @@ export function createKcc20PsktBuilderEngine(
     if (wrapperProfile !== "native" && wrapperProfile !== "argent") {
       throw new Error("unsupported fee-market wrapper profile");
     }
-    let creatorConsentCommitment = null;
-    let creatorConsentOwner = null;
-    if (params.feePolicy?.creatorFeeBps !== 0) {
-      const evidence = params.creatorEvidence;
-      const approval = params.creatorConsent;
-      const creatorOwner = requireHex32(evidence?.creatorOwner, "verified creator owner");
-      if (evidence?.claimVerified !== true || evidence?.verificationStatus !== "verified" ||
-          evidence?.contractCanonicalTokenId !== tokenId ||
-          requireHex32(approval?.creatorOwner, "consenting creator owner") !== creatorOwner ||
-          requireHex32(params.creatorAccount?.accountId, "creator account ID") !==
-            requireHex32(params.feePolicy.creatorAccountId, "policy creator account ID")) {
-        throw new Error("creator fees require verified token creator evidence and the fixed fee account");
-      }
-      const signature = String(approval?.signature || "").toLowerCase();
-      if (!/^[0-9a-f]{128}$/.test(signature)) {
-        throw new Error("creator consent signature must be a 64-byte Schnorr signature");
-      }
-      const consent = kcc20CreatorFeeConsent({ tokenId, marketId, feeTicketId,
-        priceScale, policy: params.feePolicy });
-      if (typeof kaspaWasm.verifyMessage !== "function" ||
-          !kaspaWasm.verifyMessage({ message: consent.message,
-            signature, publicKey: creatorOwner })) {
-        throw new Error("creator consent does not authorize this exact market and fee policy");
-      }
-      creatorConsentCommitment = consent.commitment;
-      creatorConsentOwner = creatorOwner;
-    }
+    const creatorConsent = verifyReusableCreatorConsent(params, tokenId, marketId,
+      feeTicketId, priceScale, true);
+    const creatorConsentCommitment = creatorConsent?.commitment ?? null;
+    const creatorConsentOwner = creatorConsent?.owner ?? null;
     const principalSompi = parseU64(params.rootPrincipalSompi, "root principal");
     if (principalSompi < 50_000_000n) throw new Error("root principal is below 0.5 KAS");
     const priorityFee = parseU64(
@@ -3422,8 +3429,21 @@ export function createKcc20PsktBuilderEngine(
     if (tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
       throw new Error("fee-market wrap for this token profile needs its signed witness proof");
     }
-    if (params.feePolicy?.creatorFeeBps !== 0) {
-      throw new Error("creator-fee wrap requires authenticated reusable creator consent");
+    const creatorConsent = verifyReusableCreatorConsent(params, tokenId, marketId, feeTicketId,
+      priceScale, false);
+    let creatorHolderExtension = new Uint8Array(0);
+    if (creatorConsent) {
+      creatorHolderExtension = hexToBytes(String(params.creatorHolderExtensionHex || ""));
+      if (creatorHolderExtension.length !== 202 || creatorHolderExtension[0] !== 1 ||
+          bytesToHex(creatorHolderExtension.subarray(1, 33)) !== creatorConsent.owner ||
+          new DataView(creatorHolderExtension.buffer,
+            creatorHolderExtension.byteOffset + 97, 8).getBigInt64(0, true) !== priceScale ||
+          bytesToHex(blake3(new Uint8Array([
+            ...new TextEncoder().encode("KASPACOM/KCC20/HOLDER/V1"),
+            ...creatorHolderExtension,
+          ]))) !== bytesToHex(tokenState.extensionCommitment)) {
+        throw new Error("creator holder extension differs from the authenticated token input");
+      }
     }
     const kw = kaspaWasm;
     const payoutSpk = p2pkScriptPubKey(kw, recipientOwner);
@@ -3551,8 +3571,9 @@ export function createKcc20PsktBuilderEngine(
       wrapperPrefix.addData(holderParts.suffix);
       addKcc20State(wrapperPrefix, lockedState);
       addFeeMarketRoleState(wrapperPrefix, plan.holderState);
-      wrapperPrefix.addData(new Uint8Array(0));
-      wrapperPrefix.addData(new Uint8Array(64));
+      wrapperPrefix.addData(creatorHolderExtension);
+      wrapperPrefix.addData(creatorConsent
+        ? hexToBytes(creatorConsent.signature) : new Uint8Array(64));
       wrapperPrefix.addData(dispatchTagFor(artifacts.wrapper, "wrap"));
       transaction.inputs[1].signatureScript = encodeCovenantP2shSignatureScript(
         wrapperPrefix.drain(), plan.wrapper.redeemScript);

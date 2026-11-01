@@ -8,7 +8,7 @@ import {
   prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding,
   prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk,
   prepareKcc20FeeMarketBid, buildKcc20FeeEscrowScript, templateParts,
-  saleCommon,
+  kcc20CreatorFeeConsent, saleCommon,
 } from "../dist/index.js";
 
 kw.initSync({ module: readFileSync(new URL("../examples/vendor/kaspa/kaspa_bg.wasm", import.meta.url)) });
@@ -43,11 +43,15 @@ const key = new kw.PrivateKey("03".padStart(64, "0"));
 const owner = key.toKeypair().xOnlyPublicKey.toString();
 const wallet = key.toAddress("testnet-10").toString();
 
-function fixture(amount = 10n, wrap = 5n) {
+function fixture(amount = 10n, wrap = 5n, marketPolicy = policy,
+  creatorHolderExtension = null) {
+  const tokenCommitment = creatorHolderExtension
+    ? blake3(Buffer.concat([Buffer.from("KASPACOM/KCC20/HOLDER/V1"),
+      creatorHolderExtension])) : new Uint8Array(32);
   const tokenState = {
     amount, owner: Buffer.from(owner, "hex"), ownerScheme: 0,
     borrowScheme: 0, borrowGuard: new Uint8Array(32),
-    extensionCommitment: new Uint8Array(32),
+    extensionCommitment: tokenCommitment,
   };
   const tokenScript = buildKcc20ScriptForState(native, tokenState);
   const tokenSpk = kw.payToScriptHashScript(tokenScript);
@@ -61,7 +65,7 @@ function fixture(amount = 10n, wrap = 5n) {
   payoutScript.copy(payoutSerialized, 11);
   const holder = prepareKcc20FeeMarketWrappedHolder({
     tokenId, marketId, feeTicketId: "00".repeat(32), priceScale: 1n,
-    policy, wrapperProfile: "native", artifacts, recipientOwner: owner,
+    policy: marketPolicy, wrapperProfile: "native", artifacts, recipientOwner: owner,
     recipientOwnerScheme: 0, recipientPayoutScriptHash: hex(blake3(payoutSerialized)),
     tokenAmount: wrap,
   });
@@ -80,14 +84,14 @@ function fixture(amount = 10n, wrap = 5n) {
     scriptPublicKey: kw.payToAddressScript(wallet), blockDaaScore: 0n, isCoinbase: false,
   };
   const genesis = prepareKcc20FeeMarketGenesis({ tokenId,
-    feeTicketId: "00".repeat(32), priceScale: 1n, policy,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy: marketPolicy,
     wrapperProfile: "native", artifacts });
   const source = {
     txidHex: tokenEntry.outpoint.transactionId, vout: 0, address: tokenAddress,
     amountSompiExact: "50000000",
     state: { stateAmount: amount.toString(), owner, ownerScheme: 0,
       borrowScheme: 0, borrowGuard: "00".repeat(32),
-      extensionCommitment: "00".repeat(32) },
+      extensionCommitment: hex(tokenCommitment) },
   };
   const wrapperUtxo = { txidHex: wrapperEntry.outpoint.transactionId,
     vout: 0, address: wrapperAddress, amountSompiExact: "50000000" };
@@ -96,7 +100,7 @@ function fixture(amount = 10n, wrap = 5n) {
       owner: { walletAddress: wallet, kcc20Owner: owner },
       params: { marketId, contractCanonicalTokenId: tokenId,
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: wrap.toString(),
-        feePolicy: policy, policyId: genesis.policyId, tokenUtxo: source, wrapperUtxo } } };
+        feePolicy: marketPolicy, policyId: genesis.policyId, tokenUtxo: source, wrapperUtxo } } };
   const engine = createKcc20PsktBuilderEngine({ wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
@@ -163,6 +167,37 @@ test("fee-market final wrap has no native holder change output", async () => {
   assert.equal(built.metadata.tokenChangeOutputIndex, -1);
   const json = JSON.parse(built.psktTransactionJson);
   assert.equal(json.outputs[3].covenant, null);
+});
+
+test("creator-fee wrap reuses exact signed setup consent and rejects altered evidence", async () => {
+  const creatorPolicy = { ...policy, creatorFeeBps: 100,
+    creatorAccountId: "07".repeat(32) };
+  const extension = Buffer.alloc(202);
+  extension[0] = 1;
+  Buffer.from(owner, "hex").copy(extension, 1);
+  extension.writeBigInt64LE(1n, 97);
+  const f = fixture(10n, 5n, creatorPolicy, extension);
+  const params = f.request.request.params;
+  const consent = kcc20CreatorFeeConsent({ tokenId, marketId,
+    feeTicketId: "00".repeat(32), priceScale: 1n, policy: creatorPolicy });
+  params.creatorEvidence = { contractCanonicalTokenId: tokenId,
+    creatorOwner: owner, claimVerified: true, verificationStatus: "verified",
+    classificationStatus: "matched", ownerScheme: 0,
+    creatorConsentAvailable: true };
+  params.creatorConsent = { creatorOwner: owner,
+    signature: kw.signMessage({ message: consent.message, privateKey: key }) };
+  params.creatorHolderExtensionHex = hex(extension);
+  const built = await f.engine.build(f.request);
+  assert.equal(built.metadata.policyId, params.policyId);
+  params.creatorHolderExtensionHex = "00".repeat(202);
+  await assert.rejects(f.engine.build(f.request), /creator holder extension differs/);
+  params.creatorHolderExtensionHex = hex(extension);
+  params.creatorEvidence.classificationStatus = "unrevealed";
+  await assert.rejects(f.engine.build(f.request), /verified token creator evidence/);
+  params.creatorEvidence.classificationStatus = "matched";
+  params.creatorConsent.signature = kw.signMessage({ message: "another market",
+    privateKey: key });
+  await assert.rejects(f.engine.build(f.request), /does not authorize this exact market/);
 });
 
 function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0) {
