@@ -50,7 +50,7 @@ export function buildSnapshotKcc20DeploymentPayload({
     displayScale,
     "snapshot token display scale",
   );
-  const normalizedTotalSupply = positiveI64(
+  const normalizedTotalSupply = positiveWideAmount(
     totalSupply,
     "snapshot token total supply",
   );
@@ -90,7 +90,7 @@ export function buildSnapshotKcc20DeploymentPayload({
     );
   }
   const extension = {
-    kind: 1,
+    kind: normalizedTotalSupply > MAX_I64 ? 2 : 1,
     creator: hexBytes(normalizedCreator, "snapshot token creator"),
     ticker: fixedText32(normalizedTicker, "snapshot token ticker"),
     name: fixedText32(normalizedName, "snapshot token name"),
@@ -1190,6 +1190,18 @@ function positiveI64(value, label) {
   const number = BigInt(value);
   if (number <= 0n || number > MAX_I64)
     throw new Error(`${label} must be a positive signed 64-bit integer`);
+  return number;
+}
+
+function positiveWideAmount(value, label) {
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    throw new Error(`${label} must not be an unsafe JavaScript number`);
+  }
+  const number = BigInt(value);
+  const maximum = (1n << 126n) - 1n;
+  if (number <= 0n || number > maximum) {
+    throw new Error(`${label} must be a positive unsigned two-limb integer`);
+  }
   return number;
 }
 
