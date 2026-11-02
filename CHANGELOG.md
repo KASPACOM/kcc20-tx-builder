@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.8.0-fee.10 (unreleased)
+## 0.8.0-fee.11 (unreleased)
+
+- Build the pinned recipient covenant, delegated fee claims and rotation back to wallet control through the shared PSKT flow.
+- Revalidate recipient authority and live UTXOs; preserve account and recipient principals and the other party's fees.
+- Execute signed recipient claims and rotation in pinned consensus, including re-signed invalid payout rejection.
+
+## 0.8.0-fee.10
 
 - Add fee-market crossed settlement to the backend-only matcher, with exact payouts, preserved order deposits and one receipt.
 - Require a positive total matcher spending limit and reject mismatched or stale sources before submission.

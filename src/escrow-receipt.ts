@@ -67,7 +67,7 @@ function bytes(value: unknown, name: string): Uint8Array {
   return Uint8Array.from(text.match(/../g)!.map(part => Number.parseInt(part, 16)));
 }
 
-function encodeState(state: Record<string, unknown>): Uint8Array {
+export function encodeKcc20FeeState(state: Record<string, unknown>): Uint8Array {
   const encoded: number[] = [];
   for (const [name, kind] of FIELDS) {
     let field: Uint8Array;
@@ -109,7 +109,7 @@ export function buildKcc20FeeEscrowScript(artifactInput: unknown, state: Record<
   }
   const redeemScript = new Uint8Array(prefix.length + STATE_LENGTH + suffix.length);
   redeemScript.set(prefix);
-  redeemScript.set(encodeState(state), prefix.length);
+  redeemScript.set(encodeKcc20FeeState(state), prefix.length);
   redeemScript.set(suffix, prefix.length + STATE_LENGTH);
   const scriptHash = Array.from(blake2b(redeemScript, { dkLen: 32 }), byte => byte.toString(16).padStart(2, "0")).join("");
   return {
@@ -192,7 +192,7 @@ export function verifyKcc20FeeReceiptForClaim(input: {
   if (natural(input.indexed.amountSompiExact, "indexed amount") !== total || input.live.amountSompi !== total) {
     throw new Error("fee receipt amount mismatch");
   }
-  const stateBytes = encodeState(state);
+  const stateBytes = encodeKcc20FeeState(state);
   const redeemScript = new Uint8Array(prefix.length + stateBytes.length + suffix.length);
   redeemScript.set(prefix);
   redeemScript.set(stateBytes, prefix.length);
@@ -310,7 +310,7 @@ function verifyFeeAccount(input: {
   }
   const principal = natural(input.indexed.amountSompiExact, "account principal");
   if (principal === 0n || input.live.amountSompi !== principal) throw new Error("fee account principal mismatch");
-  const stateBytes = encodeState(state);
+  const stateBytes = encodeKcc20FeeState(state);
   const redeemScript = new Uint8Array(prefix.length + stateBytes.length + suffix.length);
   redeemScript.set(prefix);
   redeemScript.set(stateBytes, prefix.length);

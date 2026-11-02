@@ -2,6 +2,7 @@
 import { planTokenOwnerWitness } from "./token-authorization.js";
 import { sha256 } from "@noble/hashes/sha256";
 import { blake3 } from "@noble/hashes/blake3";
+import { blake2b } from "@noble/hashes/blake2b";
 import {
   authenticateTokenArtifact,
   authenticateTokenWrapper,
@@ -84,6 +85,7 @@ import { buildKcc20FeeMarketRoleScript } from "./escrow-market-artifacts.js";
 import { calculateKcc20EscrowFees } from "./escrow-fee.js";
 import { kcc20CreatorFeeConsent, decodeKcc20EscrowPolicy } from "./escrow-policy.js";
 import { encodeKcc20FeeVector, kcc20FeeGroupCommitment } from "./escrow-group.js";
+import { buildKcc20InitialFeeRecipient, planKcc20FeeRecipientApproval } from "./escrow-recipient.js";
 import { buildKcc20FeeEscrowScript } from "./escrow-receipt.js";
 import { verifyKcc20FeeReceiptForClaim, verifyKcc20FeeAccountForClaim } from "./escrow-receipt.js";
 import { planKcc20FeeClaimTransition } from "./escrow-claim-plan.js";
@@ -573,6 +575,7 @@ export function createKcc20PsktBuilderEngine(
     "fee-ticket.burn": buildFeeTicketBurnPskt,
     "fee-ticket.transfer": buildFeeTicketTransferPskt,
     "kcc20fee.create-account": buildFeeAccountCreatePskt,
+    "kcc20fee.create-recipient": buildFeeAccountCreatePskt,
     "kcc20fee.bind-account": buildFeeAccountBindPskt,
     "kcc20fee.deploy-market-genesis": buildFeeMarketGenesisPskt,
     "kcc20fee.bind-market": buildFeeMarketBindPskt,
@@ -644,6 +647,7 @@ export function createKcc20PsktBuilderEngine(
   async function buildFeeAccountCreatePskt(input) {
     const request = input.request || {};
     const params = request.params || {};
+    const recipient = request.builderKey === "kcc20fee.create-recipient";
     const tokenId = requireHex32(params.tokenId, "fee account token id");
     const owner = requireHex32(request.owner?.kcc20Owner, "fee account owner");
     const principalSompi = parseU64(params.principalSompi, "fee account principal");
@@ -654,11 +658,15 @@ export function createKcc20PsktBuilderEngine(
       env.KCC20_FEE_ACCOUNT_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee",
     );
-    const artifactKey = "KCC20FeeEscrowV1.placeholder.json";
+    const artifactKey = recipient ? "KCC20FeeRecipientV1.placeholder.json" : "KCC20FeeEscrowV1.placeholder.json";
     const supplied = options.artifacts?.[artifactKey] ?? await options.artifactProvider?.(artifactKey);
     const artifact = supplied?.artifact ?? supplied;
     if (!artifact) throw new Error("missing pinned fee escrow artifact");
-    const initial = buildKcc20InitialFeeAccount({
+    const initial = recipient ? buildKcc20InitialFeeRecipient({
+      artifact, tokenId, ownerSchnorrPublicKey: owner, principalSompi,
+      marketId: requireHex32(params.marketId, "recipient market"),
+      policyId: requireHex32(params.policyId, "recipient policy"),
+    }) : buildKcc20InitialFeeAccount({
       artifact, tokenId, ownerSchnorrPublicKey: owner, principalSompi,
     });
     const kw = kaspaWasm;
@@ -737,15 +745,15 @@ export function createKcc20PsktBuilderEngine(
         scripts: [],
         submitTransactionSupported: true,
         metadata: {
-          builderKey: "kcc20fee.create-account",
-          operation: "create-fee-account",
+          builderKey: request.builderKey,
+          operation: recipient ? "create-fee-recipient" : "create-fee-account",
           action: "genesis",
-          contract: "KCC20FeeEscrowV1",
+          contract: recipient ? "KCC20FeeRecipientV1" : "KCC20FeeEscrowV1",
           network, walletAddress, tokenId, owner, accountId,
           accountPrincipalSompi: principalSompi.toString(),
           // Attach the broadcast txid to this hint before binding. The first
           // spend reveals the script; until then the indexer sees only P2SH.
-          accountGenesisHint: {
+          [recipient ? "recipientGenesisHint" : "accountGenesisHint"]: {
             vout: 0,
             address: kw.addressFromScriptPublicKey(
               payToScriptHashScript(initial.redeemScript), network,
@@ -753,7 +761,7 @@ export function createKcc20PsktBuilderEngine(
             covenantIdHex: accountId,
             scriptHashHex: initial.scriptHash,
             amountSompiExact: principalSompi.toString(),
-            state: { ...initial.state, roleName: "account" },
+            state: { ...initial.state, roleName: recipient ? "recipient" : "account" },
           },
         },
       };
@@ -5594,6 +5602,7 @@ export function createKcc20PsktBuilderEngine(
     if (accountId === ZERO_HASH) throw new Error("creator claim is disabled by this market policy");
     const indexedReceipts = params.receipts;
     const indexedAccount = params.account;
+    const indexedRecipient = params.recipient;
     if (!Array.isArray(indexedReceipts) || indexedReceipts.length < 1 ||
         indexedReceipts.length > 5 || !indexedAccount) {
       throw new Error("fee-market claim requires one to five receipts and an account");
@@ -5604,12 +5613,17 @@ export function createKcc20PsktBuilderEngine(
     const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
     const accountOwner = accountOwnerScheme === 1
       ? bytesToHex(blake3(hexToBytes(owner))) : owner;
-    if ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
-        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner) {
+    const delegated = accountOwnerScheme === 4;
+    if ((!delegated && ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
+        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner)) ||
+        (delegated && !indexedRecipient)) {
       throw new Error("fee account is not controlled by the signing wallet");
     }
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
     const artifact = (await readFeeMarketArtifacts()).receipt;
+    const recipientKey = "KCC20FeeRecipientV1.placeholder.json";
+    const recipientSupplied = delegated ? (options.artifacts?.[recipientKey] ?? await options.artifactProvider?.(recipientKey)) : null;
+    const recipientArtifact = recipientSupplied?.artifact ?? recipientSupplied;
     const kw = kaspaWasm;
     const { CovenantBinding, Encoding, Hash, RpcClient, Transaction,
       TransactionOutput, payToAddressScript, payToScriptHashScript } = kw;
@@ -5621,7 +5635,7 @@ export function createKcc20PsktBuilderEngine(
     const priorityFee = parseU64(
       env.KCC20_FEE_MARKET_CLAIM_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee");
-    const sourceAddresses = [...indexedReceipts, indexedAccount]
+    const sourceAddresses = [...indexedReceipts, indexedAccount, ...(delegated ? [indexedRecipient] : [])]
       .map(item => requireKaspaAddress(item.address));
     const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
       encoding: Encoding.Borsh, networkId: network });
@@ -5667,13 +5681,21 @@ export function createKcc20PsktBuilderEngine(
         escrowTemplate: checkedAccount.escrowTemplate,
         payoutScriptPublicKey: payoutBytes,
       });
+      const recipientLive = delegated ? getLive(indexedRecipient, "fee recipient") : null;
+      const approval = delegated ? planKcc20FeeRecipientApproval({
+        artifact: recipientArtifact, indexed: indexedRecipient, live: recipientLive.live,
+        account: checkedAccount.account, nextAccount: transition.successorAccountState,
+        signingOwner: owner, action: 1,
+      }) : null;
+      if (approval) assertScriptAddress(kw, approval.currentRedeemScript, indexedRecipient.address, network, "fee recipient address");
       const successor = buildKcc20FeeEscrowScript(artifact,
         transition.successorAccountState);
       const remainder = transition.remainderReceiptState
         ? buildKcc20FeeEscrowScript(artifact, transition.remainderReceiptState)
         : null;
       const accountInputIndex = checkedReceipts.length;
-      const fundingInputIndex = accountInputIndex + 1;
+      const recipientInputIndex = delegated ? accountInputIndex + 1 : -1;
+      const fundingInputIndex = accountInputIndex + 1 + Number(delegated);
       const outputs = [new TransactionOutput(transition.claimSompi, payoutSpk),
         new TransactionOutput(transition.accountPrincipalSompi,
           payToScriptHashScript(successor.redeemScript),
@@ -5681,9 +5703,13 @@ export function createKcc20PsktBuilderEngine(
       if (remainder) outputs.push(new TransactionOutput(transition.remainderSompi,
         payToScriptHashScript(remainder.redeemScript),
         new CovenantBinding(0, new Hash(marketId))));
+      const recipientOutputIndex = delegated ? outputs.length : -1;
+      if (approval) outputs.push(new TransactionOutput(approval.principalSompi,
+        payToScriptHashScript(approval.successorRedeemScript),
+        new CovenantBinding(recipientInputIndex, new Hash(approval.covenantId))));
       const fundingEntry = selectFundingEntry(walletUtxos.entries,
         priorityFee + 10_000n,
-        [...checkedReceipts.map(item => item.entry.outpoint), accountEntry.outpoint],
+        [...checkedReceipts.map(item => item.entry.outpoint), accountEntry.outpoint, ...(recipientLive ? [recipientLive.entry.outpoint] : [])],
         params.fundingOutpoint);
       const fundingChangeIndex = outputs.length;
       outputs.push(new TransactionOutput(utxoAmountSompi(fundingEntry) - priorityFee,
@@ -5695,6 +5721,8 @@ export function createKcc20PsktBuilderEngine(
         })),
         { previousOutpoint: accountEntry.outpoint, utxo: accountEntry,
           sequence: 0n, sigOpCount: 0, computeBudget: 100 },
+        ...(recipientLive ? [{ previousOutpoint: recipientLive.entry.outpoint, utxo: recipientLive.entry,
+          sequence: 0n, sigOpCount: 0, computeBudget: 100 }] : []),
         { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
           sequence: 0n, sigOpCount: 0, computeBudget: 30 },
       ];
@@ -5707,6 +5735,7 @@ export function createKcc20PsktBuilderEngine(
       });
       transaction.inputs[accountInputIndex].computeBudget = 100;
       transaction.inputs[fundingInputIndex].computeBudget = 30;
+      if (delegated) transaction.inputs[recipientInputIndex].computeBudget = 100;
       assertUniqueTransactionInputOutpoints(transaction, "fee-market claim");
       for (const [index, checked] of checkedReceipts.entries()) {
         const prefix = covenantScriptBuilder(kw);
@@ -5718,7 +5747,13 @@ export function createKcc20PsktBuilderEngine(
         transaction.inputs[index].signatureScript = encodeCovenantP2shSignatureScript(
           prefix.drain(), checked.redeemScript);
       }
-      const scripts = [{ inputIndex: accountInputIndex,
+      const scripts = delegated ? [{ inputIndex: recipientInputIndex,
+        scriptHex: bytesToHex(approval.currentRedeemScript), signType: 1,
+        signatureScript: { mode: "ordered-args", args: [
+          { type: "signature" }, ...feeAccountStateTemplateArgs(approval.nextState),
+          i64TemplateArg(recipientOutputIndex),
+          dataTemplateArg(dispatchTagFor(recipientArtifact, "approveFeeAccountAction")),
+        ] } }] : [{ inputIndex: accountInputIndex,
         scriptHex: bytesToHex(checkedAccount.redeemScript), signType: 1,
         signatureScript: { mode: "ordered-args", args: [
           i64TemplateArg(1),
@@ -5731,6 +5766,22 @@ export function createKcc20PsktBuilderEngine(
           dataTemplateArg(new Uint8Array(0)),
           dataTemplateArg(dispatchTagFor(artifact, "authorize")),
         ] } }];
+      if (approval) {
+        const accountWitness = covenantScriptBuilder(kw);
+        const args = [i64TemplateArg(1), ...feeAccountStateTemplateArgs(transition.successorAccountState),
+          i64TemplateArg(1), dataTemplateArg(new Uint8Array(0)),
+          i64TemplateArg(recipientInputIndex), i64TemplateArg(recipientOutputIndex),
+          ...feeAccountStateTemplateArgs(approval.nextState),
+          dataTemplateArg(approval.templatePrefix), dataTemplateArg(approval.templateSuffix),
+          dataTemplateArg(dispatchTagFor(artifact, "authorize"))];
+        for (const arg of args) {
+          if (arg.type === "i64") accountWitness.addI64(BigInt(arg.value));
+          else if (arg.type === "byte") addExplicitByte(accountWitness, arg.value);
+          else accountWitness.addData(hexToBytes(arg.hex));
+        }
+        transaction.inputs[accountInputIndex].signatureScript = encodeCovenantP2shSignatureScript(
+          accountWitness.drain(), checkedAccount.redeemScript);
+      }
       const feeResult = transactionWithPredictedSignedFeeChange(
         kw, transaction, fundingChangeIndex, network, "fee-market claim", candidate => {
           const serialized = candidate.serializeToSafeJSON();
@@ -5760,6 +5811,13 @@ export function createKcc20PsktBuilderEngine(
         metadata: { builderKey: "kcc20fee.claim", operation: "fee-market-claim",
           network, walletAddress, tokenId, marketId, policyId, party, accountId,
           receiptCount: checkedReceipts.length,
+          recipientInputIndex, recipientOutputIndex,
+          ...(approval ? { recipientContinuation: {
+            covenantIdHex: approval.covenantId, vout: recipientOutputIndex,
+            address: kw.addressFromScriptPublicKey(payToScriptHashScript(approval.successorRedeemScript), network).toString(),
+            scriptHashHex: bytesToHex(blake2b(approval.successorRedeemScript, { dkLen: 32 })),
+            amountSompiExact: approval.principalSompi.toString(), state: { ...approval.nextState, roleName: "recipient" },
+          } } : {}),
           claimSompi: transition.claimSompi.toString(),
           remainderSompi: transition.remainderSompi.toString(),
           payoutOutputIndex: 0, accountOutputIndex: 1,
@@ -5781,6 +5839,7 @@ export function createKcc20PsktBuilderEngine(
     const policyId = requireHex32(params.policyId, "fee-market policy ID");
     const accountId = requireHex32(params.accountId, "fee account ID");
     const indexedAccount = params.account;
+    const indexedRecipient = params.recipient;
     if (!indexedAccount) throw new Error("current fee account UTXO is required");
     const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
     const currentOwner = requireHex32(request.owner?.kcc20Owner, "current fee account owner");
@@ -5788,8 +5847,10 @@ export function createKcc20PsktBuilderEngine(
     const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
     const accountOwner = accountOwnerScheme === 1
       ? bytesToHex(blake3(hexToBytes(currentOwner))) : currentOwner;
-    if ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
-        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner) {
+    const delegated = accountOwnerScheme === 4;
+    if ((!delegated && ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
+        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner)) ||
+        (delegated && !indexedRecipient)) {
       throw new Error("fee account is not controlled by the signing wallet");
     }
     const newOwner = requireHex32(params.newOwner, "new fee account owner");
@@ -5815,7 +5876,7 @@ export function createKcc20PsktBuilderEngine(
         (newScheme === 4 && (guardTemplate === zero || guardPrefix === 0n || guardSuffix === 0n))) {
       throw new Error("new fee account authority guard is invalid");
     }
-    if (newOwner === accountOwner && newScheme === accountOwnerScheme &&
+    if (newOwner === String(indexedAccount.state.owner).toLowerCase() && newScheme === accountOwnerScheme &&
         guardTemplate === String(indexedAccount.state.guard_template).toLowerCase() &&
         guardPrefix === BigInt(indexedAccount.state.guard_prefix) &&
         guardSuffix === BigInt(indexedAccount.state.guard_suffix)) {
@@ -5823,6 +5884,9 @@ export function createKcc20PsktBuilderEngine(
     }
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
     const artifact = (await readFeeMarketArtifacts()).receipt;
+    const recipientKey = "KCC20FeeRecipientV1.placeholder.json";
+    const recipientSupplied = delegated ? (options.artifacts?.[recipientKey] ?? await options.artifactProvider?.(recipientKey)) : null;
+    const recipientArtifact = recipientSupplied?.artifact ?? recipientSupplied;
     const kw = kaspaWasm;
     if (newScheme === 3) {
       const redeemHex = String(params.newOwnerP2shRedeemScriptHex || "");
@@ -5845,7 +5909,7 @@ export function createKcc20PsktBuilderEngine(
     await rpc.connect();
     try {
       const [accountUtxos, walletUtxos] = await Promise.all([
-        getUtxosByAddresses(rpc, [accountAddress]),
+        getUtxosByAddresses(rpc, [accountAddress, ...(delegated ? [requireKaspaAddress(indexedRecipient.address)] : [])]),
         getUtxosByAddresses(rpc, [walletAddress]),
       ]);
       const accountEntry = findUtxoEntry(accountUtxos.entries,
@@ -5869,27 +5933,45 @@ export function createKcc20PsktBuilderEngine(
         owner_scheme: newScheme, guard_template: guardTemplate,
         guard_prefix: guardPrefix.toString(), guard_suffix: guardSuffix.toString(),
         action_hash: zero };
+      const recipientEntry = delegated ? findUtxoEntry(accountUtxos.entries,
+        requireHex32(indexedRecipient.txidHex, "recipient txid"), parseVout(indexedRecipient.vout, "recipient vout")) : null;
+      if (delegated && !recipientEntry) throw new Error("fee recipient is spent or unavailable");
+      const recipientSpk = recipientEntry?.scriptPublicKey ?? recipientEntry?.entry?.scriptPublicKey ?? recipientEntry?.utxoEntry?.scriptPublicKey;
+      const approval = delegated ? planKcc20FeeRecipientApproval({ artifact: recipientArtifact,
+        indexed: indexedRecipient, live: {outpoint:recipientEntry.outpoint,amountSompi:utxoAmountSompi(recipientEntry),
+          covenantIdHex:requireMatchingCovenantId(recipientEntry,indexedRecipient.covenantIdHex,"recipient live"),
+          scriptPublicKey:{version:Number(recipientSpk?.version),scriptHex:String(recipientSpk?.script).toLowerCase()}},
+        account:checked.account,nextAccount:nextState,signingOwner:currentOwner,action:2 }) : null;
+      if (approval) assertScriptAddress(kw, approval.currentRedeemScript, indexedRecipient.address, network, "fee recipient address");
+      const fundingInputIndex = delegated ? 2 : 1;
+      const fundingChangeIndex = delegated ? 2 : 1;
       const successor = buildKcc20FeeEscrowScript(artifact, nextState);
       const fundingEntry = selectFundingEntry(walletUtxos.entries,
-        priorityFee + 10_000n, [accountEntry.outpoint], params.fundingOutpoint);
+        priorityFee + 10_000n, [accountEntry.outpoint, ...(recipientEntry ? [recipientEntry.outpoint] : [])], params.fundingOutpoint);
       const fundingChange = utxoAmountSompi(fundingEntry) - priorityFee;
       if (fundingChange <= 10_000n) throw new Error("fee account rotation funding is too small");
       const outputs = [new TransactionOutput(checked.account.principalSompi,
         payToScriptHashScript(successor.redeemScript),
         new CovenantBinding(0, new Hash(accountId))),
+      ...(approval ? [new TransactionOutput(approval.principalSompi,
+        payToScriptHashScript(approval.successorRedeemScript),new CovenantBinding(1,new Hash(approval.covenantId)))] : []),
       new TransactionOutput(fundingChange, payToAddressScript(walletAddress))];
       const transaction = new Transaction({ version: 1, lockTime: 0n,
         inputs: [
           { previousOutpoint: accountEntry.outpoint, utxo: accountEntry,
             sequence: 0n, sigOpCount: 0, computeBudget: 100 },
+          ...(recipientEntry ? [{ previousOutpoint:recipientEntry.outpoint,utxo:recipientEntry,
+            sequence:0n,sigOpCount:0,computeBudget:100 }] : []),
           { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
             sequence: 0n, sigOpCount: 0, computeBudget: 30 },
         ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
       });
       setVersionOneInputMassFields(transaction, 100);
-      transaction.inputs[1].computeBudget = 30;
+      transaction.inputs[fundingInputIndex].computeBudget = 30;
       assertUniqueTransactionInputOutpoints(transaction, "fee account rotation");
-      const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(checked.redeemScript),
+      const scripts = approval ? [{ inputIndex:1,scriptHex:bytesToHex(approval.currentRedeemScript),signType:1,
+        signatureScript:{mode:"ordered-args",args:[{type:"signature"},...feeAccountStateTemplateArgs(approval.nextState),
+          i64TemplateArg(1),dataTemplateArg(dispatchTagFor(recipientArtifact,"approveFeeAccountAction"))]} }] : [{ inputIndex: 0, scriptHex: bytesToHex(checked.redeemScript),
         signType: 1, signatureScript: { mode: "ordered-args", args: [
           i64TemplateArg(2), ...feeAccountStateTemplateArgs(nextState),
           i64TemplateArg(0), { type: "signature",
@@ -5900,12 +5982,25 @@ export function createKcc20PsktBuilderEngine(
           dataTemplateArg(new Uint8Array(0)),
           dataTemplateArg(dispatchTagFor(artifact, "authorize")),
         ] } }];
+      if (approval) {
+        const witness = covenantScriptBuilder(kw);
+        const args = [i64TemplateArg(2),...feeAccountStateTemplateArgs(nextState),i64TemplateArg(0),
+          dataTemplateArg(new Uint8Array(0)),i64TemplateArg(1),i64TemplateArg(1),
+          ...feeAccountStateTemplateArgs(approval.nextState),dataTemplateArg(approval.templatePrefix),
+          dataTemplateArg(approval.templateSuffix),dataTemplateArg(dispatchTagFor(artifact,"authorize"))];
+        for(const arg of args) {
+          if(arg.type === "i64") witness.addI64(BigInt(arg.value));
+          else if(arg.type === "byte") addExplicitByte(witness,arg.value);
+          else witness.addData(hexToBytes(arg.hex));
+        }
+        transaction.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(witness.drain(),checked.redeemScript);
+      }
       const feeResult = transactionWithPredictedSignedFeeChange(
-        kw, transaction, 1, network, "fee account rotation", candidate => {
+        kw, transaction, fundingChangeIndex, network, "fee account rotation", candidate => {
           const serialized = candidate.serializeToSafeJSON();
           if (typeof serialized !== "string") throw new Error("rotation preflight serialization failed");
           const predictedJson = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
-          predictedJson.inputs[1].signatureScript = encodeP2pkSignatureScript(
+          predictedJson.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
             bytesToHex(dummySignatureBytes()));
           return typeof kw.Transaction.deserializeFromSafeJSON === "function"
             ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predictedJson))
@@ -5924,13 +6019,14 @@ export function createKcc20PsktBuilderEngine(
       }
       return { schema: OUTPUT_SCHEMA,
         psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
-        signInputs: [{ index: 1, sighashType: 1 }], scripts,
+        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
         submitTransactionSupported: true,
         metadata: { builderKey: "kcc20fee.rotate-account",
           operation: "fee-market-rotate-account", network, walletAddress,
           tokenId, marketId, policyId, accountId, newOwner,
           newOwnerScheme: newScheme, accountOutputIndex: 0,
           transfersAllUnclaimedEntitlements: true,
+          recipientInputIndex: delegated ? 1 : -1, recipientOutputIndex: delegated ? 1 : -1,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(),
             storage: storageMass.toString() } },
