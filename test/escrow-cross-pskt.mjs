@@ -41,7 +41,7 @@ for (const [askAmount,bidAmount] of [[2n,2n],[3n,2n],[2n,3n]]) {
     assert.equal(f.submitted.length,1);
     if (process.env.FEE_CROSS_FIXTURE_DIR && bps === 100) {
       const raw=JSON.parse(b.psktTransactionJson);
-      const tx={transaction_id:b.submittedTxidHex,inputs:raw.inputs.map((i,n)=>({previous_outpoint_hash:i.transactionId,previous_outpoint_index:String(i.index),previous_outpoint_amount:String([f.askEntry,f.bidEntry,f.funding][n].amount),signature_script:i.signatureScript})),outputs:raw.outputs.map((o,index)=>({index,amount:String(o.value),script_public_key:o.scriptPublicKey.slice(4),covenant_id:o.covenant?.covenantId,covenant_authorizing_input:o.covenant?.authorizingInput}))};
+      const tx={transaction_id:b.submittedTxidHex,inputs:raw.inputs.map((i,n)=>({previous_outpoint_hash:i.transactionId,previous_outpoint_index:String(i.index),previous_outpoint_amount:String([f.askEntry,f.bidEntry,f.funding][n].amount),previous_outpoint_script:[f.askEntry,f.bidEntry,f.funding][n].scriptPublicKey.script,signature_script:i.signatureScript})),outputs:raw.outputs.map((o,index)=>({index,amount:String(o.value),script_public_key:o.scriptPublicKey.slice(4),covenant_id:o.covenant?.covenantId,covenant_authorizing_input:o.covenant?.authorizingInput}))};
       for(const i of tx.inputs)i.previous_outpoint_amount=Number(i.previous_outpoint_amount);
       for(const o of tx.outputs)o.amount=Number(o.amount);
       writeFileSync(process.env.FEE_CROSS_FIXTURE_DIR+`/signed-cross-${askAmount}-${bidAmount}.json`,JSON.stringify({marketId,ask:f.ask.state,bid:f.bid.state,transaction:tx},null,2)+'\n');
