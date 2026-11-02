@@ -1216,6 +1216,7 @@ function signImported(built) {
     let sig = kw.createInputSignature(tx, hint.inputIndex, key, kw.SighashType.All);
     if (sig.length === 132 && sig.startsWith("41")) sig = sig.slice(2);
     const args = new kw.ScriptBuilder({ flags: { covenantsEnabled: true } });
+    if (hint.signatureScript.mode === "signature-first-args") args.addData(Buffer.from(sig, "hex"));
     for (const a of hint.signatureScript.args) {
       if (a.type === "data") args.addData(Buffer.from(a.hex, "hex"));
       else if (a.type === "i64") args.addI64(BigInt(a.value));
