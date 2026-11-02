@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0-fee.10 (unreleased)
+
+- Add fee-market crossed settlement to the backend-only matcher, with exact payouts, preserved order deposits and one receipt.
+- Require a positive total matcher spending limit and reject mismatched or stale sources before submission.
+
 ## 0.8.0-fee.9
 
 - Allow the funded two-ask FeeTicket and creator-fee shape through its operation-specific compute check. Keep transient, storage and consolidation limits unchanged.
