@@ -1,9 +1,15 @@
 # Changelog
 
-## 0.8.1-kcom.1 (unpublished)
+## 0.8.1-kcom.2 (unpublished)
 
-- Combine the current fee-market builder with the KCOM vesting and claim transaction builders for branch integration tests.
-- Keep package publication and runtime enablement pending independent review and funded campaign evidence.
+- Combine the fee-market builder through `0.8.0-fee.7` with the KCOM vesting and claim transaction builders.
+- Keep package publication and runtime enablement pending independent review.
+
+## 0.8.0-fee.7
+
+- Accept the indexer's verified policy summary fields when reconstructing live bid scripts for seller sweeps.
+- Enable two-ask grouped buy submission after the pinned follower budget passed signed consensus proof and a funded TN10 transaction.
+- Keep fee policy, contract artifacts, legacy operations and snapshot operations unchanged.
 
 ## 0.8.0-fee.6
 

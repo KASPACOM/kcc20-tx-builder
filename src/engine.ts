@@ -5204,8 +5204,9 @@ export function createKcc20PsktBuilderEngine(
       return { schema: OUTPUT_SCHEMA,
         psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
         signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
-        // Follower input 1 has a 600-unit budget without constrained consensus proof.
-        submitTransactionSupported: false,
+        // The pinned two-ask follower and optional ticket budgets passed the
+        // signed consensus proof in kaspa-covenants PR #718.
+        submitTransactionSupported: true,
         metadata: { builderKey: "kcc20fee.buy-two-asks",
           operation: "fee-market-buy-two-asks", network, walletAddress,
           tokenId, marketId, policyId, fillCount: 2,
@@ -5332,14 +5333,24 @@ export function createKcc20PsktBuilderEngine(
           String(utxo.state.wrapper_spk_hash).toLowerCase() !== holderPlan.wrapper.scriptHash) {
         throw new Error(`bid ${slot} differs from fixed market policy`);
       }
+      // The indexer adds policy summary fields for API consumers. They are not
+      // part of the on-chain bid state and must not enter script reconstruction.
+      const { creatorFeeBps: indexedCreatorFeeBps,
+        feePolicyVersion: indexedFeePolicyVersion, ...bidState } = utxo.state;
+      if ((indexedCreatorFeeBps !== undefined &&
+            Number(indexedCreatorFeeBps) !== params.feePolicy.creatorFeeBps) ||
+          (indexedFeePolicyVersion !== undefined &&
+            Number(indexedFeePolicyVersion) !== params.feePolicy.version)) {
+        throw new Error(`bid ${slot} indexed policy summary differs from fixed policy`);
+      }
       const bidScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid,
-        role: "bid", state: utxo.state });
+        role: "bid", state: bidState });
       const buyerPlan = prepareKcc20FeeMarketWrappedHolder({ ...base,
         recipientOwner: buyer, recipientOwnerScheme: scheme,
         recipientPayoutScriptHash: payoutHash, tokenAmount: fill });
       const continuation = remaining > 0n
         ? buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid,
-          role: "bid", state: { ...utxo.state, amount: remaining.toString() } })
+          role: "bid", state: { ...bidState, amount: remaining.toString() } })
         : null;
       const fee = calculateKcc20EscrowFees({ grossSompi: gross,
         creatorFeeBps: params.feePolicy.creatorFeeBps, protocolWaived: Boolean(ticket) });

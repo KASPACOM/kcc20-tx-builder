@@ -95,6 +95,15 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
+Version `0.8.0-fee.7` fixes seller sweeps built from enriched indexer bid
+state and marks the two-ask buyer group submit-ready. Funded DEV TN10
+transactions passed for 3- and 10-bid seller sweeps, a two-ask buy, partial
+ask and bid fills, and claims of three and five receipts. These are local
+builder proofs until the package is published and consumer smoke tests use
+the registry tarball. Grouped FeeTicket waiver, crossed matches, authority
+rotation, recipient approval, and historical parity remain market-enablement
+gates.
+
 Version `0.8.0-fee.6` registers the previously implemented fee-market holder
 merge and seller-sweep keys for browser consumers. It changes no contract
 artifacts or signed transaction logic. Backend consumers must update their
