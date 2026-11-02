@@ -40,8 +40,9 @@ function fixture(count=1,party='creator',other=true){
     getUtxosByAddresses:async({addresses})=>({entries:addresses.includes(wallet)?[funding]:covenantEntries})})});
   return {request,engine,covenantEntries,funding};
 }
-function sign(built){
+function sign(built, mutate = () => {}){
   const tx=kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
+  mutate(tx);
   for(const hint of built.scripts){
     let sig=kw.createInputSignature(tx,hint.inputIndex,key,kw.SighashType.All);
     if(sig.length===132&&sig.startsWith('41'))sig=sig.slice(2);
@@ -77,7 +78,10 @@ for(const count of [1,2,3,4,5])for(const party of ['protocol','creator'])for(con
     evidence.push(e);
     if(count===1&&other){
       const bad=structuredClone(e);bad.name+='-diverted-remainder';bad.expectFailure=true;
-      bad.signedTransaction.outputs[2].scriptPublicKey=bad.signedTransaction.outputs[0].scriptPublicKey;evidence.push(bad);
+      const diverted=sign(built,t=>{t.outputs[2].scriptPublicKey=kw.payToAddressScript(wallet)});
+      bad.signedTransaction=JSON.parse(diverted.serializeToSafeJSON());
+      // Fresh signatures stay valid. Only the receipt covenant must reject.
+      bad.expectedFailureInputs=[0];evidence.push(bad);
     }
     if(process.env.RECIPIENT_EVIDENCE){mkdirSync(process.env.RECIPIENT_EVIDENCE,{recursive:true});writeFileSync(process.env.RECIPIENT_EVIDENCE+'/recipient-transactions.json',JSON.stringify(evidence,null,2));}
   });
