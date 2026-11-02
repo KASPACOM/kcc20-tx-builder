@@ -20,7 +20,7 @@ const keys = {
   bid: "KCC20OrderbookFeeBidV1",
   ticket: "KCC20FeeTicket",
   wrapper: "KCC20WrapperFeeV1",
-  argentWrapper: "KCC20WrapperFeeArgentV1",
+  argentWrapper: "KCC20WrapperFeeArgentV2",
 };
 const artifacts = Object.fromEntries(Object.entries(keys).map(([role, name]) => [
   role,
@@ -147,4 +147,12 @@ test("existing fee roles resolve only the exact market-bound wrapper profile", (
     assert.throws(()=>resolveKcc20FeeMarketWrapperProfile({...input,marketId:"05".repeat(32)}),/bound wrapper/);
     assert.throws(()=>resolveKcc20FeeMarketWrapperProfile({...input,wrapperScriptHash:"ff".repeat(32)}),/bound wrapper/);
   }
+});
+
+test("new Argent markets reject the obsolete V1 wrapper artifact", () => {
+  const old = JSON.parse(readFileSync(new URL('../artifacts/KCC20WrapperFeeArgentV1.placeholder.json', import.meta.url)));
+  assert.throws(() => prepareKcc20FeeMarketGenesis({
+    tokenId: '01'.repeat(32), feeTicketId: '00'.repeat(32), priceScale: 1n,
+    policy, wrapperProfile: 'argent', artifacts: { ...artifacts, argentWrapper: old },
+  }), /artifact metadata mismatch/);
 });

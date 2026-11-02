@@ -37,6 +37,8 @@ export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
     "53338a33d4e57964ff76ffe2c95e25786995f7c1f96f9375b57bcac3c124d3ba",
   "KCC20WrapperFeeArgentV1.placeholder.json":
     "b7ebdf13e66a10407c36e56a24f9f91a0db27602508eb2a297da613d1c43cdbd",
+  "KCC20WrapperFeeArgentV2.placeholder.json":
+    "aa4e622b7dfae9b111816baad53139064725062adaf5b304ed77de7fce03da1c",
 });
 
 /** Raw file pins cover the ABI and dispatch tags as well as the script bytes. */
@@ -49,6 +51,7 @@ export const KCC20_FEE_V1_ARTIFACT_SHA256 = Object.freeze({
   "KCC20OrderbookFeeBidV1.placeholder.json": "4a6150291bb9e459a4ca61609854af7063c5f7314e0f5c2438a7f462627d33d4",
   "KCC20WrapperFeeV1.placeholder.json": "345cbefc8f870b2daa408e2608c4fcf50d27d9f5ebb505439ee22092715f0007",
   "KCC20WrapperFeeArgentV1.placeholder.json": "d14cdd05f9522b393e9b5e674a4645cf6b51f8831a5bb370882eb0e9a2f8d4b0",
+  "KCC20WrapperFeeArgentV2.placeholder.json": "eec339c8b255fc59790fbff699acbbf6c1f06baecb855fbbd590c9428d5611be",
 });
 
 export const KCC20_FEE_V1_POLICY_MANIFEST_SHA256 =

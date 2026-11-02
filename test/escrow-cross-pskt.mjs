@@ -8,7 +8,7 @@ import { createKcc20PsktBuilderEngine, prepareKcc20FeeMarketGenesis,
 kw.initSync({module: readFileSync(new URL('../examples/vendor/kaspa/kaspa_bg.wasm', import.meta.url))});
 const names = { receipt:'KCC20FeeEscrowV1', root:'KCC20OrderbookFeeRootV1',
   holder:'KCC20OrderbookFeeHolderV1', ask:'KCC20OrderbookFeeAskV1', bid:'KCC20OrderbookFeeBidV1',
-  ticket:'KCC20FeeTicket', wrapper:'KCC20WrapperFeeV1', argentWrapper:'KCC20WrapperFeeArgentV1' };
+  ticket:'KCC20FeeTicket', wrapper:'KCC20WrapperFeeV1', argentWrapper:'KCC20WrapperFeeArgentV2' };
 const artifacts = Object.fromEntries(Object.entries(names).map(([role,name])=>[role,
   JSON.parse(readFileSync(new URL(`../artifacts/${name}.placeholder.json`,import.meta.url)))]));
 const artifactMap = Object.fromEntries(Object.entries(names).map(([role,name])=>[name+'.placeholder.json',artifacts[role]]));

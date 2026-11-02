@@ -2976,7 +2976,7 @@ export function createKcc20PsktBuilderEngine(
       receipt: "KCC20FeeEscrowV1", root: "KCC20OrderbookFeeRootV1",
       holder: "KCC20OrderbookFeeHolderV1", ask: "KCC20OrderbookFeeAskV1",
       bid: "KCC20OrderbookFeeBidV1", ticket: "KCC20FeeTicket",
-      wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV1",
+      wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV2",
     };
     const entries = await Promise.all(Object.entries(names).map(async ([role, name]) => {
       const key = `${name}.placeholder.json`;
