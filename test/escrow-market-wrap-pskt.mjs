@@ -914,6 +914,46 @@ test("fee-market buyer group burns one ticket across both asks", async () => {
   assert(storage <= 450000n);
 });
 
+test("fee-market buyer group burns one ticket and preserves per-fill creator fees above consolidation target", async () => {
+  const f = buyAskFixture(5n, { useTicket: true, creatorFeeBps: 100 });
+  const secondEntry = { ...f.askEntry,
+    outpoint: { transactionId: "1c".repeat(32), index: 0 } };
+  const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+      "ArgentKCC20.reference.json": argent },
+    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
+      getUtxosByAddresses: async ({ addresses }) => ({ entries:
+        addresses.flatMap(address => address === wallet ? [f.fundingEntry] :
+          address === f.ticket.utxo.address ? [f.ticket.entry] :
+            [f.askEntry, secondEntry]) }) }) });
+  f.request.request.builderKey = "kcc20fee.buy-two-asks";
+  f.request.request.params.asks = [f.askUtxo, secondAsk];
+  const built = await engine.build(f.request);
+  const json = JSON.parse(built.psktTransactionJson);
+  assert.equal(built.metadata.fillCount, 2);
+  assert.equal(built.submitTransactionSupported, true);
+  assert.equal(json.inputs[1].computeBudget, 600);
+  assert.equal(json.inputs[2].computeBudget, 300);
+  assert.equal(built.metadata.protocolFeeSompi, "0");
+  assert.equal(built.metadata.creatorFeeSompi, "100000000");
+  assert.equal(built.metadata.receiptOutputIndex, 4);
+  assert.equal(BigInt(json.outputs[4].value), 100000000n);
+  assert.equal(built.metadata.ticketInputIndex, 2);
+  assert.equal(built.metadata.ticketRefundIndex, 5);
+  assert.equal(BigInt(json.outputs[5].value), f.ticket.entry.amount);
+  assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
+  const signed = signBuyerTicketBuild(built);
+  const mass = engine.protocol.calculateToccataV1NonContextualMass(signed,
+    "fee-market ticket buyer group");
+  const storage = engine.protocol.calculateToccataStorageMass(signed,
+    "fee-market ticket buyer group");
+  assert(mass.computeMass > 450000n);
+  assert(mass.computeMass <= 500000n);
+  assert(mass.transientMass <= 900000n);
+  assert(storage <= 450000n);
+});
+
 test("fee-market buyer group rejects duplicate asks before selecting funding", async () => {
   const f = buyAskFixture();
   f.request.request.builderKey = "kcc20fee.buy-two-asks";

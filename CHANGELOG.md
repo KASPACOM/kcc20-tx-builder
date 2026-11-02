@@ -2,9 +2,14 @@
 
 ## 0.8.1-kcom.3 (unpublished)
 
-- Combine the fee-market builder through `0.8.0-fee.8` with the KCOM vesting and claim transaction builders.
+- Combine the fee-market builder through `0.8.0-fee.9` with the KCOM vesting and claim transaction builders.
 - Include the wide snapshot supply fix from `0.8.0-fee.8`.
 - Keep package publication and runtime enablement pending independent review.
+
+## 0.8.0-fee.9
+
+- Allow the funded two-ask FeeTicket and creator-fee shape through its operation-specific compute check. Keep transient, storage and consolidation limits unchanged.
+- Add the signed creator-fee regression missing from the original ticket-group test.
 
 ## 0.8.0-fee.8
 
