@@ -190,6 +190,9 @@ export function createKcc20PsktBuilderEngine(
   const TOCCATA_SIGNATURE_RESERVE_BYTES = 66n;
   const TOCCATA_MAX_STANDARD_TRANSACTION_MASS = 500_000n;
   const CONSOLIDATION_TARGET_TRANSACTION_MASS = 450_000n;
+  // TN10 accepted the signed two-ask + ticket + creator receipt shape at
+  // 465,140 compute mass. Keep its allowance separate from consolidation.
+  const FEE_MARKET_BUYER_GROUP_COMPUTE_LIMIT = TOCCATA_MAX_STANDARD_TRANSACTION_MASS;
   const TOCCATA_MAX_STANDARD_RELAY_FEE_SOMPI =
     TOCCATA_MAX_STANDARD_TRANSACTION_MASS * MIN_RELAY_FEE_PER_MASS_SOMPI;
   const MIN_FUNDING_CHANGE_SOMPI = 10_000n;
@@ -5167,7 +5170,7 @@ export function createKcc20PsktBuilderEngine(
         feeResult.predictedTransaction, "fee-market buyer group");
       const storageMass = calculateToccataStorageMass(
         feeResult.predictedTransaction, "fee-market buyer group");
-      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+      if (signedMass.computeMass > FEE_MARKET_BUYER_GROUP_COMPUTE_LIMIT ||
           signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
           storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
         throw kcc20PsktBuilderError("fee-market buyer group exceeds signed mass target",
