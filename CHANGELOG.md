@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-fee.7
+
+- Accept the indexer's verified policy summary fields when reconstructing live bid scripts for seller sweeps.
+- Enable two-ask grouped buy submission after the pinned follower budget passed signed consensus proof and a funded TN10 transaction.
+- Keep fee policy, contract artifacts, legacy operations and snapshot operations unchanged.
+
 ## 0.8.0-fee.6
 
 - Expose the existing fee-market holder merge and seller sweep PSKT handlers through the public builder key registry.
