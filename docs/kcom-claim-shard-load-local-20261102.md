@@ -1,13 +1,20 @@
 # KCOM claim shard sizing probe, 2 November 2026
 
-The [receipt](kcom-claim-shard-load-local-20261102.json) comes from
-`SNAPSHOT_TEST_WASM=examples/vendor/kaspa node test/kcom-claim-shard-load.mjs`
-at builder commit `ae75dd1bbab592843bced1fdc723900d886b2bb7`.
+The [receipt](kcom-claim-shard-load-local-20261102.json) comes from the
+reviewed builder branch after it incorporated `main` fee.9. Reproduce the
+builder and engine checks with:
+
+```sh
+SNAPSHOT_TEST_WASM=examples/vendor/kaspa \
+KCOM_EXECUTE_WIRE=/path/to/pinned/argent/execute-wire \
+node test/kcom-claim-shard-load.mjs
+```
 
 The script builds 1,024, 4,096, and 65,536 authority manifests, checks the Merkle
 proofs through the shared builder, constructs and signs a first Long selection,
-and asks the pinned Kaspa WASM for standard transaction mass. All three cases
-reported mass 79,705 of the 100,000 limit. Witness sizes were 21,534,
+and asks the pinned Kaspa WASM for standard transaction mass. Each signed
+transaction also executed successfully in the pinned Argent engine. All three
+cases reported mass 79,705 of the 100,000 limit. Witness sizes were 21,534,
 21,661, and 21,918 bytes. Merkle siblings alone were 320, 384, and 512 bytes.
 The equal mass results are reported as measured; proof growth did not increase
 total mass in these three cases.

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { blake3 } from '@noble/hashes/blake3';
 import { loadPinnedKaspaWasm } from './load-kaspa-wasm.mjs';
 import { buildKcomClaimManifest, createKcomClaimProof, kcomClaimNullifier,
@@ -53,6 +54,42 @@ function manifestFor(count) {
     generatedMs: Math.round(performance.now() - started) };
 }
 
+function executeSignedSelection(transaction, graphId) {
+  const binary = process.env.KCOM_EXECUTE_WIRE;
+  if (!binary) return false;
+  transaction.finalize();
+  const sources = [graphId, null];
+  assert.equal(transaction.inputs.length, sources.length);
+  const wire = { version: Number(transaction.version), lockTime: String(transaction.lockTime),
+    gas: String(transaction.gas), payload: transaction.payload ?? '',
+    inputs: transaction.inputs.map((input, i) => ({
+      txid: String(input.previousOutpoint.transactionId),
+      index: input.previousOutpoint.index,
+      sequence: String(input.sequence),
+      computeBudget: Number(input.computeBudget),
+      signatureScript: input.signatureScript,
+      utxo: { amount: String(input.utxo.amount),
+        scriptPublicKey: { version: Number(input.utxo.scriptPublicKey.version),
+          script: input.utxo.scriptPublicKey.script },
+        blockDaaScore: String(input.utxo.blockDaaScore),
+        isCoinbase: input.utxo.isCoinbase, covenantId: sources[i] },
+    })),
+    outputs: transaction.outputs.map(output => ({ value: String(output.value),
+      scriptPublicKey: { version: Number(output.scriptPublicKey.version),
+        script: output.scriptPublicKey.script },
+      covenant: output.covenant ? { authorizingInput: Number(output.covenant.authorizingInput),
+        covenantId: String(output.covenant.covenantId) } : null })),
+  };
+  const executed = spawnSync(binary, [], { input: JSON.stringify(wire),
+    encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 });
+  assert.equal(executed.status, 0, executed.stderr);
+  const result = JSON.parse(executed.stdout);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.measuredMassValidation ?? null, null);
+  assert(result.inputs.every(input => input.ok === true));
+  return true;
+}
+
 async function measureSelection(count) {
   const { manifest, proof, index, generatedMs } = manifestFor(count);
   const used = emptyUsedProof(count, index);
@@ -102,8 +139,10 @@ async function measureSelection(count) {
   const transactionMass = kw.calculateTransactionMass('testnet-10', signed);
   const maximumMass = kw.maximumStandardTransactionMass();
   assert(transactionMass <= maximumMass, `${count}-leaf selection exceeds standard mass`);
+  const engineVerified = executeSignedSelection(signed, vector.graphId);
   return { count, proofDepth: proof.siblings.length, proofBytes: 32 * proof.siblings.length,
     generatedMs, transactionMass: String(transactionMass), maximumMass: String(maximumMass),
+    engineVerified,
     shardSignatureScriptBytes: signed.inputs[0].signatureScript.length / 2,
     sponsorSignatureScriptBytes: signed.inputs[1].signatureScript.length / 2 };
 }
@@ -124,7 +163,9 @@ function shardDistribution(wallets, shards) {
     lockedShardKasSompiAtOneKasEach: String(BigInt(shards) * 100_000_000n) };
 }
 const distribution = [4, 16, 64, 256].map(shards => shardDistribution(4096, shards));
-console.log(JSON.stringify({ schema: 'kcom-shard-load-local/v1', network: 'testnet-10',
-  scope: 'signed synthetic first-selection transactions plus deterministic route distribution; no TN10 contention measurement',
+console.log(JSON.stringify({ schema: 'kcom-shard-load-local/v2', network: 'testnet-10',
+  scope: 'signed synthetic first-selection transactions, optional pinned-engine execution, and deterministic route distribution; no TN10 contention measurement',
   builderRevision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+  engineSha256: process.env.KCOM_EXECUTE_WIRE ? createHash('sha256').update(
+    readFileSync(process.env.KCOM_EXECUTE_WIRE)).digest('hex') : null,
   rows, distribution }, null, 2));
