@@ -1,8 +1,9 @@
 {
-  "schema": "kcom-shard-load-local/v1",
+  "schema": "kcom-shard-load-local/v2",
   "network": "testnet-10",
-  "scope": "signed synthetic first-selection transactions plus deterministic route distribution; no TN10 contention measurement",
-  "builderRevision": "9403977e00f3cc7adc4b039ac0416801a27bdf07",
+  "scope": "signed synthetic first-selection transactions, optional pinned-engine execution, and deterministic route distribution; no TN10 contention measurement",
+  "builderRevision": "f22c9311066408cb16e8b8a14587932af3cf2df7",
+  "engineSha256": "76ced9cb35dd59306c03644328460fd986cf53bc0b1274cbce3e9263d1e50e92",
   "rows": [
     {
       "count": 1024,
@@ -11,6 +12,7 @@
       "generatedMs": 115,
       "transactionMass": "79705",
       "maximumMass": "100000",
+      "engineVerified": true,
       "shardSignatureScriptBytes": 21534,
       "sponsorSignatureScriptBytes": 66
     },
@@ -18,9 +20,10 @@
       "count": 4096,
       "proofDepth": 12,
       "proofBytes": 384,
-      "generatedMs": 343,
+      "generatedMs": 350,
       "transactionMass": "79705",
       "maximumMass": "100000",
+      "engineVerified": true,
       "shardSignatureScriptBytes": 21661,
       "sponsorSignatureScriptBytes": 66
     },
@@ -28,9 +31,10 @@
       "count": 65536,
       "proofDepth": 16,
       "proofBytes": 512,
-      "generatedMs": 5691,
+      "generatedMs": 4876,
       "transactionMass": "79705",
       "maximumMass": "100000",
+      "engineVerified": true,
       "shardSignatureScriptBytes": 21918,
       "sponsorSignatureScriptBytes": 66
     }
