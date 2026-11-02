@@ -2,13 +2,13 @@
   "schema": "kcom-shard-load-local/v1",
   "network": "testnet-10",
   "scope": "signed synthetic first-selection transactions plus deterministic route distribution; no TN10 contention measurement",
-  "builderRevision": "ae75dd1bbab592843bced1fdc723900d886b2bb7",
+  "builderRevision": "9403977e00f3cc7adc4b039ac0416801a27bdf07",
   "rows": [
     {
       "count": 1024,
       "proofDepth": 10,
       "proofBytes": 320,
-      "generatedMs": 129,
+      "generatedMs": 115,
       "transactionMass": "79705",
       "maximumMass": "100000",
       "shardSignatureScriptBytes": 21534,
@@ -18,10 +18,20 @@
       "count": 4096,
       "proofDepth": 12,
       "proofBytes": 384,
-      "generatedMs": 373,
+      "generatedMs": 343,
       "transactionMass": "79705",
       "maximumMass": "100000",
       "shardSignatureScriptBytes": 21661,
+      "sponsorSignatureScriptBytes": 66
+    },
+    {
+      "count": 65536,
+      "proofDepth": 16,
+      "proofBytes": 512,
+      "generatedMs": 5691,
+      "transactionMass": "79705",
+      "maximumMass": "100000",
+      "shardSignatureScriptBytes": 21918,
       "sponsorSignatureScriptBytes": 66
     }
   ],

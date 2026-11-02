@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { execFileSync } from 'node:child_process';
 import { blake3 } from '@noble/hashes/blake3';
 import { loadPinnedKaspaWasm } from './load-kaspa-wasm.mjs';
-import { buildKcomClaimManifest, createKcomClaimProofs, kcomClaimNullifier,
+import { buildKcomClaimManifest, createKcomClaimProof, kcomClaimNullifier,
   createKcomClaimPsktBuilder, kcomClaimCodec } from '../dist/index.js';
 
 const kw = await loadPinnedKaspaWasm(process.env.SNAPSHOT_TEST_WASM);
@@ -47,10 +47,10 @@ function manifestFor(count) {
     entitlements };
   const started = performance.now();
   const manifest = buildKcomClaimManifest(input);
-  const proofs = createKcomClaimProofs(manifest);
   const index = manifest.leaves.findIndex(x => x.authority.identifier === authorityId);
   assert(index >= 0);
-  return { manifest, proof: proofs[index], index, generatedMs: Math.round(performance.now() - started) };
+  return { manifest, proof: createKcomClaimProof(manifest, index), index,
+    generatedMs: Math.round(performance.now() - started) };
 }
 
 async function measureSelection(count) {
@@ -109,8 +109,9 @@ async function measureSelection(count) {
 }
 
 const rows = [];
-for (const count of [1024, 4096]) rows.push(await measureSelection(count));
+for (const count of [1024, 4096, 65536]) rows.push(await measureSelection(count));
 assert(rows[1].proofDepth > rows[0].proofDepth);
+assert(rows[2].proofDepth > rows[1].proofDepth);
 function shardDistribution(wallets, shards) {
   const counts = Array(shards).fill(0);
   for (let i = 0; i < wallets; i++) {
