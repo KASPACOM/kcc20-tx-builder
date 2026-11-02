@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.8.0-fee.11 (unreleased)
+## 0.8.0-fee.12 (unreleased)
+
+- Build imported Argent fee-market wrap/unwrap and profile-aware trades with the corrected V2 wrapper.
+- Preserve old artifacts and native/snapshot flows; reject the obsolete wrapper for new Argent setup.
+- Execute the exact packaged transaction shapes in signed consensus.
+
+## 0.8.0-fee.11
 
 - Build the pinned recipient covenant, delegated fee claims and rotation back to wallet control through the shared PSKT flow.
 - Revalidate recipient authority and live UTXOs; preserve account and recipient principals and the other party's fees.
