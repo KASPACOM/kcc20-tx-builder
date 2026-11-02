@@ -1,0 +1,66 @@
+{
+  "schema": "kcom-shard-load-local/v1",
+  "network": "testnet-10",
+  "scope": "signed synthetic first-selection transactions plus deterministic route distribution; no TN10 contention measurement",
+  "builderRevision": "ae75dd1bbab592843bced1fdc723900d886b2bb7",
+  "rows": [
+    {
+      "count": 1024,
+      "proofDepth": 10,
+      "proofBytes": 320,
+      "generatedMs": 129,
+      "transactionMass": "79705",
+      "maximumMass": "100000",
+      "shardSignatureScriptBytes": 21534,
+      "sponsorSignatureScriptBytes": 66
+    },
+    {
+      "count": 4096,
+      "proofDepth": 12,
+      "proofBytes": 384,
+      "generatedMs": 373,
+      "transactionMass": "79705",
+      "maximumMass": "100000",
+      "shardSignatureScriptBytes": 21661,
+      "sponsorSignatureScriptBytes": 66
+    }
+  ],
+  "distribution": [
+    {
+      "wallets": 4096,
+      "shards": 4,
+      "minPerShard": 994,
+      "maxPerShard": 1056,
+      "meanPerShard": 1024,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "400000000"
+    },
+    {
+      "wallets": 4096,
+      "shards": 16,
+      "minPerShard": 217,
+      "maxPerShard": 286,
+      "meanPerShard": 256,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "1600000000"
+    },
+    {
+      "wallets": 4096,
+      "shards": 64,
+      "minPerShard": 46,
+      "maxPerShard": 81,
+      "meanPerShard": 64,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "6400000000"
+    },
+    {
+      "wallets": 4096,
+      "shards": 256,
+      "minPerShard": 6,
+      "maxPerShard": 29,
+      "meanPerShard": 16,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "25600000000"
+    }
+  ]
+}
