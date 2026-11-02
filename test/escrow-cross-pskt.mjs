@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { blake3 } from '@noble/hashes/blake3';
 import * as kw from '../examples/vendor/kaspa/kaspa.js';
 import { createKcc20PsktBuilderEngine, prepareKcc20FeeMarketGenesis,
@@ -17,10 +17,10 @@ const network='testnet-10', tokenId='01'.repeat(32), marketId='02'.repeat(32);
 const wallet = n=>{ const key=new kw.PrivateKey(n.toString(16).padStart(64,'0'));return {key,owner:key.toKeypair().xOnlyPublicKey.toString(),address:key.toAddress(network).toString()};};
 const seller=wallet(3),buyer=wallet(4),matcher=wallet(5);
 function payoutHash(a) {const spk=kw.payToAddressScript(a.address),script=Buffer.from(spk.script,'hex'),bytes=Buffer.alloc(11+script.length);bytes[0]=0xe3;bytes.writeUInt16LE(Number(spk.version),1);bytes.writeBigUInt64LE(BigInt(script.length),3);script.copy(bytes,11);return hex(blake3(bytes));}
-function fixture({askAmount=2n,bidAmount=2n,bps=100,limit='500000000'}={}) {
+function fixture({askAmount=2n,bidAmount=2n,bps=100,wrapperProfile='native',limit='500000000'}={}) {
   const policy={version:1,creatorFeeBps:bps,protocolAccountId:'04'.repeat(32),creatorAccountId:(bps?'05':'00').repeat(32),
     ...Object.fromEntries(['receipt','root','holder','ask','bid','ticket'].map(role=>{const p=templateParts(artifacts[role]);return [role+'Template',{hash:hex(p.hash),prefixLength:p.prefixLength,suffixLength:p.suffixLength}];}))};
-  const common={tokenId,marketId,feeTicketId:'00'.repeat(32),priceScale:1n,policy,wrapperProfile:'native',artifacts};
+  const common={tokenId,marketId,feeTicketId:'00'.repeat(32),priceScale:1n,policy,wrapperProfile,artifacts};
   const askPlan=prepareKcc20FeeMarketAsk({...common,owner:seller.owner,ownerScheme:0,payoutScriptHash:payoutHash(seller),holderAmount:askAmount,askAmount,askUnitPrice:300000000n});
   const bidPlan=prepareKcc20FeeMarketBid({...common,rootOwner:seller.owner,rootOwnerScheme:0,rootPayoutScriptHash:payoutHash(seller),buyer:buyer.owner,buyerScheme:0,buyerPayoutScriptHash:payoutHash(buyer),bidAmount,bidUnitPrice:400000000n});
   const entry=(script,amount,id,covenantId=marketId)=>({outpoint:{transactionId:id.repeat(32),index:0},amount,scriptPublicKey:kw.payToScriptHashScript(script.redeemScript),blockDaaScore:0n,isCoinbase:false,covenantId});
@@ -95,4 +95,12 @@ test('fee cross accepts indexer annotations without treating them as runtime fie
   assert.equal(f.submitted.length,1);
   assert.equal(result.metadata.tokenAmount,'2');
   assert.equal(result.metadata.protocolFeeSompi,'50000000');
+});
+
+const argentCrosses=[];
+for(const [askAmount,bidAmount] of [[2n,2n],[3n,2n],[2n,3n]])test(`Argent cross ${askAmount}/${bidAmount} keeps matcher funded protocol fee`,async()=>{
+ const f=fixture({askAmount,bidAmount,bps:0,wrapperProfile:'argent'}),b=await f.engine.build(f.request);
+ assert.equal(f.submitted.length,1);assert.equal(b.metadata.protocolFeeSompi,'50000000');assert.equal(b.metadata.creatorFeeSompi,'0');
+ argentCrosses.push({name:`argent-cross-${askAmount}-${bidAmount}`,profileId:'argent-fee',count:2,covenantIds:[marketId,marketId,null],signedTransaction:JSON.parse(b.psktTransactionJson),built:{metadata:{covenantId:marketId}}});
+ if(process.env.ARGENT_FEE_EVIDENCE){mkdirSync(process.env.ARGENT_FEE_EVIDENCE,{recursive:true});writeFileSync(process.env.ARGENT_FEE_EVIDENCE+'/argent-cross-transactions.json',JSON.stringify(argentCrosses,null,2));}
 });

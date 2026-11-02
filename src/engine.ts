@@ -80,7 +80,7 @@ import {
 } from "./abi.js";
 import { KCC20_BUILDER_KEYS } from "./operations.js";
 import { buildKcc20InitialFeeAccount, planKcc20FeeAccountBinding } from "./escrow-account-setup.js";
-import { prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding, prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk, prepareKcc20FeeMarketBid } from "./escrow-market-setup.js";
+import { resolveKcc20FeeMarketWrapperProfile, prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding, prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk, prepareKcc20FeeMarketBid } from "./escrow-market-setup.js";
 import { buildKcc20FeeMarketRoleScript } from "./escrow-market-artifacts.js";
 import { calculateKcc20EscrowFees } from "./escrow-fee.js";
 import { kcc20CreatorFeeConsent, decodeKcc20EscrowPolicy } from "./escrow-policy.js";
@@ -3443,8 +3443,9 @@ export function createKcc20PsktBuilderEngine(
     const tokenProfile = await resolveKcc20ArtifactForState(
       tokenState, requireKaspaAddress(source.address), network);
     requireTokenCapability(tokenProfile.profile, "wrap");
-    if (tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
-      throw new Error("fee-market wrap for this token profile needs its signed witness proof");
+    const wrapperProfile = tokenProfile.profile.id === "argent-reference-kcc20-v1" ? "argent" : "native";
+    if (wrapperProfile === "native" && tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
+      throw new Error("unsupported fee-market token profile");
     }
     const creatorConsent = verifyReusableCreatorConsent(params, tokenId, marketId, feeTicketId,
       priceScale, false);
@@ -3474,12 +3475,12 @@ export function createKcc20PsktBuilderEngine(
     const artifacts = await readFeeMarketArtifacts();
     const plan = prepareKcc20FeeMarketWrappedHolder({
       tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId, recipientOwner,
+      wrapperProfile, artifacts, marketId, recipientOwner,
       recipientOwnerScheme: 0, recipientPayoutScriptHash: payoutHash,
       tokenAmount,
     });
     if (prepareKcc20FeeMarketGenesis({ tokenId, feeTicketId, priceScale,
-      policy: params.feePolicy, wrapperProfile: "native", artifacts }).policyId !==
+      policy: params.feePolicy, wrapperProfile, artifacts }).policyId !==
         requireHex32(params.policyId, "policy ID")) {
       throw new Error("fee-market wrap policy ID mismatch");
     }
@@ -3586,12 +3587,12 @@ export function createKcc20PsktBuilderEngine(
       const holderParts = templateParts(normalizeSilverScriptArtifact(artifacts.holder));
       wrapperPrefix.addData(holderParts.prefix);
       wrapperPrefix.addData(holderParts.suffix);
-      addKcc20State(wrapperPrefix, lockedState);
+      addFeeMarketNativeState(wrapperPrefix, lockedState, tokenProfile);
       addFeeMarketRoleState(wrapperPrefix, plan.holderState);
       wrapperPrefix.addData(creatorHolderExtension);
       wrapperPrefix.addData(creatorConsent
         ? hexToBytes(creatorConsent.signature) : new Uint8Array(64));
-      wrapperPrefix.addData(dispatchTagFor(artifacts.wrapper, "wrap"));
+      wrapperPrefix.addData(dispatchTagFor(artifacts[wrapperProfile === "argent" ? "argentWrapper" : "wrapper"], "wrap"));
       transaction.inputs[1].signatureScript = encodeCovenantP2shSignatureScript(
         wrapperPrefix.drain(), plan.wrapper.redeemScript);
       const scripts = [{ inputIndex: 0, scriptHex: bytesToHex(tokenScript),
@@ -3676,8 +3677,9 @@ export function createKcc20PsktBuilderEngine(
     const tokenProfile = await resolveKcc20ArtifactForState(
       reserveState, requireKaspaAddress(reserveUtxo.address), network);
     requireTokenCapability(tokenProfile.profile, "unwrap");
-    if (tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
-      throw new Error("fee-market unwrap for this token profile needs its signed witness proof");
+    const wrapperProfile = tokenProfile.profile.id === "argent-reference-kcc20-v1" ? "argent" : "native";
+    if (wrapperProfile === "native" && tokenProfile.profile.id !== "kaspacom-kcc20-last-call-v1") {
+      throw new Error("unsupported fee-market token profile");
     }
     const kw = kaspaWasm;
     const payoutSpk = p2pkScriptPubKey(kw, recipientOwner);
@@ -3693,7 +3695,7 @@ export function createKcc20PsktBuilderEngine(
     }
     const artifacts = await readFeeMarketArtifacts();
     const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId, recipientOwner,
+      wrapperProfile, artifacts, marketId, recipientOwner,
       recipientOwnerScheme: 0, recipientPayoutScriptHash: payoutHash };
     const plan = prepareKcc20FeeMarketWrappedHolder({ ...planInput,
       tokenAmount: wrappedAmount });
@@ -3835,10 +3837,10 @@ export function createKcc20PsktBuilderEngine(
       wrapperPrefix.addData(hexToBytes(recipientOwner));
       addExplicitByte(wrapperPrefix, 0);
       wrapperPrefix.addI64(tokenAmount);
-      addKcc20State(wrapperPrefix, recipientState);
-      addKcc20State(wrapperPrefix, reserveChangeState);
+      addFeeMarketNativeState(wrapperPrefix, recipientState, tokenProfile);
+      addFeeMarketNativeState(wrapperPrefix, reserveChangeState, tokenProfile);
       addFeeMarketRoleState(wrapperPrefix, wrappedChangeState);
-      wrapperPrefix.addData(dispatchTagFor(artifacts.wrapper, "unwrap"));
+      wrapperPrefix.addData(dispatchTagFor(artifacts[wrapperProfile === "argent" ? "argentWrapper" : "wrapper"], "unwrap"));
       transaction.inputs[2].signatureScript = encodeCovenantP2shSignatureScript(
         wrapperPrefix.drain(), plan.wrapper.redeemScript);
       const reservePrefix = buildKcc20TransferSigScript(kw, tokenProfile.artifact, {
@@ -3919,8 +3921,11 @@ export function createKcc20PsktBuilderEngine(
     payoutBytes.set(payoutScript, 11);
     const payoutHash = bytesToHex(blake3(payoutBytes));
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: sources[0]?.state?.wrapper_spk_hash });
     const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: params.wrapperProfile || "native", artifacts, marketId,
+      wrapperProfile, artifacts, marketId,
       recipientOwner: owner, recipientOwnerScheme: 0,
       recipientPayoutScriptHash: payoutHash };
     if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
@@ -4103,8 +4108,11 @@ export function createKcc20PsktBuilderEngine(
     payoutBytes.set(payoutScript, 11);
     const payoutHash = bytesToHex(blake3(payoutBytes));
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: source?.state?.wrapper_spk_hash });
     const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId, owner, ownerScheme: 0,
+      wrapperProfile, artifacts, marketId, owner, ownerScheme: 0,
       payoutScriptHash: payoutHash, holderAmount, askAmount, askUnitPrice };
     const plan = prepareKcc20FeeMarketAsk(planInput);
     if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
@@ -4256,8 +4264,11 @@ export function createKcc20PsktBuilderEngine(
       throw new Error("ask payout differs from signing wallet");
     }
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: source?.state?.wrapper_spk_hash });
     const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId, owner, ownerScheme: 0,
+      wrapperProfile, artifacts, marketId, owner, ownerScheme: 0,
       payoutScriptHash: payoutHash, holderAmount: askAmount, askAmount, askUnitPrice };
     const plan = prepareKcc20FeeMarketAsk(planInput);
     if (prepareKcc20FeeMarketGenesis(planInput).policyId !==
@@ -4398,8 +4409,11 @@ export function createKcc20PsktBuilderEngine(
     payoutBytes.set(payoutScript, 11);
     const payoutHash = bytesToHex(blake3(payoutBytes));
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: rootUtxo?.state?.wrapper_spk_hash });
     const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId,
+      wrapperProfile, artifacts, marketId,
       rootOwner: requireHex32(rootUtxo.state.owner, "root owner"),
       rootOwnerScheme: Number(rootUtxo.state.owner_scheme),
       rootPayoutScriptHash: requireHex32(rootUtxo.state.payout_script_hash,
@@ -4551,8 +4565,11 @@ export function createKcc20PsktBuilderEngine(
       throw new Error("bid payout differs from signing wallet");
     }
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: source?.state?.wrapper_spk_hash });
     const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId,
+      wrapperProfile, artifacts, marketId,
       rootOwner: owner, rootOwnerScheme: 0, rootPayoutScriptHash: payoutHash,
       buyer: owner, buyerScheme: 0, buyerPayoutScriptHash: payoutHash,
       bidAmount, bidUnitPrice };
@@ -4746,8 +4763,11 @@ export function createKcc20PsktBuilderEngine(
       throw new Error("ask seller payout does not match authenticated owner");
     }
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: askUtxo?.state?.wrapper_spk_hash });
     const planInput = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId,
+      wrapperProfile, artifacts, marketId,
       recipientOwner: buyer, recipientOwnerScheme: 0,
       recipientPayoutScriptHash: buyerPayout.hash, tokenAmount: fillAmount };
     const buyerPlan = prepareKcc20FeeMarketWrappedHolder(planInput);
@@ -4763,7 +4783,7 @@ export function createKcc20PsktBuilderEngine(
       throw new Error("fee-market ask differs from fixed market policy");
     }
     const sellerPlan = prepareKcc20FeeMarketAsk({ tokenId, feeTicketId,
-      priceScale, policy: params.feePolicy, wrapperProfile: "native", artifacts,
+      priceScale, policy: params.feePolicy, wrapperProfile, artifacts,
       marketId, owner: seller, ownerScheme: sellerScheme,
       payoutScriptHash: sellerPayout.hash, holderAmount: askAmount,
       askAmount, askUnitPrice });
@@ -4975,8 +4995,11 @@ export function createKcc20PsktBuilderEngine(
     payoutBytes.set(payoutScript, 11);
     const buyerPayoutHash = bytesToHex(blake3(payoutBytes));
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: asks[0]?.state?.wrapper_spk_hash });
     const base = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId };
+      wrapperProfile, artifacts, marketId };
     const policyId = prepareKcc20FeeMarketGenesis(base).policyId;
     if (policyId !== requireHex32(params.policyId, "policy ID")) {
       throw new Error("fee-market buyer group policy ID mismatch");
@@ -5246,6 +5269,9 @@ export function createKcc20PsktBuilderEngine(
     sellerPayoutBytes.set(sellerScript, 11);
     const sellerPayoutHash = bytesToHex(blake3(sellerPayoutBytes));
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: params.feePolicy, artifacts,
+      wrapperScriptHash: source?.state?.wrapper_spk_hash });
     let ticket = null;
     if (ticketRequest) {
       const ticketState = kcc20FeeTicketStateFromUtxo(ticketRequest, request.owner);
@@ -5270,7 +5296,7 @@ export function createKcc20PsktBuilderEngine(
         amountSompiExact: String(ticketRequest.amountSompiExact) };
     }
     const base = { tokenId, feeTicketId, priceScale, policy: params.feePolicy,
-      wrapperProfile: "native", artifacts, marketId };
+      wrapperProfile, artifacts, marketId };
     const policyId = prepareKcc20FeeMarketGenesis(base).policyId;
     if (policyId !== requireHex32(params.policyId, "policy ID")) {
       throw new Error("fee-market seller group policy ID mismatch");
@@ -11059,8 +11085,11 @@ export function createKcc20PsktBuilderEngine(
     const priceScale = parsePositiveU64(ask.state.priceScale, "price scale");
     const policy = decodeKcc20EscrowPolicy(hexToBytes(ask.state.feePolicy));
     const artifacts = await readFeeMarketArtifacts();
+    const wrapperProfile = resolveKcc20FeeMarketWrapperProfile({ tokenId, marketId,
+      feeTicketId, priceScale, policy: policy, artifacts,
+      wrapperScriptHash: ask?.state?.wrapper_spk_hash });
     const genesis = prepareKcc20FeeMarketGenesis({ tokenId, feeTicketId,
-      priceScale, policy, wrapperProfile: "native", artifacts });
+      priceScale, policy, wrapperProfile, artifacts });
     const policyId = genesis.policyId;
     for (const order of [ask, bid]) {
       for (const field of ["canonicalTokenId", "feeTicketId", "feePolicy", "priceScale", "wrapper_spk_hash"]) {
@@ -11116,7 +11145,7 @@ export function createKcc20PsktBuilderEngine(
     const fees = calculateKcc20EscrowFees({ grossSompi: gross, creatorFeeBps: policy.creatorFeeBps, protocolWaived: false });
     const askRemaining = askAmount - fill, bidRemaining = bidAmount - fill;
     const buyerPlan = prepareKcc20FeeMarketWrappedHolder({ tokenId, marketId,
-      feeTicketId, priceScale, policy, wrapperProfile: "native", artifacts,
+      feeTicketId, priceScale, policy, wrapperProfile, artifacts,
       recipientOwner: bid.state.owner, recipientOwnerScheme: Number(bid.state.owner_scheme),
       recipientPayoutScriptHash: bid.state.payout_script_hash, tokenAmount: fill });
     if (buyerPlan.holderState.feePolicy !== String(ask.state.feePolicy).toLowerCase() ||
@@ -15544,6 +15573,19 @@ export function createKcc20PsktBuilderEngine(
       dispatchTagFor(args.feeTicketArtifact, "createBatchFromUtilityBurn"),
     );
     return builder.drain();
+  }
+
+  function addFeeMarketNativeState(builder, state, tokenProfile) {
+    if (tokenProfile.profile.id === "argent-reference-kcc20-v1") {
+      // The pinned Argent artifact stores its generated template marker before
+      // the six mutable KCC-2 fields. The wrapper ABI includes that marker.
+      const artifact = normalizeSilverScriptArtifact(tokenProfile.artifact);
+      if (artifact.state_layout.start !== 34 || artifact.script[1] !== 32) {
+        throw new Error("Argent token template marker layout mismatch");
+      }
+      builder.addData(Uint8Array.from(artifact.script.slice(2, 34)));
+    }
+    addKcc20State(builder, state);
   }
 
   function addKcc20State(builder, state) {

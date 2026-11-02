@@ -6,6 +6,7 @@ import {
   normalizeSilverScriptArtifact,
   prepareKcc20FeeMarketBinding,
   prepareKcc20FeeMarketGenesis,
+  resolveKcc20FeeMarketWrapperProfile,
   prepareKcc20FeeMarketWrappedHolder,
   templateParts,
   verifyKcc20FeeMarketArtifacts,
@@ -135,4 +136,15 @@ test("market setup rejects unknown wrapper profiles", () => {
     tokenId: "01".repeat(32), feeTicketId: "00".repeat(32), priceScale: 1n,
     policy, wrapperProfile: "unknown", artifacts,
   }), /unsupported fee-market wrapper profile/);
+});
+
+test("existing fee roles resolve only the exact market-bound wrapper profile", () => {
+  const base={tokenId:"01".repeat(32),marketId:"02".repeat(32),feeTicketId:"00".repeat(32),priceScale:1n,policy,artifacts};
+  for(const wrapperProfile of ["native","argent"]){
+    const bound=prepareKcc20FeeMarketWrappedHolder({...base,wrapperProfile,recipientOwner:"03".repeat(32),recipientOwnerScheme:0,recipientPayoutScriptHash:"04".repeat(32),tokenAmount:1n});
+    const input={...base,wrapperScriptHash:bound.wrapper.scriptHash};
+    assert.equal(resolveKcc20FeeMarketWrapperProfile(input),wrapperProfile);
+    assert.throws(()=>resolveKcc20FeeMarketWrapperProfile({...input,marketId:"05".repeat(32)}),/bound wrapper/);
+    assert.throws(()=>resolveKcc20FeeMarketWrapperProfile({...input,wrapperScriptHash:"ff".repeat(32)}),/bound wrapper/);
+  }
 });
