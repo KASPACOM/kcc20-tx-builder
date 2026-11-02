@@ -1114,6 +1114,32 @@ test("fee-market Schnorr public-key-hash account can claim and rotate", async ()
     f.accountEntry.amount);
 });
 
+test("fee-market hash authority rotates back to the same underlying key", async () => {
+  const f = claimFixture("protocol", 1, 1);
+  f.request.request.builderKey = "kcc20fee.rotate-account";
+  f.request.request.params = { account: f.account,
+    marketId, contractCanonicalTokenId: tokenId,
+    policyId: "03".repeat(32), accountId: "04".repeat(32),
+    newOwnerScheme: 0, newOwner: owner };
+  const rotated = await f.engine.build(f.request);
+  assert.equal(rotated.metadata.newOwnerScheme, 0);
+  assert.equal(BigInt(JSON.parse(rotated.psktTransactionJson).outputs[0].value), f.accountEntry.amount);
+  assert.equal(rotated.scripts[0].signatureScript.args.find(arg => arg.type === "signature").prefixHex, owner);
+});
+
+test("fee-market rotation rejects unchanged key and hash authorities", async () => {
+  for (const scheme of [0, 1]) {
+    const f = claimFixture("protocol", 1, scheme);
+    f.request.request.builderKey = "kcc20fee.rotate-account";
+    f.request.request.params = { account: f.account,
+      marketId, contractCanonicalTokenId: tokenId,
+      policyId: "03".repeat(32), accountId: "04".repeat(32),
+      newOwnerScheme: scheme, newOwner: scheme ? hex(blake3(Buffer.from(owner, "hex"))) : owner,
+      newOwnerPublicKey: owner };
+    await assert.rejects(f.engine.build(f.request), /must change authority/);
+  }
+});
+
 test("fee-market creator claim preserves protocol share", async () => {
   const f = claimFixture("creator");
   const built = await f.engine.build(f.request);

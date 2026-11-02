@@ -82,7 +82,7 @@ import { buildKcc20InitialFeeAccount, planKcc20FeeAccountBinding } from "./escro
 import { prepareKcc20FeeMarketGenesis, prepareKcc20FeeMarketBinding, prepareKcc20FeeMarketWrappedHolder, prepareKcc20FeeMarketAsk, prepareKcc20FeeMarketBid } from "./escrow-market-setup.js";
 import { buildKcc20FeeMarketRoleScript } from "./escrow-market-artifacts.js";
 import { calculateKcc20EscrowFees } from "./escrow-fee.js";
-import { kcc20CreatorFeeConsent } from "./escrow-policy.js";
+import { kcc20CreatorFeeConsent, decodeKcc20EscrowPolicy } from "./escrow-policy.js";
 import { encodeKcc20FeeVector, kcc20FeeGroupCommitment } from "./escrow-group.js";
 import { buildKcc20FeeEscrowScript } from "./escrow-receipt.js";
 import { verifyKcc20FeeReceiptForClaim, verifyKcc20FeeAccountForClaim } from "./escrow-receipt.js";
@@ -170,6 +170,12 @@ export function createKcc20PsktBuilderEngine(
       throw new Error(
         "No source provider or RPC client was supplied to the KCC20 builder",
       );
+    }
+    submitTransaction(args: unknown) {
+      if (!options.allowBackendOnly || !this.inner?.submitTransaction) {
+        throw new Error("Backend transaction submission transport is unavailable");
+      }
+      return this.inner.submitTransaction(args);
     }
   }
   // Bundlers can freeze module namespace exports. A Proxy cannot replace a
@@ -5809,7 +5815,10 @@ export function createKcc20PsktBuilderEngine(
         (newScheme === 4 && (guardTemplate === zero || guardPrefix === 0n || guardSuffix === 0n))) {
       throw new Error("new fee account authority guard is invalid");
     }
-    if (newOwner === currentOwner && newScheme === 0) {
+    if (newOwner === accountOwner && newScheme === accountOwnerScheme &&
+        guardTemplate === String(indexedAccount.state.guard_template).toLowerCase() &&
+        guardPrefix === BigInt(indexedAccount.state.guard_prefix) &&
+        guardSuffix === BigInt(indexedAccount.state.guard_suffix)) {
       throw new Error("fee account rotation must change authority");
     }
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
@@ -10941,7 +10950,222 @@ export function createKcc20PsktBuilderEngine(
     }
   }
 
+  async function buildFeeMarketCrossMatchPskt(input) {
+    const request = input.request || {}, params = request.params || {};
+    if (params.activeFeeTicketUtxo) throw new Error("fee-market crosses cannot use a FeeTicket");
+    const ask = params.activeAskOrderUtxo, bid = params.activeBidOrderUtxo;
+    if (String(ask?.state?.mode) !== "2" || String(bid?.state?.mode) !== "3") {
+      throw new Error("fee-market cross requires an ask and a bid");
+    }
+    const tokenId = requireHex32(params.canonicalTokenId, "canonical token ID");
+    const marketId = requireHex32(params.wrappedMarketId, "fee-market ID");
+    const feeTicketId = requireHex32(ask.state.feeTicketId, "FeeTicket root");
+    const priceScale = parsePositiveU64(ask.state.priceScale, "price scale");
+    const policy = decodeKcc20EscrowPolicy(hexToBytes(ask.state.feePolicy));
+    const artifacts = await readFeeMarketArtifacts();
+    const genesis = prepareKcc20FeeMarketGenesis({ tokenId, feeTicketId,
+      priceScale, policy, wrapperProfile: "native", artifacts });
+    const policyId = genesis.policyId;
+    for (const order of [ask, bid]) {
+      for (const field of ["canonicalTokenId", "feeTicketId", "feePolicy", "priceScale", "wrapper_spk_hash"]) {
+        if (String(order.state[field]).toLowerCase() !== String(ask.state[field]).toLowerCase()) {
+          throw new Error("crossed fee orders differ in " + field);
+        }
+      }
+      if (String(order.state.canonicalTokenId).toLowerCase() !== tokenId) {
+        throw new Error("crossed fee order token differs from request");
+      }
+    }
+    if (params.feeTicketId && String(params.feeTicketId).toLowerCase() !== feeTicketId) {
+      throw new Error("requested FeeTicket root differs from crossed orders");
+    }
+    const kw = kaspaWasm, network = request.network || env.KASPA_NETWORK || "testnet-10";
+    const walletAddress = requireKaspaAddress(request.owner?.walletAddress);
+    const matcher = requireHex32(request.owner?.kcc20Owner, "matcher owner");
+    assertFeeAccountSchnorrWalletOwner(walletAddress, matcher);
+    const privateKeyHex = String(env.KCC20_WRAPPER_OPERATOR_PRIVATE_KEY || "").trim().replace(/^0x/i, "");
+    if (!/^[a-f0-9]{64}$/i.test(privateKeyHex)) throw new Error("matcher private key is missing or invalid");
+    const privateKey = new kw.PrivateKey(privateKeyHex);
+    if (privateKey.toAddress(network).toString() !== walletAddress) {
+      throw new Error("matcher private key does not match configured wallet");
+    }
+    const payout = (order, explicitAddress) => {
+      const owner = requireHex32(order.state.owner, "order owner");
+      const spk = Number(order.state.owner_scheme) === 0
+        ? p2pkScriptPubKey(kw, owner) : kw.payToAddressScript(requireKaspaAddress(explicitAddress));
+      const bytes = hexToBytes(String(spk.script)), serialized = new Uint8Array(11 + bytes.length);
+      serialized[0] = 0xe3;
+      new DataView(serialized.buffer).setUint16(1, Number(spk.version), true);
+      new DataView(serialized.buffer).setBigUint64(3, BigInt(bytes.length), true);
+      serialized.set(bytes, 11);
+      if (bytesToHex(blake3(serialized)) !== String(order.state.payout_script_hash).toLowerCase()) {
+        throw new Error("crossed order payout differs from authenticated state");
+      }
+      return spk;
+    };
+    const sellerPayout = payout(ask, params.sellerPayoutAddress);
+    const buyerPayout = payout(bid, params.buyerPayoutAddress);
+    if (ask.state.owner === bid.state.owner && Number(ask.state.owner_scheme) === Number(bid.state.owner_scheme)) {
+      throw new Error("crossed settlement cannot match orders from the same owner");
+    }
+    const askAmount = parsePositiveU64(ask.state.amount, "ask amount");
+    const bidAmount = parsePositiveU64(bid.state.amount, "bid amount");
+    const askPrice = parsePositiveU64(ask.state.unitPrice, "ask price");
+    const bidPrice = parsePositiveU64(bid.state.unitPrice, "bid price");
+    if (bidPrice < askPrice) throw new Error("bid unit price is below ask clearing price");
+    const fill = selectKcc20V3CrossFillAmount({ askAmount, bidAmount,
+      askUnitPriceSompi: askPrice, bidUnitPriceSompi: bidPrice, priceScale });
+    const gross = exactGrossSompi(fill, askPrice, priceScale, "fee cross");
+    const bidGross = exactGrossSompi(fill, bidPrice, priceScale, "fee cross bid");
+    const fees = calculateKcc20EscrowFees({ grossSompi: gross, creatorFeeBps: policy.creatorFeeBps, protocolWaived: false });
+    const askRemaining = askAmount - fill, bidRemaining = bidAmount - fill;
+    const buyerPlan = prepareKcc20FeeMarketWrappedHolder({ tokenId, marketId,
+      feeTicketId, priceScale, policy, wrapperProfile: "native", artifacts,
+      recipientOwner: bid.state.owner, recipientOwnerScheme: Number(bid.state.owner_scheme),
+      recipientPayoutScriptHash: bid.state.payout_script_hash, tokenAmount: fill });
+    if (buyerPlan.holderState.feePolicy !== String(ask.state.feePolicy).toLowerCase() ||
+        buyerPlan.wrapper.scriptHash !== String(ask.state.wrapper_spk_hash).toLowerCase()) {
+      throw new Error("crossed fee market does not match pinned artifacts");
+    }
+    // Indexer states include derived metadata. Render only the pinned runtime
+    // fields, then authenticate the resulting script against the live UTXO.
+    const runtimeState = (role, state) => Object.fromEntries(
+      Object.values(artifacts[role].contracts)[0].runtime_state.fields
+        .map(field => [field.name, state[field.name]]));
+    const askState = runtimeState("ask", ask.state);
+    const bidState = runtimeState("bid", bid.state);
+    const askScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.ask, role: "ask", state: askState });
+    const bidScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid, role: "bid", state: bidState });
+    for (const [order, script] of [[ask, askScript], [bid, bidScript]]) {
+      assertScriptAddress(kw, script.redeemScript, requireKaspaAddress(order.address), network, "crossed fee order");
+    }
+    const priorityFee = parseU64(env.KCC20_MATCHER_PRIORITY_FEE_SOMPI || DEFAULT_MATCHER_PRIORITY_FEE.toString(), "matcher priority fee");
+    const maxFee = parsePositiveU64(params.maxFeeSompi, "matcher total debit maxFeeSompi");
+    const rpc = new kw.RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
+      encoding: kw.Encoding.Borsh, networkId: network });
+    await rpc.connect();
+    try {
+      const [orders, funding] = await Promise.all([
+        getUtxosByAddresses(rpc, [ask.address, bid.address]),
+        getUtxosByAddresses(rpc, [walletAddress]),
+      ]);
+      const entries = [ask, bid].map((order, index) => {
+        const txid = requireHex32(order.txidHex, "order txid"), vout = parseVout(order.vout, "order vout");
+        const requested = index === 0 ? params.askOrderId : params.bidOrderId;
+        if (requested && requested !== `${txid}:${vout}`) throw new Error("requested crossed order ID mismatch");
+        const entry = findUtxoEntry(orders.entries, txid, vout);
+        if (!entry) throw new Error("crossed fee order is spent or unavailable");
+        requireMatchingCovenantId(entry, marketId, "crossed fee order");
+        const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ?? entry.utxoEntry?.scriptPublicKey;
+        if (Number(spk?.version) !== 0 || String(spk?.script).toLowerCase() !== [askScript, bidScript][index].scriptPublicKey.scriptHex ||
+            utxoAmountSompi(entry).toString() !== String(order.amountSompiExact)) {
+          throw new Error("crossed fee order differs from live node UTXO");
+        }
+        return entry;
+      });
+      const [askEntry, bidEntry] = entries;
+      const bidDeposit = utxoAmountSompi(bidEntry) - exactGrossSompi(bidAmount, bidPrice, priceScale, "bid principal");
+      if (bidDeposit < 50_000_000n) throw new Error("crossed bid deposit is below 0.5 KAS");
+      const groupHash = kcc20FeeGroupCommitment({ tokenId, marketId, policyId, taker: matcher,
+        marketInputs: entries.map(e => e.outpoint), feeSlots: [fees] });
+      const receipt = buildKcc20FeeEscrowScript(artifacts.receipt, {
+        role: "0", token: tokenId, market: marketId, policy: policyId,
+        protocol_account: policy.protocolAccountId, creator_account: policy.creatorAccountId,
+        protocol_amount: fees.protocolFeeSompi.toString(), creator_amount: fees.creatorFeeSompi.toString(),
+        owner: ZERO_HASH, owner_scheme: 0, guard_template: ZERO_HASH, guard_prefix: "0", guard_suffix: "0",
+        action_hash: groupHash, self_template: policy.receiptTemplate.hash,
+        self_prefix: String(policy.receiptTemplate.prefixLength), self_suffix: String(policy.receiptTemplate.suffixLength),
+      });
+      const covenantOutput = (value, script, authorizer) => new kw.TransactionOutput(value,
+        kw.payToScriptHashScript(script.redeemScript), new kw.CovenantBinding(authorizer, new kw.Hash(marketId)));
+      const outputs = [covenantOutput(bidRemaining === 0n ? bidDeposit : 50_000_000n, buyerPlan.holder, 0)];
+      let askIndex = -1, bidIndex = -1;
+      if (askRemaining > 0n) {
+        askIndex = outputs.length;
+        outputs.push(covenantOutput(utxoAmountSompi(askEntry), buildKcc20FeeMarketRoleScript({
+          artifact: artifacts.ask, role: "ask", state: { ...askState, amount: askRemaining.toString() } }), 0));
+      }
+      if (bidRemaining > 0n) {
+        bidIndex = outputs.length;
+        outputs.push(covenantOutput(exactGrossSompi(bidRemaining, bidPrice, priceScale, "bid remainder") + bidDeposit,
+          buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid, role: "bid", state: { ...bidState, amount: bidRemaining.toString() } }), 1));
+      }
+      const sellerIndex = outputs.length;
+      outputs.push(new kw.TransactionOutput(gross + (askRemaining === 0n ? utxoAmountSompi(askEntry) : 0n), sellerPayout));
+      const receiptIndex = outputs.length;
+      outputs.push(covenantOutput(fees.totalFeeSompi, receipt, 0));
+      const surplus = bidGross - gross, surplusIndex = surplus > 0n ? outputs.length : -1;
+      if (surplus > 0n) outputs.push(new kw.TransactionOutput(surplus, buyerPayout));
+      const outputTotal = outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const covenantTotal = entries.reduce((sum, entry) => sum + utxoAmountSompi(entry), 0n);
+      const fundingEntry = selectFundingEntry(funding.entries, outputTotal + priorityFee - covenantTotal + 10_000n,
+        entries.map(e => e.outpoint), params.fundingOutpoint);
+      const changeIndex = outputs.length;
+      outputs.push(new kw.TransactionOutput(covenantTotal + utxoAmountSompi(fundingEntry) - outputTotal - priorityFee, kw.payToAddressScript(walletAddress)));
+      const transaction = new kw.Transaction({ version: 1, lockTime: 0n,
+        inputs: [...entries, fundingEntry].map((entry, index) => ({ previousOutpoint: entry.outpoint,
+          utxo: entry, sequence: 0n, sigOpCount: 0, computeBudget: [1500, 100, 30][index] })),
+        outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "" });
+      setVersionOneInputMassFields(transaction, 1500);
+      transaction.inputs[1].computeBudget = 100;
+      transaction.inputs[2].computeBudget = 30;
+      assertUniqueTransactionInputOutpoints(transaction, "fee-market cross");
+      const prefix = covenantScriptBuilder(kw);
+      prefix.addData(hexToBytes(matcher));
+      for (const value of [2n, fill, 0, askIndex, bidIndex, sellerIndex, receiptIndex, surplusIndex]) prefix.addI64(BigInt(value));
+      for (const artifact of [artifacts.receipt, artifacts.holder, artifacts.bid]) {
+        const parts = templateParts(normalizeSilverScriptArtifact(artifact));
+        prefix.addData(parts.prefix); prefix.addData(parts.suffix);
+      }
+      prefix.addData(dispatchTagFor(artifacts.ask, "crossWithBid"));
+      transaction.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(prefix.drain(), askScript.redeemScript);
+      const delegate = covenantScriptBuilder(kw);
+      delegate.addI64(0n); delegate.addI64(BigInt(bidIndex)); delegate.addI64(bidRemaining > 0n ? 1n : 0n);
+      delegate.addData(dispatchTagFor(artifacts.bid, "delegateCrossAsk"));
+      transaction.inputs[1].signatureScript = encodeCovenantP2shSignatureScript(delegate.drain(), bidScript.redeemScript);
+      const adjusted = transactionWithPredictedSignedFeeChange(kw, transaction, changeIndex, network, "fee-market cross", candidate => {
+        const predicted = kw.Transaction.deserializeFromSafeJSON(candidate.serializeToSafeJSON());
+        predicted.inputs[2].signatureScript = encodeP2pkSignatureScript(bytesToHex(dummySignatureBytes()));
+        return predicted;
+      });
+      const signed = adjusted.transaction;
+      signed.inputs[2].signatureScript = encodeP2pkSignatureScript(kw.createInputSignature(signed, 2, privateKey, kw.SighashType.All));
+      const mass = calculateToccataV1NonContextualMass(signed, "fee-market cross");
+      const storage = calculateToccataStorageMass(signed, "fee-market cross");
+      if (mass.computeMass > 450_000n || mass.transientMass > 900_000n || storage > 450_000n) {
+        throw kcc20PsktBuilderError("fee-market cross exceeds signed mass target", "TRANSACTION_MASS_EXCEEDED",
+          { computeMass: mass.computeMass, transientMass: mass.transientMass, storageMass: storage });
+      }
+      const networkFee = covenantTotal + utxoAmountSompi(fundingEntry) - signed.outputs.reduce((sum, output) => sum + BigInt(output.value), 0n);
+      const matcherDebit = fees.totalFeeSompi + networkFee + (bidRemaining > 0n ? 50_000_000n : 0n);
+      if (matcherDebit > maxFee) {
+        throw kcc20PsktBuilderError("matcher settlement fee exceeds maxFeeSompi", "MATCHER_FEE_EXCEEDS_MAX",
+          { protocolFeeSompi: fees.protocolFeeSompi, creatorFeeSompi: fees.creatorFeeSompi, networkFeeSompi: networkFee, matcherDebitSompi: matcherDebit, maxFeeSompi: maxFee });
+      }
+      const response = await rpc.submitTransaction({ transaction: signed, allowOrphan: false });
+      const txid = requireHex32(response?.transactionId, "matcher submitted transaction ID");
+      return { schema: OUTPUT_SCHEMA, psktTransactionJson: signed.serializeToSafeJSON(),
+        submitTransactionSupported: true, submittedTxidHex: txid,
+        submissionWalletRequestId: String(params.matcherJobId || ""),
+        metadata: { builderKey: "kcc20orderbook.matcher-settle-crossed", contract: "KCC20OrderbookFeeAskV1",
+          network, walletAddress, canonicalTokenId: tokenId, wrapperId: marketId, covenantId: marketId,
+          policyId, tokenAmount: fill.toString(), grossSompi: gross.toString(),
+          unitPriceSompi: askPrice.toString(), remainingAskAmount: askRemaining.toString(), remainingBidAmount: bidRemaining.toString(),
+          protocolFeeSompi: fees.protocolFeeSompi.toString(), creatorFeeSompi: fees.creatorFeeSompi.toString(),
+          feePayer: "matcher", matcherPaysSompi: fees.totalFeeSompi.toString(), matcherDebitSompi: matcherDebit.toString(),
+          networkFeeSompi: networkFee.toString(), sellerReceivesSompi: gross.toString(), surplusRefundSompi: surplus.toString(),
+          buyerTokenOutputIndex: 0, askOutputIndex: askIndex, bidOutputIndex: bidIndex,
+          sellerOutputIndex: sellerIndex, feeOutputIndex: receiptIndex, refundOutputIndex: surplusIndex,
+          feeTicketApplied: false, wrappedArtifactVersion: "fee-v1",
+          signedMass: { compute: mass.computeMass.toString(), transient: mass.transientMass.toString(), storage: storage.toString() } },
+      };
+    } finally { await rpc.disconnect(); }
+  }
+
   async function buildWrappedCrossMatchPskt(input) {
+    if (input.request?.params?.activeAskOrderUtxo?.state?.feePolicy || input.request?.params?.activeBidOrderUtxo?.state?.feePolicy) {
+      return buildFeeMarketCrossMatchPskt(input);
+    }
     const request = input.request || {};
     const params = request.params || {};
     const askUtxo = params.activeAskOrderUtxo;
