@@ -1,9 +1,16 @@
 # Changelog
 
-## 0.8.1-kcom.2 (unpublished)
+## 0.8.1-kcom.3 (unpublished)
 
-- Combine the fee-market builder through `0.8.0-fee.7` with the KCOM vesting and claim transaction builders.
+- Combine the fee-market builder through `0.8.0-fee.8` with the KCOM vesting and claim transaction builders.
+- Include the wide snapshot supply fix from `0.8.0-fee.8`.
 - Keep package publication and runtime enablement pending independent review.
+
+## 0.8.0-fee.8
+
+- Preserve fixed snapshot supplies up to the existing unsigned two-limb limit in the final deployment payload.
+- Select the V2 holder extension commitment for wide supplies while keeping every controller reserve signed-64-bit.
+- Cover Nacho's exact five-controller allocation totals through payload and funded snapshot-start transaction tests.
 
 ## 0.8.0-fee.7
 

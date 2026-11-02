@@ -179,6 +179,53 @@ if (
 ) {
   throw new Error("snapshot start did not produce its KCC20 metadata opening");
 }
+const nachoAllocations = [
+  "6155259898638223950",
+  "5951866420246839519",
+  "5757775773333178726",
+  "5919898242175782749",
+  "4915199665605975056",
+];
+const nachoTotalSupply = "28700000000000000000";
+const nachoExtension = {
+  ...snapshotExtension,
+  kind: 2,
+  ticker: fixedText32("NACHO"),
+  name: fixedText32("NACHO"),
+  maxSupply: BigInt(nachoTotalSupply),
+};
+const nachoPayload = JSON.parse(
+  new TextDecoder().decode(
+    buildSnapshotKcc20DeploymentPayload({
+      creator: snapshotCreator,
+      ticker: "NACHO",
+      name: "NACHO",
+      displayScale: "100000000",
+      totalSupply: nachoTotalSupply,
+      holderExtensionCommitment: bytesToHex(
+        holderExtensionCommitment(nachoExtension),
+      ),
+      migrationId: receiptHash("2"),
+      manifestCommitment: receiptHash("3"),
+      reserves: nachoAllocations.map((amount, index) => ({
+        amount,
+        owner: String(index + 4).repeat(64),
+        ownerScheme: 4,
+      })),
+    }),
+  ),
+);
+const nachoArgs = Object.fromEntries(
+  nachoPayload.tn10.args.map((argument) => [argument.name, argument.value]),
+);
+if (
+  nachoArgs.maxSupply !== nachoTotalSupply ||
+  nachoArgs.premintSupply !== nachoTotalSupply ||
+  JSON.stringify(nachoArgs.snapshotReserves.map((reserve) => reserve.amount)) !==
+    JSON.stringify(nachoAllocations)
+) {
+  throw new Error("wide Nacho snapshot supply was not preserved exactly");
+}
 try {
   buildSnapshotKcc20DeploymentPayload({
     creator: snapshotCreator,
