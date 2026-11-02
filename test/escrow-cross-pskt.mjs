@@ -87,3 +87,12 @@ test('fee cross rejects wrong live lineage, script and committed payout', async(
   const payout=fixture();payout.ask.state.payout_script_hash='ff'.repeat(32);
   await assert.rejects(()=>payout.engine.build(payout.request),/payout differs/);assert.equal(payout.submitted.length,0);
 });
+
+test('fee cross accepts indexer annotations without treating them as runtime fields', async()=>{
+  const f=fixture({askAmount:3n,bidAmount:2n});
+  for(const order of [f.ask,f.bid]) Object.assign(order.state,{feePolicyVersion:1,creatorFeeBps:100,ownerScheme:0});
+  const result=await f.engine.build(f.request);
+  assert.equal(f.submitted.length,1);
+  assert.equal(result.metadata.tokenAmount,'2');
+  assert.equal(result.metadata.protocolFeeSompi,'50000000');
+});

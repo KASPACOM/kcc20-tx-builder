@@ -11027,8 +11027,15 @@ export function createKcc20PsktBuilderEngine(
         buyerPlan.wrapper.scriptHash !== String(ask.state.wrapper_spk_hash).toLowerCase()) {
       throw new Error("crossed fee market does not match pinned artifacts");
     }
-    const askScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.ask, role: "ask", state: ask.state });
-    const bidScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid, role: "bid", state: bid.state });
+    // Indexer states include derived metadata. Render only the pinned runtime
+    // fields, then authenticate the resulting script against the live UTXO.
+    const runtimeState = (role, state) => Object.fromEntries(
+      Object.values(artifacts[role].contracts)[0].runtime_state.fields
+        .map(field => [field.name, state[field.name]]));
+    const askState = runtimeState("ask", ask.state);
+    const bidState = runtimeState("bid", bid.state);
+    const askScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.ask, role: "ask", state: askState });
+    const bidScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid, role: "bid", state: bidState });
     for (const [order, script] of [[ask, askScript], [bid, bidScript]]) {
       assertScriptAddress(kw, script.redeemScript, requireKaspaAddress(order.address), network, "crossed fee order");
     }
@@ -11076,12 +11083,12 @@ export function createKcc20PsktBuilderEngine(
       if (askRemaining > 0n) {
         askIndex = outputs.length;
         outputs.push(covenantOutput(utxoAmountSompi(askEntry), buildKcc20FeeMarketRoleScript({
-          artifact: artifacts.ask, role: "ask", state: { ...ask.state, amount: askRemaining.toString() } }), 0));
+          artifact: artifacts.ask, role: "ask", state: { ...askState, amount: askRemaining.toString() } }), 0));
       }
       if (bidRemaining > 0n) {
         bidIndex = outputs.length;
         outputs.push(covenantOutput(exactGrossSompi(bidRemaining, bidPrice, priceScale, "bid remainder") + bidDeposit,
-          buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid, role: "bid", state: { ...bid.state, amount: bidRemaining.toString() } }), 1));
+          buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid, role: "bid", state: { ...bidState, amount: bidRemaining.toString() } }), 1));
       }
       const sellerIndex = outputs.length;
       outputs.push(new kw.TransactionOutput(gross + (askRemaining === 0n ? utxoAmountSompi(askEntry) : 0n), sellerPayout));
