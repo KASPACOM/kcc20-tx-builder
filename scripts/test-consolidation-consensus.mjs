@@ -9,6 +9,7 @@ const evidence =
   (await mkdtemp(join(tmpdir(), "kcc20-consolidation-")));
 for (const [program, args] of [
   [process.execPath, ["--test", "test/consolidation-transaction.mjs"]],
+  [process.execPath, ["--test", "test/escrow-recipient-pskt.mjs"]],
   [
     "cargo",
     [
@@ -20,11 +21,12 @@ for (const [program, args] of [
       join(evidence, "transactions.json"),
     ],
   ],
+  ["cargo", ["run", "--locked", "--manifest-path", "test/consolidation-consensus/Cargo.toml", "--", join(evidence, "recipient-transactions.json")]],
 ]) {
   const result = spawnSync(program, args, {
     cwd: root,
     stdio: "inherit",
-    env: { ...process.env, CONSOLIDATION_EVIDENCE: evidence },
+    env: { ...process.env, CONSOLIDATION_EVIDENCE: evidence, RECIPIENT_EVIDENCE: evidence },
   });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);

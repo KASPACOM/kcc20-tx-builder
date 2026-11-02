@@ -91,7 +91,10 @@ fn main() {
                     spk(&u["scriptPublicKey"]),
                     num(&u["blockDaaScore"]),
                     u["isCoinbase"].as_bool().unwrap(),
-                    if idx < count { Some(cid) } else { None },
+                    if let Some(ids) = case["covenantIds"].as_array() {
+                        assert_eq!(ids.len(), tx.inputs.len());
+                        if ids[idx].is_null() { None } else { Some(hash(&ids[idx])) }
+                    } else if idx < count { Some(cid) } else { None },
                 )
             })
             .collect();

@@ -36,7 +36,7 @@ function modPow(base: bigint, exponent: bigint): bigint {
 }
 
 /** BIP340 keys encode an x-coordinate that must lift to a secp256k1 point. */
-function requireSchnorrXOnlyPublicKey(value: string): string {
+export function requireSchnorrXOnlyPublicKey(value: string): string {
   const key = hex32(value, "owner Schnorr public key");
   const x = BigInt(`0x${key}`);
   if (x >= SECP256K1_FIELD) throw new Error("owner Schnorr public key is not a curve point");
