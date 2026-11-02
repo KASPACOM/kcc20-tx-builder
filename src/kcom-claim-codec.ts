@@ -12,18 +12,18 @@ import {
 import { bytesToHex, hexToBytes } from "./sale-common.js";
 
 export const KCOM_CLAIM_GRAPH_ABI_SHA256 =
-  "8b269204214a957ecff34faa766c0ca4ee22f2a095e147b55dff80024d0af667";
+  "48d1f29714eb201ca6f31f3d2c80599e5bda10945c46b38155ab15f7b54bdaea";
 export const KCOM_CLAIM_OPEN_ABI_SHA256 =
-  "9ef8f0d04c93bac76025c852477ae985058f3059bf5df8af2f1c95812b427c06";
+  "626a0fd2f67d7bc3f858b895d702dbfc57e3073b52734a9c132b13adb76da577";
 export const KCOM_CLAIM_GRAPH_ARTIFACT_ID =
-  "531a05b1c137c2141c71618366fbd8d52a30fe5834667bcf07495914fea875ae";
+  "988b773c14ff9e48ca1f92ed0b5d2bd2ce18976785c7442af44c2b8723607433";
 export const KCOM_CLAIM_OPEN_ARTIFACT_ID =
-  "179f28ce8e24aac5e8babc83417fcf4300f3c85b8a61009d892b81f0aaee8337";
+  "2201127f5998a97f2a21f167af0d536b9a292f326f11d5fb0a501ce9bcdf4016";
 
 const MAX_I64 = 9223372036854775807n;
 const LINKED_GENESIS_HASHES = {
-  KCOMFactory: "02d6cdc1ef7dc2c239f5fd33b210dc2f87f967011a1de0083294094c9fcced66",
-  KCOMVault: "7df62fb2ed44064e0d8851d3a47282e61169bedefbfd67ddfe994084b52e3952",
+  KCOMFactory: "fc6e57c4cb344a0581bc51e7ed7a6a3dad00421c8ede0611d258e8a493dd2ae9",
+  KCOMVault: "a94e2e10883df38eed15f727136e51307d5c42ead7e7e80f8275812ab1d12964",
 };
 function digest(value) {
   return bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(value))));

@@ -56,7 +56,7 @@ export async function buildKcomClaimSettle({ options, kw, req, p, codec, graphId
       summaryAll < claimWeight || summaryAll > all ||
       summaryBoosted < 0n || summaryBoosted > summaryAll ||
       summaryLong < 0n || summaryLong > summaryBoosted ||
-      closeTime !== BigInt(state.opens_ms) + 2592000000n ||
+      closeTime !== BigInt(state.opens_ms) + 3600000n ||
       closeTime < 500000000000n || closeTime > 9223372034262775805n)
     throw new Error("Collector and selected commitment are not ready for settlement");
   for (const key of ["campaign", "terms_hash", "token_id", "budget_raw", "manifest_total",

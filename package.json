@@ -1,6 +1,6 @@
 {
   "name": "@kaspacom/kcc20-tx-builder",
-  "version": "0.8.1-kcom.3",
+  "version": "0.8.1-kcom-fast-tn10.0",
   "description": "Runtime-independent KCC20 covenant transaction and PSKT construction primitives.",
   "license": "Apache-2.0",
   "author": "KaspaCom",
@@ -105,5 +105,6 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.8.0"
-  }
+  },
+  "private": true
 }

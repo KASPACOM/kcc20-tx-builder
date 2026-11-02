@@ -10,7 +10,7 @@ const FEE = 60000000n;
 const VAULT_CELL = 100000000n;
 const MAX_I64 = 9223372036854775807n;
 const TOKEN_HASH = "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29";
-const FOOTER = "ea21b282cc3207940d86d8e790626db8998ce56b996c86df5d31718ebd037c5b";
+const FOOTER = "52fdb903011d5f87e67470b6fbb745bb98998834ab5fb4ad1895b0619bfffe16";
 const MAGIC = "6b636f6d2e636c61696d2e7465726d732f763200";
 const encoder = new TextEncoder();
 const digest = (name, ...parts) => blake3(Buffer.concat([
@@ -51,7 +51,7 @@ function checkedTerms(p, codec, network) {
       (shardCount & (shardCount - 1n)) !== 0n || shardValue <= 0n ||
       shardValue > 9223372036754775806n / shardCount ||
       opens < 500000000000n || opens > 9223372034262775807n ||
-      closes !== opens + 2592000000n || tge <= closes || tge > 9000000000000000n)
+      closes !== opens + 3600000n || tge <= closes || tge > 9000000000000000n)
     throw new Error("Campaign budget, shards or frozen dates are invalid");
   const campaign = requireHex32(s.campaign, "campaign id");
   const tokenId = requireHex32(s.token_id, "campaign token id");

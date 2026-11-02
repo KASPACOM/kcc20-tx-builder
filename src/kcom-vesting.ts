@@ -21,7 +21,7 @@ import {
   setVersionOneInputMassFields,
 } from "./sale-common.js";
 export const KCOM_VESTING_ABI_SHA256 =
-  "c041dc0012f22390f1f66fd09c6cc02eadb8865f496684c96e22ed690004d9f0";
+  "b6b1e5dca155c98336dffb31cc0264364d089966f8d7b6b3ba6ae7c9ff4a4903";
 export const KCOM_VESTING_KEYS = [
   "kcom-vesting.deploy",
   "kcom-vesting.release",
@@ -95,7 +95,7 @@ export function kcomVestingCodec(raw) {
     let completed = 0n,
       vested = 0n;
     if (now >= tge) {
-      const elapsed = (now - tge) / 2592000000n;
+      const elapsed = (now - tge) / 60000n;
       completed =
         elapsed < first
           ? 0n
@@ -113,7 +113,7 @@ export function kcomVestingCodec(raw) {
         now < tge && upfront > BigInt(s.released)
           ? String(tge)
           : completed < periods
-          ? String(tge + (first + completed) * 2592000000n)
+          ? String(tge + (first + completed) * 60000n)
           : null,
     };
   }
