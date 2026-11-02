@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0-fee.9
+
+- Allow the funded two-ask FeeTicket and creator-fee shape through its operation-specific compute check. Keep transient, storage and consolidation limits unchanged.
+- Add the signed creator-fee regression missing from the original ticket-group test.
+
 ## 0.8.0-fee.8
 
 - Preserve fixed snapshot supplies up to the existing unsigned two-limb limit in the final deployment payload.
