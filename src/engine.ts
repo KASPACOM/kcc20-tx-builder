@@ -5815,7 +5815,10 @@ export function createKcc20PsktBuilderEngine(
         (newScheme === 4 && (guardTemplate === zero || guardPrefix === 0n || guardSuffix === 0n))) {
       throw new Error("new fee account authority guard is invalid");
     }
-    if (newOwner === currentOwner && newScheme === 0) {
+    if (newOwner === accountOwner && newScheme === accountOwnerScheme &&
+        guardTemplate === String(indexedAccount.state.guard_template).toLowerCase() &&
+        guardPrefix === BigInt(indexedAccount.state.guard_prefix) &&
+        guardSuffix === BigInt(indexedAccount.state.guard_suffix)) {
       throw new Error("fee account rotation must change authority");
     }
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
