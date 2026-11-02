@@ -180,3 +180,23 @@ export function prepareKcc20FeeMarketBid(input: Kcc20FeeMarketGenesisInput & {
     role: "bid", state: bidState });
   return { binding, bidState, bid };
 }
+
+/** Resolve an existing role's bound wrapper against both pinned profiles.
+ * The caller must still authenticate the complete role script against its live UTXO.
+ */
+export function resolveKcc20FeeMarketWrapperProfile(input: Omit<Kcc20FeeMarketGenesisInput, "wrapperProfile"> & {
+  marketId: string;
+  wrapperScriptHash: string;
+}): "native" | "argent" {
+  const expected = hex32(input.wrapperScriptHash, "bound wrapper script hash");
+  const marketId = hex32(input.marketId, "market ID");
+  for (const wrapperProfile of ["native", "argent"] as const) {
+    if (wrapperProfile === "argent" && input.policy.creatorFeeBps !== 0) continue;
+    const genesis = prepareKcc20FeeMarketGenesis({ ...input, wrapperProfile });
+    const role = wrapperProfile === "native" ? "wrapper" : "argentWrapper";
+    const wrapper = buildKcc20FeeMarketRoleScript({ artifact: input.artifacts[role], role,
+      state: { ...genesis.state, enabled: true, authenticatedMarketId: marketId } });
+    if (wrapper.scriptHash === expected) return wrapperProfile;
+  }
+  throw new Error("bound wrapper does not match a supported fee-market profile");
+}

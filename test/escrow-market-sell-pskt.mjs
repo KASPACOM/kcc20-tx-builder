@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { blake3 } from "@noble/hashes/blake3";
 import * as kw from "../examples/vendor/kaspa/kaspa.js";
 import {
@@ -15,7 +15,7 @@ const names = {
   receipt: "KCC20FeeEscrowV1", root: "KCC20OrderbookFeeRootV1",
   holder: "KCC20OrderbookFeeHolderV1", ask: "KCC20OrderbookFeeAskV1",
   bid: "KCC20OrderbookFeeBidV1", ticket: "KCC20FeeTicket",
-  wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV1",
+  wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV2",
 };
 const artifacts = Object.fromEntries(Object.entries(names).map(([role, name]) => [
   role, JSON.parse(readFileSync(new URL(`../artifacts/${name}.placeholder.json`, import.meta.url))),
@@ -52,11 +52,11 @@ const base = { tokenId, feeTicketId: "00".repeat(32), priceScale: 1n,
 const policyId = prepareKcc20FeeMarketGenesis(base).policyId;
 
 function fixture(count, { partialFirst = false, holderExtra = 0, useTicket = false,
-  creatorFeeBps = 0, bidPriceSompi = 100_000_000n } = {}) {
+  wrapperProfile = "native", creatorFeeBps = 0, bidPriceSompi = 100_000_000n } = {}) {
   const ticketRoot = useTicket ? "05".repeat(32) : "00".repeat(32);
   const marketPolicy = creatorFeeBps > 0
     ? { ...policy, creatorFeeBps, creatorAccountId: "07".repeat(32) } : policy;
-  const marketBase = { ...base, feeTicketId: ticketRoot, policy: marketPolicy };
+  const marketBase = { ...base, wrapperProfile, feeTicketId: ticketRoot, policy: marketPolicy };
   const marketPolicyId = prepareKcc20FeeMarketGenesis(marketBase).policyId;
   const holder = prepareKcc20FeeMarketWrappedHolder({ ...marketBase,
     recipientOwner: owner, recipientOwnerScheme: 0,
@@ -249,4 +249,19 @@ test("creator fees survive a grouped ticket waiver", async () => {
   assert(mass.computeMass <= 450_000n);
   assert(mass.transientMass <= 900_000n);
   assert(f.engine.protocol.calculateToccataStorageMass(tx, "creator ticket sweep") <= 450_000n);
+});
+
+const importedSales = [];
+for (const count of [3,10]) for (const useTicket of [false,true]) test(`Argent ${count}-bid sweep ticket=${useTicket} preserves grouped fees`, async () => {
+  const f = fixture(count, { wrapperProfile: "argent", useTicket });
+  const built = await f.engine.build(f.request), tx = signBuilt(built, f);
+  assert.equal(built.metadata.protocolFeeSompi, useTicket ? "0" : String(count * 50000000));
+  assert.equal(built.metadata.creatorFeeSompi,"0");
+  const mass = f.engine.protocol.calculateToccataV1NonContextualMass(tx,"Argent sweep");
+  assert(mass.computeMass<=450000n); assert(mass.transientMass<=900000n);
+  assert(f.engine.protocol.calculateToccataStorageMass(tx,"Argent sweep")<=450000n);
+  const ids = Array(count+1).fill(marketId); if(useTicket) ids.push("05".repeat(32)); ids.push(null);
+  importedSales.push({name:`argent-sell-${count}-${useTicket}`,profileId:"argent-fee",count:ids.length-1,
+    covenantIds:ids,signedTransaction:JSON.parse(tx.serializeToSafeJSON()),built:{metadata:{covenantId:marketId}}});
+  if(process.env.ARGENT_FEE_EVIDENCE){mkdirSync(process.env.ARGENT_FEE_EVIDENCE,{recursive:true});writeFileSync(process.env.ARGENT_FEE_EVIDENCE+"/argent-sale-transactions.json",JSON.stringify(importedSales,null,2));}
 });
