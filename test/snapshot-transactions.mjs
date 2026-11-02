@@ -283,13 +283,27 @@ console.log("snapshot signerless funded transaction tests passed");
 const { verifySnapshotDeploymentTransaction, snapshotStartPayload } = await import('../dist/snapshot-verification.js');
 const { prepareSnapshotDeployment } = await import('../dist/snapshot-deployment.js');
 const artifacts = { bootstrapArtifact, controllerArtifact, kcc20Artifact };
-for (const count of [1, 2, 8]) {
+const deploymentAllocations = [
+  ['1000'],
+  ['1000', '1000'],
+  Array.from({ length: 8 }, () => '1000'),
+  [
+    '6155259898638223950',
+    '5951866420246839519',
+    '5757775773333178726',
+    '5919898242175782749',
+    '4915199665605975056',
+  ],
+];
+for (const allocations of deploymentAllocations) {
+  const count = allocations.length;
   const definition = {
     migrationId: hex(migration), manifestCommitment: hex(manifest), context: hex(context),
-    creator: hex(bytes(0x50)), ticker: 'TEST', displayScale: '100', totalSupply: String(count * 1000),
+    creator: hex(bytes(0x50)), ticker: 'TEST', displayScale: '100',
+    totalSupply: allocations.reduce((sum, allocation) => sum + BigInt(allocation), 0n).toString(),
     claimNotBeforeDaaScore: '100', shards: Array.from({length: count}, (_, shardIndex) => ({
       shardIndex, globalIndexStart: shardIndex, holderCount: 1, depth: 1,
-      allocationTotal: '1000', initialRoot: hex(root),
+      allocationTotal: allocations[shardIndex], initialRoot: hex(root),
     })),
   };
   const deployments = new Map();
@@ -346,4 +360,4 @@ for (const count of [1, 2, 8]) {
   assert.throws(() => prepareSnapshotDeployment(kw, definition, {...artifacts,
     bootstrapArtifact: {...bootstrapArtifact, script: [0]}}), /hash mismatch/);
 }
-console.log('1, 2, and 8 shard deployment order, atomic start, mutation and signature tests passed');
+console.log('1, 2, 8, and wide 5 shard deployment order, atomic start, mutation and signature tests passed');

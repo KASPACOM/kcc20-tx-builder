@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-fee.8
+
+- Preserve fixed snapshot supplies up to the existing unsigned two-limb limit in the final deployment payload.
+- Select the V2 holder extension commitment for wide supplies while keeping every controller reserve signed-64-bit.
+- Cover Nacho's exact five-controller allocation totals through payload and funded snapshot-start transaction tests.
+
 ## 0.8.0-fee.7
 
 - Accept the indexer's verified policy summary fields when reconstructing live bid scripts for seller sweeps.
