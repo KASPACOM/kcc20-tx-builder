@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1-kcom.3 (unpublished)
+
+- Combine the fee-market builder through `0.8.0-fee.14` with the KCOM vesting and claim transaction builders.
+- Include the wide snapshot supply fix from `0.8.0-fee.8`.
+- Keep package publication and runtime enablement pending independent review.
+
 ## 0.8.0-fee.13
 
 - Accept the indexer ownerScheme alias in seller-sweep bid inputs after checking it agrees with owner_scheme; preserve strict runtime state and script checks.
