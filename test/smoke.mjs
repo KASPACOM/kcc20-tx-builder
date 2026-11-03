@@ -45,6 +45,7 @@ import {
   canonicalRegistryJson,
   hexToBytes,
   holderExtensionCommitment,
+  parseSnapshotKcc20DeploymentPayload,
   normalizeKcc20IndexedUtxos,
   kcc20MinimumSafePaidMintAmount,
   kcc20PaidMintCapacityMeetsMinimumGross,
@@ -216,12 +217,20 @@ const nachoPayload = JSON.parse(
   ),
 );
 const nachoArgs = Object.fromEntries(
-  nachoPayload.tn10.args.map((argument) => [argument.name, argument.value]),
+  nachoPayload.tn10.args.map((argument) => [argument.name, argument]),
+);
+const parsedNachoPayload = parseSnapshotKcc20DeploymentPayload(
+  new TextEncoder().encode(JSON.stringify(nachoPayload)),
 );
 if (
-  nachoArgs.maxSupply !== nachoTotalSupply ||
-  nachoArgs.premintSupply !== nachoTotalSupply ||
-  JSON.stringify(nachoArgs.snapshotReserves.map((reserve) => reserve.amount)) !==
+  nachoArgs.maxSupply.type !== "u64[2]" ||
+  JSON.stringify(nachoArgs.maxSupply.value) !==
+    JSON.stringify(["3", "1029883889435672576"]) ||
+  nachoArgs.premintSupply.type !== "u64[2]" ||
+  parsedNachoPayload.maxSupply.toString() !== nachoTotalSupply ||
+  JSON.stringify(
+    nachoArgs.snapshotReserves.value.map((reserve) => reserve.amount),
+  ) !==
     JSON.stringify(nachoAllocations)
 ) {
   throw new Error("wide Nacho snapshot supply was not preserved exactly");

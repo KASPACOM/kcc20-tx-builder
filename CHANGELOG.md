@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-fee.9
+
+- Encode wide fixed snapshot `maxSupply` and `premintSupply` claims as canonical base-2^63 `u64[2]` limbs instead of overflowing scalar `u64` values.
+- Parse and validate the final KCC20 deployment payload, including limb reconstruction, reserve conservation and the V2 holder commitment opening.
+- Build and parse Nacho's exact funded five-controller snapshot-start transaction as an integration regression.
+
 ## 0.8.0-fee.8
 
 - Preserve fixed snapshot supplies up to the existing unsigned two-limb limit in the final deployment payload.

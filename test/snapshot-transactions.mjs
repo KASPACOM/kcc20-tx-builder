@@ -20,6 +20,7 @@ import {
   buildSnapshotBootstrapScriptForState,
   buildSnapshotControllerScriptForState,
   deriveSnapshotTokenId,
+  parseSnapshotKcc20DeploymentPayload,
 } from "../dist/snapshot-signerless-transactions.js";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -339,6 +340,48 @@ for (const allocations of deploymentAllocations) {
       buildSnapshotControllerScriptForState(controllerArtifact, deployments.get(index).plan.controllerState), shard.controllerId)),
   };
   const started = buildSnapshotStartUnsignedTransaction(kw, args);
+  if (allocations.length === 5) {
+    const payloadBytes = Buffer.from(started.unsignedTransaction.payload, 'hex');
+    const parsed = parseSnapshotKcc20DeploymentPayload(payloadBytes);
+    assert.equal(parsed.maxSupply, 28_700_000_000_000_000_000n);
+    assert.equal(parsed.premintSupply, parsed.maxSupply);
+    assert.deepEqual(parsed.maxSupplyLimbs, {
+      high: 3n,
+      low: 1_029_883_889_435_672_576n,
+    });
+    assert.deepEqual(parsed.premintSupplyLimbs, parsed.maxSupplyLimbs);
+    assert.deepEqual(
+      parsed.reserves.map((reserve) => reserve.amount.toString()),
+      allocations,
+    );
+
+    const decodedPayload = JSON.parse(payloadBytes.toString('utf8'));
+    const maxSupplyArgument = decodedPayload.tn10.args.find(
+      (argument) => argument.name === 'maxSupply',
+    );
+    const premintSupplyArgument = decodedPayload.tn10.args.find(
+      (argument) => argument.name === 'premintSupply',
+    );
+    assert.deepEqual(maxSupplyArgument, {
+      name: 'maxSupply',
+      type: 'u64[2]',
+      value: ['3', '1029883889435672576'],
+    });
+    assert.deepEqual(premintSupplyArgument, {
+      name: 'premintSupply',
+      type: 'u64[2]',
+      value: ['3', '1029883889435672576'],
+    });
+
+    maxSupplyArgument.type = 'u64';
+    maxSupplyArgument.value = '28700000000000000000';
+    assert.throws(
+      () => parseSnapshotKcc20DeploymentPayload(
+        new TextEncoder().encode(JSON.stringify(decodedPayload)),
+      ),
+      /maxSupply scalar deployment argument exceeds signed-64/,
+    );
+  }
   const verifyArgs = { definition, artifacts, stage: 'snapshot-start', walletAddress: changeAddress,
     maximumFeeSompi: '300000', signingInputIndexes: [count + 1], transactionJson: JSON.stringify(started.unsignedTransaction) };
   verifySnapshotDeploymentTransaction(kw, verifyArgs);
