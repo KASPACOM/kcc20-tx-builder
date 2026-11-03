@@ -91,5 +91,144 @@
     }
   },
   "contractsSourceStatus": "reviewed source and generated inputs pinned to contractsCommit",
-  "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17"
+  "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
+  "argent": {
+    "contractsCommit": "f879b6332057e07844d499c178f81219986a59f3",
+    "compiler": {
+      "repository": "https://github.com/argent-lang/argent",
+      "commit": "9a9f4b107116d0b259fae629f200fa3b663e7e9d",
+      "cargoLockSha256": "613540ed07332b2343b65ad6892851b14213b33227eb5f7c21b8166f7ae74af6",
+      "historicalBaseline": "e76ee07f8b2719e8c06eee085ca3d613cc2b56e7"
+    },
+    "toolchainPath": "artifacts/kcom-provenance/toolchain.lock.json",
+    "toolchainSha256": "e93ddf0b2cfb7633edc0d6da3d495c4cda13f04c68b74137c17edf1d7ed54059",
+    "sources": {
+      "contracts/argent/kcom-vesting/vesting.ag": {
+        "path": "artifacts/kcom-provenance/contracts/argent/kcom-vesting/vesting.ag",
+        "sha256": "16b8e50455a2514b06bbde57ba941d336167f05dc2b97183863510871355ba68"
+      },
+      "contracts/argent/kcom-claim-capabilities/campaign-entitlements.ag": {
+        "path": "artifacts/kcom-provenance/contracts/argent/kcom-claim-capabilities/campaign-entitlements.ag",
+        "sha256": "d4adc7c5f5c7a3827db4cb012f2f12d04858b921869c73eb2b911931f082d789"
+      },
+      "contracts/argent/kcom-claim-capabilities/campaign-entitlements-open.ag": {
+        "path": "artifacts/kcom-provenance/contracts/argent/kcom-claim-capabilities/campaign-entitlements-open.ag",
+        "sha256": "cda037a7cff0b4ddc52e7d19ca3c3fd266ec7d5bf325502292f35bd0752b112d"
+      }
+    },
+    "artifacts": {
+      "KCOMVesting.artifact.json": {
+        "fileSha256": "096a5b5c76f0be3b0b4289028a245f9f52873cbf070e3fccbbb211860726314d",
+        "artifactId": "ea21b282cc3207940d86d8e790626db8998ce56b996c86df5d31718ebd037c5b",
+        "abiSha256": "c041dc0012f22390f1f66fd09c6cc02eadb8865f496684c96e22ed690004d9f0",
+        "generator": {
+          "name": "argentc",
+          "version": "0.1.0"
+        },
+        "compilerVersion": "0.1.0",
+        "root": "contracts/argent/kcom-vesting/vesting.ag",
+        "modules": [
+          "contracts/argent/kcom-vesting/vesting.ag"
+        ],
+        "dependencies": [],
+        "contracts": {
+          "KCOMVesting": {
+            "scriptSha256": "53ad24a89a7e307b1c0faf7f2a95d9c70c464b3b27852778762f027cacb01e89",
+            "runtimeStateSha256": "2f968ff85cea63850e3b17198795a6727941c4ade675ebd373c5b9e99478196b",
+            "constructorMode": "runtime-state",
+            "templateHash": "8104ed79c21d8ef1af1f8cdcf9b2ad7c6978cf8215b6eda730f99257b5c0e7a6"
+          }
+        }
+      },
+      "KCOMClaimGraph.artifact.json": {
+        "fileSha256": "6664cb2d914e6ed995cb02fe8c4ec98299a2fe6366c659ad0d74cd92e4ed1385",
+        "artifactId": "531a05b1c137c2141c71618366fbd8d52a30fe5834667bcf07495914fea875ae",
+        "abiSha256": "8b269204214a957ecff34faa766c0ca4ee22f2a095e147b55dff80024d0af667",
+        "generator": {
+          "name": "argentc",
+          "version": "0.1.0"
+        },
+        "compilerVersion": "0.1.0",
+        "root": "contracts/argent/kcom-claim-capabilities/campaign-entitlements.ag",
+        "modules": [
+          "contracts/argent/kcom-claim-capabilities/campaign-entitlements.ag",
+          "contracts/argent/kcom-vesting/vesting.ag"
+        ],
+        "dependencies": [
+          {
+            "app": "KCOMClaimVesting",
+            "artifact_id": "ea21b282cc3207940d86d8e790626db8998ce56b996c86df5d31718ebd037c5b"
+          }
+        ],
+        "contracts": {
+          "KCOMClaimCommitment": {
+            "scriptSha256": "56e2f7525ebc2838f97af488416a1d35a005fdaa775075513aa1c843dc429576",
+            "runtimeStateSha256": "6c5f1e3f7332d23513d970b1bfcab0aef6c56ceaaabc7d3acf24aada26cf5835",
+            "constructorMode": "runtime-state",
+            "templateHash": "aefa18fe9de9d0a957d99b992ec8308240be08bf80d88f1e00816c28ce69a351"
+          },
+          "KCOMClaimShard": {
+            "scriptSha256": "7572853fae537f1576c8b3b9fcf8fb40355df72b1ecd3878c65816f9ae32bfd7",
+            "runtimeStateSha256": "e4c1d2308a95db7c1807e00700cae9ab6cb3ab3cd962609933c8d6fe40b87729",
+            "constructorMode": "runtime-state",
+            "templateHash": "e6ab0896bb09f862ec3b0e89e6a2016d7bcb945d035fa269f32a1d8b40f2e318"
+          },
+          "KCOMEntitlement": {
+            "scriptSha256": "dcba9b1bb973299f3cb0d054068fb62a15c8540a2183bcc92a2a090938b7a0fd",
+            "runtimeStateSha256": "2cd27f4c80ffd4fce3cfb8ff69e93741cc3f4e739ab39585063f0689ecaca481",
+            "constructorMode": "runtime-state",
+            "templateHash": "59d6537e91ec5f149031af76e043bd76294329018dc0851055348f301d1bf76c"
+          },
+          "KCOMFactory": {
+            "scriptSha256": "752fa8cd2ec30a623439a8633ba201ecbd98a1e7a39f3d4c6f235f459b6f1bd6",
+            "runtimeStateSha256": "876db154f13168cafbedb61116024bc7f1154001fd9a5913d0f8601b67b68d94",
+            "constructorMode": "runtime-state",
+            "templateHash": "4c8561c93f623e4f91c9dd9c20b304c42d740bd8b707edca013a9d7d37dad103"
+          },
+          "KCOMSettlement": {
+            "scriptSha256": "16af2cb9150b1ca8df3d5d545195e3de639213d2bc3068331964dcbba1c406c5",
+            "runtimeStateSha256": "ffcb48a7ade2ca3cc6fd1e08e3662190eb498862fe415d917be6ea598fcd2117",
+            "constructorMode": "runtime-state",
+            "templateHash": "42e39ab32f4b614f81b66ecc05a30a7863328ecb8ef850b6fc3499b3f8ac8b69"
+          },
+          "KCOMVault": {
+            "scriptSha256": "4f8cd8742afce6a0d62f5ed1c0ce2834e37f33a3a8a9357a8e6235315a040189",
+            "runtimeStateSha256": "55693e2a356ed72da8b0e9fdd529dee89f52de077cf08ce4e7b6a5623f178d85",
+            "constructorMode": "runtime-state",
+            "templateHash": "224db77720f6909597d1049e5b4ab2b2854a0738625a1f2878d55a42241c9c66"
+          }
+        }
+      },
+      "KCOMClaimOpen.artifact.json": {
+        "fileSha256": "a930cae913dbd2dabab6e2b0296a6a211ce6558a177078d1a6a0f9939a8e9092",
+        "artifactId": "179f28ce8e24aac5e8babc83417fcf4300f3c85b8a61009d892b81f0aaee8337",
+        "abiSha256": "9ef8f0d04c93bac76025c852477ae985058f3059bf5df8af2f1c95812b427c06",
+        "generator": {
+          "name": "argentc",
+          "version": "0.1.0"
+        },
+        "compilerVersion": "0.1.0",
+        "root": "contracts/argent/kcom-claim-capabilities/campaign-entitlements-open.ag",
+        "modules": [
+          "contracts/argent/kcom-claim-capabilities/campaign-entitlements-open.ag",
+          "contracts/argent/kcom-claim-capabilities/campaign-entitlements.ag",
+          "contracts/argent/kcom-vesting/vesting.ag"
+        ],
+        "dependencies": [
+          {
+            "app": "KCOMEntitlementGraph",
+            "artifact_id": "531a05b1c137c2141c71618366fbd8d52a30fe5834667bcf07495914fea875ae"
+          }
+        ],
+        "contracts": {
+          "KCOMInitialize": {
+            "scriptSha256": "5631b59a2bb40b88e364a967992b03e849bd9eb08d782214ae3cc27f0140b4ea",
+            "runtimeStateSha256": "dd2a6b17857c3bb58938f50d741a269654406b5ea25853701b986cc12b10ed12",
+            "constructorMode": "runtime-state",
+            "templateHash": "e000667ae9c6bda8ac02a0667bdc55487fbfd9064b38c57bbb3f5efe1123d912"
+          }
+        }
+      }
+    }
+  }
 }

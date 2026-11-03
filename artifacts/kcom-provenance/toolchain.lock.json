@@ -1,0 +1,14 @@
+{
+  "schema": "kcom-argent-toolchain/v1",
+  "argent": {
+    "repository": "https://github.com/argent-lang/argent",
+    "commit": "9a9f4b107116d0b259fae629f200fa3b663e7e9d",
+    "cargoLockSha256": "613540ed07332b2343b65ad6892851b14213b33227eb5f7c21b8166f7ae74af6",
+    "historicalBaseline": "e76ee07f8b2719e8c06eee085ca3d613cc2b56e7"
+  },
+  "silverscript": "3ed973335b59269293564805cc2c58a14595ec03",
+  "rustyKaspa": "a41a333b08848f41bf737b72592e463a6011b8ac",
+  "canonicalArtifactSha256": "a45d06e8351421dac1ef73f3595c6f34068e4fa1e13d3f8fa1c88be518c6e56f",
+  "icc": "closed: explicit canonical covenant and template authentication",
+  "status": "local capability gate; funded TN10 and independent review required"
+}

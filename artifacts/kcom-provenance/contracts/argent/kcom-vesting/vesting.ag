@@ -1,0 +1,119 @@
+// Canonical KCC20 is authenticated by template and covenant ID, never recompiled as an Argent token.
+state TokenState {
+    int amount;
+    byte[32] owner;
+    byte owner_scheme;
+    byte borrow_scheme;
+    byte[32] borrow_guard;
+    byte[32] extension_commitment;
+}
+
+state VestingState {
+    byte[32] token_id;
+    byte[32] beneficiary;
+    byte beneficiary_scheme;
+    byte[32] extension;
+    int total;
+    int released;
+    int tier;
+    int tge_ms;
+    int token_prefix_len;
+    int token_suffix_len;
+    byte[32] token_template_hash;
+}
+
+actor KCOMVesting owns VestingState {
+    fn vested(int completed) -> int {
+        require(total > 0 && released >= 0 && released < total);
+        require(tier >= 1 && tier <= 3);
+        require(beneficiary_scheme == 0x00 || beneficiary_scheme == 0x01 || beneficiary_scheme == 0x02 || beneficiary_scheme == 0x03 || beneficiary_scheme == 0x04);
+        require(tge_ms >= 500000000000 && tge_ms <= 9000000000000000);
+        int periods = 18;
+        int first = 1;
+        int bps = 1000;
+        if (tier == 2) { first = 6; bps = 500; }
+        if (tier == 3) { first = 10; periods = 36; bps = 0; }
+        require(completed >= 0 && completed <= periods);
+        require(tx.time >= temporal(tge_ms));
+        if (completed > 0) {
+            require(tx.time >= temporal(tge_ms + (first + completed - 1) * 2592000000));
+        }
+        int tge = (total / 10000) * bps + ((total % 10000) * bps) / 10000;
+        int locked = total - tge;
+        return(tge + (locked / periods) * completed + ((locked % periods) * completed) / periods);
+    }
+
+    entry release(int completed, int amount, int token_input, int recipient_output, int change_output, byte[] prefix, byte[] suffix)
+    emits next: KCOMVesting {
+        int available = vested(completed) - released;
+        require(amount > 0 && amount <= available && amount < total - released);
+
+        require(amount > 0);
+        require(OpCovInputCount(OpInputCovenantId(this.activeInputIndex)) == 1);
+        require(OpCovInputCount(token_id) == 1);
+        require(OpInputCovenantId(token_input) == token_id);
+        TokenState input = readInputStateWithTemplate(token_input, token_prefix_len, token_suffix_len, token_template_hash);
+        require(input.owner_scheme == 0x04 && input.owner == OpInputCovenantId(this.activeInputIndex));
+        require(input.borrow_scheme == 0x00);
+        require(input.borrow_guard == byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(input.extension_commitment == extension);
+        require(input.amount == total - released);
+        TokenState recipient = {
+            amount: amount, owner: beneficiary, owner_scheme: beneficiary_scheme,
+            borrow_scheme: 0x00,
+            borrow_guard: byte[32](0x0000000000000000000000000000000000000000000000000000000000000000),
+            extension_commitment: extension,
+        };
+        validateOutputStateWithTemplate(recipient_output, recipient, prefix, suffix, token_template_hash);
+
+
+        require(OpAuthOutputCount(token_input) == 2);
+        require(OpAuthOutputIdx(token_input, 0) == recipient_output);
+        require(OpAuthOutputIdx(token_input, 1) == change_output);
+        TokenState change = {
+            amount: input.amount - amount, owner: input.owner, owner_scheme: input.owner_scheme,
+            borrow_scheme: input.borrow_scheme, borrow_guard: input.borrow_guard,
+            extension_commitment: input.extension_commitment,
+        };
+        validateOutputStateWithTemplate(change_output, change, prefix, suffix, token_template_hash);
+        require(tx.outputs[change_output].value == tx.inputs[token_input].value);
+        require(next.value == self.value);
+        VestingState next_state = {
+            token_id: token_id, beneficiary: beneficiary, beneficiary_scheme: beneficiary_scheme,
+            extension: extension, total: total, released: released + amount, tier: tier, tge_ms: tge_ms,
+            token_prefix_len: token_prefix_len, token_suffix_len: token_suffix_len, token_template_hash: token_template_hash,
+        };
+        become next <- KCOMVesting(next_state);
+    }
+
+    entry finish(int completed, int token_input, int recipient_output, byte[] prefix, byte[] suffix) emits {} {
+        require(vested(completed) == total);
+        int amount = total - released;
+        require(amount > 0);
+        require(OpCovInputCount(OpInputCovenantId(this.activeInputIndex)) == 1);
+        require(OpCovInputCount(token_id) == 1);
+        require(OpInputCovenantId(token_input) == token_id);
+        TokenState input = readInputStateWithTemplate(token_input, token_prefix_len, token_suffix_len, token_template_hash);
+        require(input.owner_scheme == 0x04 && input.owner == OpInputCovenantId(this.activeInputIndex));
+        require(input.borrow_scheme == 0x00);
+        require(input.borrow_guard == byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(input.extension_commitment == extension);
+        require(input.amount == total - released);
+        TokenState recipient = {
+            amount: amount, owner: beneficiary, owner_scheme: beneficiary_scheme,
+            borrow_scheme: 0x00,
+            borrow_guard: byte[32](0x0000000000000000000000000000000000000000000000000000000000000000),
+            extension_commitment: extension,
+        };
+        validateOutputStateWithTemplate(recipient_output, recipient, prefix, suffix, token_template_hash);
+
+
+        require(OpAuthOutputCount(token_input) == 1);
+        require(OpAuthOutputIdx(token_input, 0) == recipient_output);
+        require(tx.outputs[recipient_output].value == tx.inputs[token_input].value + self.value);
+    }
+}
+
+app KCOMClaimVesting {
+    actor KCOMVesting;
+}

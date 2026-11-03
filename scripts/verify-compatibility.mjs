@@ -1,3 +1,4 @@
+import { verifyArgentArtifacts } from './verify-argent-artifacts.mjs';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
@@ -25,4 +26,5 @@ for (const [name, expected] of Object.entries(manifest.artifacts)) {
   assert.equal(artifact.generation?.silverscript_tree, manifest.compiler.tree, `Compiler tree changed: ${name}`);
   assert.equal(artifact.generation?.compiler_build, expected.compilerBuild, `Compiler build changed: ${name}`);
 }
+await verifyArgentArtifacts(root, manifest);
 console.log('WASM, contract provenance, and packaged artifacts match the compatibility manifest.');

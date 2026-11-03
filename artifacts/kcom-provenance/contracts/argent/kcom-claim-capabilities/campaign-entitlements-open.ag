@@ -1,0 +1,86 @@
+// Signed campaign initialization. Claim shards remain closed to selection until the vault is funded and opened.
+import "campaign-entitlements.ag" as graph;
+state CampaignInitState {
+    byte[32] campaign;
+    byte[32] terms_hash;
+    byte[32] token_id;
+    int budget_raw;
+    int manifest_total;
+    byte[32] eligibility_root;
+    byte[32] empty_used_root;
+    byte[32] empty_summaries_root;
+    int leaf_count;
+    int shard_count;
+    int shard_value;
+    byte[32] first;
+    byte[32] second;
+    byte[32] third;
+    int opens_ms;
+    int closes_ms;
+    int tge_ms;
+}
+actor KCOMInitialize owns CampaignInitState {
+    entry initialize(sig signature_a, pubkey key_a, sig signature_b, pubkey key_b, byte[] terms)
+    spawns graph by graph_id { outputs { factory: graph::KCOMEntitlementGraph::KCOMFactory, vault: graph::KCOMEntitlementGraph::KCOMVault, } }
+    emits {} {
+        require(OpCovInputCount(token_id) == 0);
+        require(terms.length == 277);
+        require(blake3(terms) == terms_hash);
+        require(terms.slice(0, 20) == byte[](0x6b636f6d2e636c61696d2e7465726d732f763200));
+        require(terms.slice(20, 52) == byte[](campaign));
+        require(terms.slice(52, 84) == byte[](eligibility_root));
+        require(terms.slice(84, 92) == byte[](budget_raw as byte[8]));
+        require(terms.slice(92, 100) == byte[](manifest_total as byte[8]));
+        require(token_id != byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(terms.slice(100, 132) == byte[](token_id));
+        require(terms.slice(164, 196) == byte[](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(terms.slice(196, 200) == byte[](0x01000000));
+        require(terms.slice(200, 204) == byte[](0xb0620000));
+        require(tge_ms > closes_ms && tge_ms <= 9000000000000000);
+        require(terms.slice(204, 212) == byte[](tge_ms as byte[8]));
+        require(terms.slice(212, 213) == byte[](0x00) || terms.slice(212, 213) == byte[](0x01) || terms.slice(212, 213) == byte[](0x02) || terms.slice(212, 213) == byte[](0x03) || terms.slice(212, 213) == byte[](0x04));
+        require(byte[32](terms.slice(213, 245)) != byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(terms.slice(245, 277) == byte[](0xea21b282cc3207940d86d8e790626db8998ce56b996c86df5d31718ebd037c5b));
+        require(budget_raw == 10000000000000000 || (budget_raw >= 10 && budget_raw <= 20000 && budget_raw % 10 == 0));
+        require(manifest_total > 0 && manifest_total <= budget_raw / 5);
+        require(leaf_count > 0 && leaf_count <= 1048576);
+        require(budget_raw / 5 - manifest_total < leaf_count);
+        require(shard_count == 1 || shard_count == 2 || shard_count == 4 || shard_count == 8 || shard_count == 16 || shard_count == 32 || shard_count == 64 || shard_count == 128 || shard_count == 256 || shard_count == 512 || shard_count == 1024 || shard_count == 2048 || shard_count == 4096 || shard_count == 8192 || shard_count == 16384 || shard_count == 32768 || shard_count == 65536 || shard_count == 131072 || shard_count == 262144 || shard_count == 524288 || shard_count == 1048576);
+        require(shard_value > 0 && shard_value <= 9223372036754775806 / shard_count);
+        require(self.value > shard_value * shard_count + 100000000);
+        require(opens_ms >= 500000000000 && opens_ms <= 9223372034262775807);
+        require(closes_ms == opens_ms + 2592000000);
+        require(first != second && first != third && second != third);
+        byte[32] a = byte[32](key_a);
+        byte[32] b = byte[32](key_b);
+        require(a != b);
+        require(a == first || a == second || a == third);
+        require(b == first || b == second || b == third);
+        require(byte[](signature_a).length == 65 && byte[](signature_b).length == 65);
+        require(byte[](signature_a).slice(64, 65) == byte[](0x01));
+        require(byte[](signature_b).slice(64, 65) == byte[](0x01));
+        require(checkSig(signature_a, key_a));
+        require(checkSig(signature_b, key_b));
+        graph::FactoryState initial = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root, empty_used_root: empty_used_root,
+            empty_summaries_root: empty_summaries_root, leaf_count: leaf_count,
+            shard_count: shard_count, next_shard: 0, shard_value: shard_value,
+            first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, opened: false,
+        };
+        byte treasury_scheme = 0x00;
+        if (terms.slice(212, 213) == byte[](0x01)) { treasury_scheme = 0x01; }
+        if (terms.slice(212, 213) == byte[](0x02)) { treasury_scheme = 0x02; }
+        if (terms.slice(212, 213) == byte[](0x03)) { treasury_scheme = 0x03; }
+        if (terms.slice(212, 213) == byte[](0x04)) { treasury_scheme = 0x04; }
+        graph::VaultState reserve = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw,
+            extension: byte[32](terms.slice(132, 164)), treasury_scheme: treasury_scheme, treasury: byte[32](terms.slice(213, 245)),
+            first: first, second: second, third: third,
+            funded: false, opened: false, settled: false, recovered: false, liability_raw: 0, activated_raw: 0,
+        };
+        require(graph.outputs.factory.value == self.value - 100000000);
+        require(graph.outputs.vault.value == 100000000);
+        require graph.outputs become { factory <- graph::KCOMEntitlementGraph::KCOMFactory(initial), vault <- graph::KCOMEntitlementGraph::KCOMVault(reserve), };
+    }
+}
+app KCOMEntitlementInitialization { actor KCOMInitialize; }
