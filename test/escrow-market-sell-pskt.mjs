@@ -89,7 +89,8 @@ function fixture(count, { partialFirst = false, holderExtra = 0, useTicket = fal
   const fundingEntry = { outpoint: { transactionId: "ee".repeat(32), index: 0 },
     amount: 10_000_000_000n, scriptPublicKey: sellerSpk, blockDaaScore: 0n,
     isCoinbase: false };
-  const byAddress = new Map([[holderAddress, [holderEntry]], [wallet, [fundingEntry]]]);
+  const fundingEntries = [fundingEntry];
+  const byAddress = new Map([[holderAddress, [holderEntry]], [wallet, fundingEntries]]);
   for (const bid of bids) byAddress.set(bid.bidUtxo.address, [bid.entry]);
   const ticket = useTicket ? (() => {
     const utilityTokenId = "06".repeat(32);
@@ -127,7 +128,7 @@ function fixture(count, { partialFirst = false, holderExtra = 0, useTicket = fal
       ...(ticket ? { feeTicketUtxo: ticket.utxo } : {}),
     },
   } };
-  return { engine, request, holderEntry, bids, fundingEntry, ticket };
+  return { engine, request, holderEntry, bids, fundingEntry, fundingEntries, ticket };
 }
 
 function signBuilt(built, f) {
@@ -286,4 +287,29 @@ test("indexed aliases do not bypass an oversized partial sweep mass rejection", 
   await assert.rejects(f.engine.build(f.request), error =>
     error.builderErrorCode === "TRANSACTION_MASS_EXCEEDED" &&
     BigInt(error.builderErrorDetails.storageMass) > 450_000n);
+});
+
+
+test("partial ten-bid sale selects a fitting wallet UTXO without changing payouts", async () => {
+  const f = fixture(10, { partialFirst: true, holderExtra: 1,
+    creatorFeeBps: 100, bidPriceSompi: 200_000_000n });
+  f.fundingEntry.amount = 230_000_000_000n;
+  const alternative = { ...f.fundingEntry,
+    outpoint: { transactionId: "ef".repeat(32), index: 0 }, amount: 150_000_000n };
+  f.fundingEntries.push(...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,
+    outpoint: { transactionId: (100 + i).toString(16).repeat(32), index: 0 },
+    amount: 60_000_000n })), ...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,
+    outpoint: { transactionId: (120 + i).toString(16).repeat(32), index: 0 },
+    amount: 100_000_000n })), alternative);
+  const built = await f.engine.build(f.request);
+  const tx = signBuilt(built, f), serialized = JSON.parse(tx.serializeToSafeJSON());
+  assert.equal(serialized.inputs.at(-1).transactionId, alternative.outpoint.transactionId);
+  assert(f.engine.protocol.calculateToccataStorageMass(tx, "partial funding") <= 450_000n);
+  assert.equal(built.metadata.protocolFeeSompi, "500000000");
+  assert.equal(built.metadata.creatorFeeSompi, "500000000");
+  assert.equal(serialized.outputs[1].value, "400000000");
+  assert.equal(serialized.outputs[built.metadata.sellerChangeIndex].value, "50000000");
+  f.request.request.params.fundingOutpoint = f.fundingEntry.outpoint;
+  await assert.rejects(() => f.engine.build(f.request), error =>
+    error.builderErrorCode === "TRANSACTION_MASS_EXCEEDED");
 });

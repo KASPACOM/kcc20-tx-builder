@@ -5517,101 +5517,148 @@ export function createKcc20PsktBuilderEngine(
         : priorityFee + 10_000n;
       const fundingEntry = selectFundingEntry(walletUtxos.entries, fundingNeeded,
         spentEntries.map(entry => entry.outpoint), params.fundingOutpoint);
-      const fundingChange = covenantSompi + utxoAmountSompi(fundingEntry) - outputSompi - priorityFee;
-      if (fundingChange <= 10_000n) throw new Error("seller group funding change is too small");
-      const fundingChangeIndex = outputs.length;
-      outputs.push(new TransactionOutput(fundingChange, payToAddressScript(walletAddress)));
-      const transaction = new Transaction({ version: 1, lockTime: 0n,
-        inputs: [
-          { previousOutpoint: holderEntry.outpoint, utxo: holderEntry,
-            sequence: 0n, sigOpCount: 0, computeBudget: 1000 },
-          ...bidEntries.map(({ entry }) => ({ previousOutpoint: entry.outpoint, utxo: entry,
-            sequence: 0n, sigOpCount: 0, computeBudget: 100 })),
-          ...(ticketEntry ? [{ previousOutpoint: ticketEntry.outpoint, utxo: ticketEntry,
-            sequence: 0n, sigOpCount: 0, computeBudget: 600 }] : []),
-          { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
-            sequence: 0n, sigOpCount: 0, computeBudget: 30 },
-        ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
-      });
-      // Pinned signed consensus proof uses 394 units for ten-bid leader and
-      // 43 for each bid delegator. Leave more than 2x headroom per role.
-      setVersionOneInputMassFields(transaction, 1000);
-      for (let slot = 0; slot < legs.length; slot++) transaction.inputs[slot + 1].computeBudget = 100;
-      const ticketInputIndex = ticketEntry ? legs.length + 1 : -1;
-      if (ticketEntry) transaction.inputs[ticketInputIndex].computeBudget = 600;
-      const fundingInputIndex = legs.length + 1 + (ticketEntry ? 1 : 0);
-      transaction.inputs[fundingInputIndex].computeBudget = 30;
-      assertUniqueTransactionInputOutpoints(transaction, "fee-market seller group");
-      const legBytes = new Uint8Array(legs.length * 32);
-      const view = new DataView(legBytes.buffer);
-      for (let slot = 0; slot < legs.length; slot++) {
-        const indexes = legIndexes[slot];
-        for (const [field, value] of [legs[slot].fill, indexes.buyerIndex,
-          indexes.continuationIndex < 0 ? 0 : indexes.continuationIndex,
-          indexes.sellerIndex].entries()) {
-          view.setBigInt64(slot * 32 + field * 8, BigInt(value), true);
-        }
-      }
-      const receiptParts = templateParts(normalizeSilverScriptArtifact(artifacts.receipt));
-      const scripts = [{ inputIndex: 0,
-        scriptHex: bytesToHex(holderPlan.holder.redeemScript), signType: 1,
-        signatureScript: { mode: "ordered-args", args: [
-          { type: "signature" }, i64TemplateArg(legs.length), dataTemplateArg(legBytes),
-          dataTemplateArg(vector), i64TemplateArg(ticketInputIndex), i64TemplateArg(receiptOutputIndex),
-          i64TemplateArg(changeIndex), i64TemplateArg(refundIndex), i64TemplateArg(ticketRefundIndex),
-          dataTemplateArg(feeTotal > 0n ? receiptParts.prefix : new Uint8Array()),
-          dataTemplateArg(feeTotal > 0n ? receiptParts.suffix : new Uint8Array()),
-          dataTemplateArg(dispatchTagFor(artifacts.holder, "sellIntoBids")),
-        ] } }];
-      if (ticketEntry) scripts.push(feeTicketBurnScriptHint(ticketInputIndex,
-        ticket.script, ticket.burnDispatchTag, ticketRefundIndex,
-        ticket.burnTakesRefundOutput));
-      for (let slot = 0; slot < legs.length; slot++) {
-        const delegate = covenantScriptBuilder(kw);
-        for (const value of [0, slot, legs[slot].remaining,
-          legIndexes[slot].continuationIndex]) delegate.addI64(BigInt(value));
-        delegate.addData(dispatchTagFor(artifacts.bid, "delegateSellerGroup"));
-        transaction.inputs[slot + 1].signatureScript = encodeCovenantP2shSignatureScript(
-          delegate.drain(), legs[slot].bidScript.redeemScript);
-      }
-      const feeResult = transactionWithPredictedSignedFeeChange(
-        kw, transaction, fundingChangeIndex, network, "fee-market seller group", candidate => {
-          const serialized = candidate.serializeToSafeJSON();
-          if (typeof serialized !== "string") throw new Error("seller group preflight serialization failed");
-          const predicted = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
-          predicted.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
-            bytesToHex(dummySignatureBytes()));
-          return typeof kw.Transaction.deserializeFromSafeJSON === "function"
-            ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predicted))
-            : kw.Transaction.deserializeFromJSON(JSON.stringify(predicted));
+      let estimatedFundingFeeSompi = priorityFee;
+      const buildWithFunding = (fundingEntry) => {
+        const fundingChange = covenantSompi + utxoAmountSompi(fundingEntry) - outputSompi - priorityFee;
+        if (fundingChange <= 10_000n) throw new Error("seller group funding change is too small");
+        const fundingChangeIndex = outputs.length;
+        const candidateOutputs = [...outputs,
+          new TransactionOutput(fundingChange, payToAddressScript(walletAddress))];
+        const transaction = new Transaction({ version: 1, lockTime: 0n,
+          inputs: [
+            { previousOutpoint: holderEntry.outpoint, utxo: holderEntry,
+              sequence: 0n, sigOpCount: 0, computeBudget: 1000 },
+            ...bidEntries.map(({ entry }) => ({ previousOutpoint: entry.outpoint, utxo: entry,
+              sequence: 0n, sigOpCount: 0, computeBudget: 100 })),
+            ...(ticketEntry ? [{ previousOutpoint: ticketEntry.outpoint, utxo: ticketEntry,
+              sequence: 0n, sigOpCount: 0, computeBudget: 600 }] : []),
+            { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
+              sequence: 0n, sigOpCount: 0, computeBudget: 30 },
+          ], outputs: candidateOutputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
         });
-      const signedMass = calculateToccataV1NonContextualMass(
-        feeResult.predictedTransaction, "fee-market seller group");
-      const storageMass = calculateToccataStorageMass(
-        feeResult.predictedTransaction, "fee-market seller group");
-      if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
-          signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
-          storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
-        throw kcc20PsktBuilderError("fee-market seller group exceeds signed mass target",
-          "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
-            transientMass: signedMass.transientMass, storageMass });
-      }
-      return { schema: OUTPUT_SCHEMA,
-        psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
-        signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
-        submitTransactionSupported: true,
-        metadata: { builderKey: "kcc20fee.sell-into-bids",
-          operation: "fee-market-sell-into-bids", network, walletAddress,
-          tokenId, marketId, policyId, fillCount: legs.length,
-          soldAmount: sold.toString(),
-          grossSompi: legs.reduce((sum, leg) => sum + leg.gross, 0n).toString(),
-          protocolFeeSompi: protocolTotal.toString(),
-          creatorFeeSompi: creatorTotal.toString(), receiptOutputIndex,
-          ticketInputIndex, ticketRefundIndex,
-          sellerChangeIndex: changeIndex, sellerRefundIndex: refundIndex,
-          signedMass: { compute: signedMass.computeMass.toString(),
-            transient: signedMass.transientMass.toString(), storage: storageMass.toString() } },
+        // Pinned signed consensus proof uses 394 units for ten-bid leader and
+        // 43 for each bid delegator. Leave more than 2x headroom per role.
+        setVersionOneInputMassFields(transaction, 1000);
+        for (let slot = 0; slot < legs.length; slot++) transaction.inputs[slot + 1].computeBudget = 100;
+        const ticketInputIndex = ticketEntry ? legs.length + 1 : -1;
+        if (ticketEntry) transaction.inputs[ticketInputIndex].computeBudget = 600;
+        const fundingInputIndex = legs.length + 1 + (ticketEntry ? 1 : 0);
+        transaction.inputs[fundingInputIndex].computeBudget = 30;
+        assertUniqueTransactionInputOutpoints(transaction, "fee-market seller group");
+        const legBytes = new Uint8Array(legs.length * 32);
+        const view = new DataView(legBytes.buffer);
+        for (let slot = 0; slot < legs.length; slot++) {
+          const indexes = legIndexes[slot];
+          for (const [field, value] of [legs[slot].fill, indexes.buyerIndex,
+            indexes.continuationIndex < 0 ? 0 : indexes.continuationIndex,
+            indexes.sellerIndex].entries()) {
+            view.setBigInt64(slot * 32 + field * 8, BigInt(value), true);
+          }
+        }
+        const receiptParts = templateParts(normalizeSilverScriptArtifact(artifacts.receipt));
+        const scripts = [{ inputIndex: 0,
+          scriptHex: bytesToHex(holderPlan.holder.redeemScript), signType: 1,
+          signatureScript: { mode: "ordered-args", args: [
+            { type: "signature" }, i64TemplateArg(legs.length), dataTemplateArg(legBytes),
+            dataTemplateArg(vector), i64TemplateArg(ticketInputIndex), i64TemplateArg(receiptOutputIndex),
+            i64TemplateArg(changeIndex), i64TemplateArg(refundIndex), i64TemplateArg(ticketRefundIndex),
+            dataTemplateArg(feeTotal > 0n ? receiptParts.prefix : new Uint8Array()),
+            dataTemplateArg(feeTotal > 0n ? receiptParts.suffix : new Uint8Array()),
+            dataTemplateArg(dispatchTagFor(artifacts.holder, "sellIntoBids")),
+          ] } }];
+        if (ticketEntry) scripts.push(feeTicketBurnScriptHint(ticketInputIndex,
+          ticket.script, ticket.burnDispatchTag, ticketRefundIndex,
+          ticket.burnTakesRefundOutput));
+        for (let slot = 0; slot < legs.length; slot++) {
+          const delegate = covenantScriptBuilder(kw);
+          for (const value of [0, slot, legs[slot].remaining,
+            legIndexes[slot].continuationIndex]) delegate.addI64(BigInt(value));
+          delegate.addData(dispatchTagFor(artifacts.bid, "delegateSellerGroup"));
+          transaction.inputs[slot + 1].signatureScript = encodeCovenantP2shSignatureScript(
+            delegate.drain(), legs[slot].bidScript.redeemScript);
+        }
+        const feeResult = transactionWithPredictedSignedFeeChange(
+          kw, transaction, fundingChangeIndex, network, "fee-market seller group", candidate => {
+            const serialized = candidate.serializeToSafeJSON();
+            if (typeof serialized !== "string") throw new Error("seller group preflight serialization failed");
+            const predicted = transactionJsonWithScriptHints(kw, JSON.parse(serialized), scripts);
+            predicted.inputs[fundingInputIndex].signatureScript = encodeP2pkSignatureScript(
+              bytesToHex(dummySignatureBytes()));
+            return typeof kw.Transaction.deserializeFromSafeJSON === "function"
+              ? kw.Transaction.deserializeFromSafeJSON(JSON.stringify(predicted))
+              : kw.Transaction.deserializeFromJSON(JSON.stringify(predicted));
+          });
+        estimatedFundingFeeSompi = feeResult.requiredFeeSompi;
+        const signedMass = calculateToccataV1NonContextualMass(
+          feeResult.predictedTransaction, "fee-market seller group");
+        const storageMass = calculateToccataStorageMass(
+          feeResult.predictedTransaction, "fee-market seller group");
+        if (signedMass.computeMass > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+            signedMass.transientMass > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+            storageMass > CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+          throw kcc20PsktBuilderError("fee-market seller group exceeds signed mass target",
+            "TRANSACTION_MASS_EXCEEDED", { computeMass: signedMass.computeMass,
+              transientMass: signedMass.transientMass, storageMass });
+        }
+        return { schema: OUTPUT_SCHEMA,
+          psktTransactionJson: feeResult.transaction.serializeToSafeJSON(),
+          signInputs: [{ index: fundingInputIndex, sighashType: 1 }], scripts,
+          submitTransactionSupported: true,
+          metadata: { builderKey: "kcc20fee.sell-into-bids",
+            operation: "fee-market-sell-into-bids", network, walletAddress,
+            tokenId, marketId, policyId, fillCount: legs.length,
+            soldAmount: sold.toString(),
+            grossSompi: legs.reduce((sum, leg) => sum + leg.gross, 0n).toString(),
+            protocolFeeSompi: protocolTotal.toString(),
+            creatorFeeSompi: creatorTotal.toString(), receiptOutputIndex,
+            ticketInputIndex, ticketRefundIndex,
+            sellerChangeIndex: changeIndex, sellerRefundIndex: refundIndex,
+            signedMass: { compute: signedMass.computeMass.toString(),
+              transient: signedMass.transientMass.toString(), storage: storageMass.toString() } },
+        };
       };
+      try {
+        return buildWithFunding(fundingEntry);
+      } catch (initialError) {
+        // A large funding input can increase contextual storage mass. Preserve
+        // caller-selected inputs; otherwise try at most seven smaller live
+        // wallet UTXO amounts without changing the trade, fees, or mass limits.
+        const details = initialError?.builderErrorDetails;
+        if (params.fundingOutpoint != null ||
+            initialError?.builderErrorCode !== "TRANSACTION_MASS_EXCEEDED" ||
+            BigInt(details?.computeMass ?? 0) > CONSOLIDATION_TARGET_TRANSACTION_MASS ||
+            BigInt(details?.transientMass ?? 0) > CONSOLIDATION_TARGET_TRANSACTION_MASS * 2n ||
+            BigInt(details?.storageMass ?? 0) <= CONSOLIDATION_TARGET_TRANSACTION_MASS) {
+          throw initialError;
+        }
+        const skipped = [...spentEntries.map(entry => entry.outpoint), fundingEntry.outpoint];
+        const conservativeFundingNeeded = fundingNeeded +
+          (estimatedFundingFeeSompi > priorityFee ? estimatedFundingFeeSompi - priorityFee : 0n);
+        const candidates = walletUtxos.entries.filter(entry =>
+          utxoAmountSompi(entry) >= conservativeFundingNeeded &&
+          utxoAmountSompi(entry) < utxoAmountSompi(fundingEntry))
+          .sort((a, b) => utxoAmountSompi(a) < utxoAmountSompi(b) ? -1 :
+            utxoAmountSompi(a) > utxoAmountSompi(b) ? 1 : 0);
+        let attempted = 0;
+        const attemptedAmounts = new Set<string>();
+        for (const candidate of candidates) {
+          if (attempted === 7) break;
+          const amountKey = utxoAmountSompi(candidate).toString();
+          if (attemptedAmounts.has(amountKey)) continue;
+          let selected;
+          try { selected = selectFundingEntry([candidate], fundingNeeded, skipped, params.fundingOutpoint); }
+          catch { continue; }
+          skipped.push(selected.outpoint);
+          attemptedAmounts.add(amountKey);
+          attempted++;
+          try { return buildWithFunding(selected); }
+          catch (error) {
+            if (!["TRANSACTION_MASS_EXCEEDED", "KAS_FUNDING_CHANGE_TOO_SMALL",
+              "KAS_FUNDING_FEE_INSUFFICIENT"].includes(error?.builderErrorCode)) throw error;
+          }
+        }
+        throw initialError;
+      }
     } finally { await rpc.disconnect(); }
   }
 
