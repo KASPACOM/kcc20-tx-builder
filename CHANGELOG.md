@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.1-kcom.3 (unpublished)
+## 0.8.1-kcom.4 (unpublished)
 
 - Combine the fee-market builder through `0.8.0-fee.14` with the KCOM vesting and claim transaction builders.
 - Encode wide fixed snapshot `maxSupply` and `premintSupply` claims as canonical base-2^63 `u64[2]` limbs instead of overflowing scalar `u64` values.
