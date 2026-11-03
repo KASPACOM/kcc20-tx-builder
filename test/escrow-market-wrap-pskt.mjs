@@ -19,9 +19,11 @@ const names = {
   bid: "KCC20OrderbookFeeBidV1", ticket: "KCC20FeeTicket",
   wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV2",
 };
-const artifacts = Object.fromEntries(Object.entries(names).map(([role, name]) => [
+const globalArtifacts = Object.fromEntries(Object.entries(names).map(([role, name]) => [
   role, JSON.parse(readFileSync(new URL(`../artifacts/${name}.placeholder.json`, import.meta.url))),
 ]));
+const artifacts = globalArtifacts;
+const wrapperV2 = JSON.parse(readFileSync(new URL("../artifacts/KCC20WrapperFeeV2.placeholder.json", import.meta.url)));
 const artifactMap = Object.fromEntries(Object.entries(names).map(([role, name]) => [
   `${name}.placeholder.json`, artifacts[role],
 ]));
@@ -45,7 +47,8 @@ const owner = key.toKeypair().xOnlyPublicKey.toString();
 const wallet = key.toAddress("testnet-10").toString();
 
 function fixture(amount = 10n, wrap = 5n, marketPolicy = policy,
-  creatorHolderExtension = null, wrapperProfile = "native") {
+  creatorHolderExtension = null, wrapperProfile = "native", wrapperVersion = 1) {
+  const artifacts = { ...globalArtifacts, ...(wrapperVersion === 2 ? { wrapper: wrapperV2 } : {}) };
   const tokenCommitment = creatorHolderExtension
     ? blake3(Buffer.concat([Buffer.from("KASPACOM/KCC20/HOLDER/V1"),
       creatorHolderExtension])) : new Uint8Array(32);
@@ -99,11 +102,11 @@ function fixture(amount = 10n, wrap = 5n, marketPolicy = policy,
   const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
     request: { builderKey: "kcc20fee.wrap", network: "testnet-10",
       owner: { walletAddress: wallet, kcc20Owner: owner },
-      params: { marketId, contractCanonicalTokenId: tokenId,
+      params: { wrapperVersion, marketId, contractCanonicalTokenId: tokenId,
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: wrap.toString(),
         feePolicy: marketPolicy, policyId: genesis.policyId, tokenUtxo: source, wrapperUtxo } } };
   const engine = createKcc20PsktBuilderEngine({ wasm: kw,
-    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+    artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({ entries:
@@ -201,7 +204,8 @@ test("creator-fee wrap reuses exact signed setup consent and rejects altered evi
   await assert.rejects(f.engine.build(f.request), /does not authorize this exact market/);
 });
 
-function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0, wrapperProfile = "native") {
+function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0, wrapperProfile = "native", wrapperVersion = 1) {
+  const artifacts = { ...globalArtifacts, ...(wrapperVersion === 2 ? { wrapper: wrapperV2 } : {}) };
   const marketPolicy = creatorFeeBps > 0 ? { ...policy, creatorFeeBps,
     creatorAccountId: "07".repeat(32) } : policy;
   const payoutSpk = kw.payToAddressScript(wallet);
@@ -255,12 +259,12 @@ function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0, wrapperProfile = "
   const request = { schema: "kcc20-in-process-pskt-builder-input/v1",
     request: { builderKey: "kcc20fee.unwrap", network: "testnet-10",
       owner: { walletAddress: wallet, kcc20Owner: owner },
-      params: { marketId, contractCanonicalTokenId: tokenId,
+      params: { wrapperVersion, marketId, contractCanonicalTokenId: tokenId,
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: unwrapAmount.toString(),
         feePolicy: marketPolicy, policyId: genesis.policyId,
         wrappedUtxo, reserveUtxo, wrapperUtxo } } };
   const engine = createKcc20PsktBuilderEngine({ wasm: kw,
-    artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
+    artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({ entries:
@@ -270,7 +274,8 @@ function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0, wrapperProfile = "
     holder, wrappedUtxo, reserveUtxo };
 }
 
-function mergeFixture(count = 3) {
+function mergeFixture(count = 3, wrapperVersion = 1) {
+  const artifacts = { ...globalArtifacts, ...(wrapperVersion === 2 ? { wrapper: wrapperV2 } : {}) };
   const payoutSpk = kw.payToAddressScript(wallet);
   const payoutScript = Buffer.from(String(payoutSpk.script), "hex");
   const payoutSerialized = Buffer.alloc(11 + payoutScript.length);
@@ -314,7 +319,7 @@ function mergeFixture(count = 3) {
       feePolicy: marketPolicy, policyId: genesis.policyId, holderUtxos,
     },
   } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: artifactMap,
+  const engine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2 },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({ entries:
         addresses.includes(wallet) ? [fundingEntry] : entries }),
@@ -1329,3 +1334,43 @@ for (const useTicket of [false,true]) test(`Argent two-ask group ticket=${useTic
   recordImported(f,built,"argent-two-asks-"+useTicket,ids);
   assert.equal(built.metadata.protocolFeeSompi,useTicket?"0":"100000000");
 });
+
+for (const rate of [0, 100, 500]) {
+  test(`V2 wrap with ${rate} creator bps builds without creator metadata or signature`, async () => {
+    const feePolicy = { ...policy, creatorFeeBps: rate,
+      creatorAccountId: rate ? "07".repeat(32) : "00".repeat(32) };
+    const f = fixture(10n, 5n, feePolicy, null, "native", 2);
+    const built = await f.engine.build(f.request);
+    assert.equal(built.metadata.policyId, f.request.request.params.policyId);
+    assert.equal(built.scripts.length, 1); // token holder signature, no creator signer
+    assert.equal(built.scripts[0].inputIndex, 0);
+    const wrapAbi = wrapperV2.abi.find(entry => entry.name === "wrap");
+    assert.equal(wrapAbi.inputs.some(input => /creator|consent/i.test(input.name)), false);
+    f.request.request.params.wrapperVersion = 1;
+    await assert.rejects(f.engine.build(f.request)); // cannot reinterpret a V2 input as V1
+  });
+}
+
+test("V2 holders select their bound wrapper for asks without a caller version hint", async () => {
+  const f = unwrapFixture(10n, 100, "native", 2);
+  delete f.request.request.params.wrapperVersion;
+  f.request.request.builderKey = "kcc20fee.create-ask";
+  Object.assign(f.request.request.params, { holderUtxo: f.wrappedUtxo,
+    askAmount: "5", askUnitPriceSompi: "100000000" });
+  const built = await f.engine.build(f.request);
+  assert.equal(built.metadata.grossSompi, "500000000");
+  f.request.request.params.wrapperVersion = 1;
+  await assert.rejects(f.engine.build(f.request), /bound wrapper/);
+});
+test("V2 holder consolidation selects its bound wrapper automatically", async () => {
+  const f = mergeFixture(3, 2);
+  const built = await f.engine.build(f.request);
+  assert.equal(built.scripts.length, 3);
+});
+for (const amount of [5n, 10n]) {
+  test(`V2 unwrap ${amount} requires no creator approval and preserves the bound reserve`, async () => {
+    const f = unwrapFixture(amount, 100, "native", 2);
+    const built = await f.engine.build(f.request);
+    assert.equal(built.metadata.policyId, f.request.request.params.policyId);
+  });
+}

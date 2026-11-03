@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased: native fee wrapper activation
+
+- Add explicit `wrapperVersion: 2` for native fee-market deployment, activation, wrapping and unwrapping; keep V1 dispatch for existing markets.
+- Verify creator approval once during V2 activation, returning its authenticated canonical token input with the same script, lineage and principal. V2 wrapping carries no creator signature.
+- Resolve trade and consolidation wrapper versions from the exact wrapper commitment in source UTXOs.
+- Publication and funded V2 lifecycle proof remain pending.
+
 ## 0.8.1-kcom.3 (unpublished)
 
 - Combine the fee-market builder through `0.8.0-fee.14` with the KCOM vesting and claim transaction builders.
