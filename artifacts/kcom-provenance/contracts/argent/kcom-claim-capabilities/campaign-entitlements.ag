@@ -1,0 +1,721 @@
+// Integrated claim accounting, token custody, settlement sealing and vesting activation.
+import "../kcom-vesting/vesting.ag" as vesting;
+state ClaimShardState {
+    byte[32] campaign;
+    byte[32] terms_hash;
+    byte[32] token_id;
+    int budget_raw;
+    int manifest_total;
+    byte[32] eligibility_root;
+    byte[32] used_root;
+    int leaf_count;
+    int selected_count;
+    int all_weight;
+    int boosted_weight;
+    int long_weight;
+    int shard;
+    int shard_count;
+    byte[32] first;
+    byte[32] second;
+    byte[32] third;
+    int opens_ms;
+    int closes_ms;
+    int tge_ms;
+    bool closed;
+}
+actor KCOMClaimShard owns ClaimShardState {
+    fn valid_shard_count() -> bool { return(shard_count == 1 || shard_count == 2 || shard_count == 4 || shard_count == 8 || shard_count == 16 || shard_count == 32 || shard_count == 64 || shard_count == 128 || shard_count == 256 || shard_count == 512 || shard_count == 1024 || shard_count == 2048 || shard_count == 4096 || shard_count == 8192 || shard_count == 16384 || shard_count == 32768 || shard_count == 65536 || shard_count == 131072 || shard_count == 262144 || shard_count == 524288 || shard_count == 1048576); }
+    fn fold(byte[32] leaf, int index, byte[] proof, int depth, bool eligibility) -> byte[32] {
+        byte[32] current = leaf;
+        int at = index;
+        for (i, 0, depth, 20) {
+            byte[32] sibling = byte[32](proof.slice(i * 32, (i + 1) * 32));
+            if (eligibility) {
+                if (at % 2 == 0) {
+                    current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e656c69676962696c6974792e6e6f64652f763100) + current + sibling));
+                } else {
+                    current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e656c69676962696c6974792e6e6f64652f763100) + sibling + current));
+                }
+            } else {
+                if (at % 2 == 0) {
+                    current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e757365642e6e6f64652f763100) + current + sibling));
+                } else {
+                    current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e757365642e6e6f64652f763100) + sibling + current));
+                }
+            }
+            at = at / 2;
+        }
+        return(current);
+    }
+    entry select(sig signature, pubkey key, int index, int weight, int chosen_tier,
+                 byte chosen_scheme, byte[32] chosen_beneficiary,
+                 byte[] membership_proof, byte[] unused_proof, int depth, int route)
+    emits { next: KCOMClaimShard, commitment: KCOMClaimCommitment, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(!closed);
+        require(valid_shard_count());
+        require(shard_count > 0 && shard_count <= 1048576 && shard >= 0 && shard < shard_count);
+        require(opens_ms >= 500000000000 && opens_ms <= 9223372034262775807);
+        require(closes_ms == opens_ms + 2592000000);
+        require(first != second && first != third && second != third);
+        require(tx.time >= temporal(opens_ms));
+        require(leaf_count > 0 && leaf_count <= 1048576);
+        require(index >= 0 && index < leaf_count);
+        require(depth >= 0 && depth <= 20);
+        require(membership_proof.length == depth * 32 && unused_proof.length == depth * 32);
+        int width = 1;
+        for (i, 0, depth, 20) { width = width * 2; }
+        require(width >= leaf_count && (depth == 0 || width / 2 < leaf_count));
+        require(selected_count >= 0 && selected_count < leaf_count);
+        require(weight > 0 && weight <= 2000000000000000);
+        require(budget_raw == 10000000000000000 || (budget_raw >= 10 && budget_raw <= 20000 && budget_raw % 10 == 0));
+        require(manifest_total > 0 && manifest_total <= budget_raw / 5);
+        require(all_weight >= 0 && weight <= manifest_total && all_weight <= manifest_total - weight);
+        require(boosted_weight >= 0 && boosted_weight <= all_weight);
+        require(long_weight >= 0 && long_weight <= boosted_weight);
+        require(chosen_tier >= 1 && chosen_tier <= 3);
+        require(chosen_scheme == 0x00 || chosen_scheme == 0x01 || chosen_scheme == 0x02 || chosen_scheme == 0x03 || chosen_scheme == 0x04);
+        require(byte[](signature).length == 65);
+        require(byte[](signature).slice(64, 65) == byte[](0x01));
+        require(checkSig(signature, key));
+        byte[32] authority = byte[32](key);
+        byte[32] eligible = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e656c69676962696c6974792e6c6561662f763100) + campaign + (index as byte[4]) + byte[](0x00) + authority + (weight as byte[8])));
+        require(fold(eligible, index, membership_proof, depth, true) == eligibility_root);
+        byte[32] empty = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e757365642e656d7074792f763100) + campaign + (index as byte[4])));
+        require(fold(empty, index, unused_proof, depth, false) == used_root);
+        byte[32] identity = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e6e756c6c69666965722f763100) + campaign + byte[](0x00) + authority));
+        require(route >= 0 && route <= 4294967295);
+        require(byte[](identity).slice(0, 4) == byte[](route as byte[5]).slice(0, 4));
+        require(route % shard_count == shard);
+        byte[32] selection = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e73656c656374696f6e2f763100) + campaign + eligibility_root + identity + (chosen_tier as byte[1]) + byte[1](chosen_scheme) + chosen_beneficiary));
+        byte[32] used = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e757365642e6c6561662f763100) + campaign + (index as byte[4]) + selection));
+        int boosted = boosted_weight;
+        int long = long_weight;
+        if (chosen_tier >= 2) { boosted = boosted + weight; }
+        if (chosen_tier == 3) { long = long + weight; }
+        ClaimShardState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root,
+            used_root: fold(used, index, unused_proof, depth, false),
+            leaf_count: leaf_count, selected_count: selected_count + 1,
+            all_weight: all_weight + weight, boosted_weight: boosted, long_weight: long,
+            shard: shard, shard_count: shard_count, first: first, second: second, third: third,
+            opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, closed: false,
+        };
+        require(next.value == self.value);
+        require(commitment.value > 0);
+        ClaimCommitmentState accepted = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw, manifest_total: manifest_total,
+            eligibility_root: eligibility_root, leaf_count: leaf_count,
+            index: index, original_authority: authority, identity: identity, weight: weight,
+            tier: chosen_tier, beneficiary_scheme: chosen_scheme, beneficiary: chosen_beneficiary,
+            shard: shard, shard_count: shard_count,
+        };
+        become { next <- KCOMClaimShard(changed), commitment <- KCOMClaimCommitment(accepted), };
+    }
+    entry close(sig signature_a, pubkey key_a, sig signature_b, pubkey key_b)
+    emits next: KCOMClaimShard {
+        require(OpCovInputCount(token_id) == 0);
+        require(!closed);
+        require(valid_shard_count());
+        require(opens_ms >= 500000000000 && opens_ms <= 9223372034262775807);
+        require(closes_ms == opens_ms + 2592000000);
+        require(tx.time >= temporal(closes_ms));
+        require(shard_count > 0 && shard_count <= 1048576 && shard >= 0 && shard < shard_count && leaf_count > 0 && leaf_count <= 1048576 && selected_count >= 0 && selected_count <= leaf_count);
+        require(budget_raw == 10000000000000000 || (budget_raw >= 10 && budget_raw <= 20000 && budget_raw % 10 == 0));
+        require(manifest_total > 0 && manifest_total <= budget_raw / 5 && all_weight >= 0 && all_weight <= manifest_total);
+        require(boosted_weight >= 0 && boosted_weight <= all_weight);
+        require(long_weight >= 0 && long_weight <= boosted_weight);
+        require(first != second && first != third && second != third);
+        byte[32] a = byte[32](key_a);
+        byte[32] b = byte[32](key_b);
+        require(a != b);
+        require(a == first || a == second || a == third);
+        require(b == first || b == second || b == third);
+        require(byte[](signature_a).length == 65 && byte[](signature_b).length == 65);
+        require(byte[](signature_a).slice(64, 65) == byte[](0x01));
+        require(byte[](signature_b).slice(64, 65) == byte[](0x01));
+        require(checkSig(signature_a, key_a));
+        require(checkSig(signature_b, key_b));
+        require(next.value == self.value);
+        ClaimShardState frozen = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, shard: shard, shard_count: shard_count, eligibility_root: eligibility_root, leaf_count: leaf_count, used_root: used_root,
+            selected_count: selected_count, all_weight: all_weight,
+            boosted_weight: boosted_weight, long_weight: long_weight,
+            first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, closed: true,
+        };
+        become next <- KCOMClaimShard(frozen);
+    }
+    delegate collect() consumes { collector: KCOMSettlement, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(closed);
+        require(collector.campaign == campaign && collector.token_id == token_id);
+        require(collector.next_shard == shard);
+        require(collector.shard_count == shard_count);
+    }
+
+}
+state SettlementState {
+    byte[32] campaign;
+    byte[32] terms_hash;
+    byte[32] token_id;
+    int budget_raw;
+    int manifest_total;
+    byte[32] eligibility_root;
+    byte[32] summaries_root;
+    int leaf_count;
+    int shard_count;
+    int next_shard;
+    int selected_count;
+    int all_weight;
+    int boosted_weight;
+    int long_weight;
+    byte[32] first;
+    byte[32] second;
+    byte[32] third;
+    int opens_ms;
+    int closes_ms;
+    int tge_ms;
+    bool collection_complete;
+    int settled_count;
+    int liability_raw;
+    bool settlement_complete;
+}
+actor KCOMSettlement owns SettlementState {
+    fn fold_summary(byte[32] value, int index, byte[] proof, int depth) -> byte[32] {
+        byte[32] current = value;
+        int at = index;
+        for (i, 0, depth, 20) {
+            byte[32] sibling = byte[32](proof.slice(i * 32, (i + 1) * 32));
+            if (at % 2 == 0) { current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e73756d6d6172792e6e6f64652f763100) + current + sibling)); }
+            else { current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e73756d6d6172792e6e6f64652f763100) + sibling + current)); }
+            at = at / 2;
+        }
+        return(current);
+    }
+    entry collect(byte[] unused_proof, int depth)
+    consumes { closed_shard: KCOMClaimShard, }
+    emits next: KCOMSettlement {
+        require(OpCovInputCount(token_id) == 0);
+        require(!collection_complete && !settlement_complete && settled_count == 0 && liability_raw == 0);
+        require(shard_count > 0 && shard_count <= 1048576);
+        require(next_shard >= 0 && next_shard < shard_count);
+        require(depth >= 0 && depth <= 20 && unused_proof.length == depth * 32);
+        int width = 1;
+        for (i, 0, depth, 20) { width = width * 2; }
+        require(width == shard_count);
+        require(closed_shard.closed);
+        require(closed_shard.campaign == campaign);
+        require(closed_shard.eligibility_root == eligibility_root && closed_shard.leaf_count == leaf_count);
+        require(closed_shard.token_id == token_id && closed_shard.tge_ms == tge_ms && closed_shard.terms_hash == terms_hash && closed_shard.manifest_total == manifest_total && closed_shard.budget_raw == budget_raw);
+        require(closed_shard.shard == next_shard && closed_shard.shard_count == shard_count);
+        require(closed_shard.first == first && closed_shard.second == second && closed_shard.third == third);
+        require(first != second && first != third && second != third);
+        require(closed_shard.opens_ms == opens_ms && closed_shard.closes_ms == closes_ms);
+        require(opens_ms >= 500000000000 && opens_ms <= 9223372034262775807);
+        require(closes_ms == opens_ms + 2592000000);
+        require(tx.time >= temporal(closes_ms));
+        require(leaf_count > 0 && leaf_count <= 1048576);
+        require(selected_count >= 0 && closed_shard.selected_count >= 0);
+        require(closed_shard.selected_count <= leaf_count);
+        require(selected_count <= leaf_count - closed_shard.selected_count);
+        require(all_weight >= 0 && closed_shard.all_weight >= 0 && closed_shard.all_weight <= 2000000000000000);
+        require(budget_raw == 10000000000000000 || (budget_raw >= 10 && budget_raw <= 20000 && budget_raw % 10 == 0));
+        require(manifest_total > 0 && manifest_total <= budget_raw / 5);
+        require(all_weight <= manifest_total - closed_shard.all_weight);
+        require(boosted_weight >= 0 && boosted_weight <= all_weight && long_weight >= 0 && long_weight <= boosted_weight);
+        require(closed_shard.boosted_weight >= 0 && closed_shard.boosted_weight <= closed_shard.all_weight);
+        require(closed_shard.long_weight >= 0 && closed_shard.long_weight <= closed_shard.boosted_weight);
+        byte[32] empty = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e73756d6d6172792e656d7074792f763100) + campaign + (next_shard as byte[4])));
+        require(fold_summary(empty, next_shard, unused_proof, depth) == summaries_root);
+        byte[32] summary = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e73756d6d6172792e6c6561662f763100) + campaign + (next_shard as byte[4]) + closed_shard.used_root + (closed_shard.selected_count as byte[8]) + (closed_shard.all_weight as byte[8]) + (closed_shard.boosted_weight as byte[8]) + (closed_shard.long_weight as byte[8])));
+        SettlementState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root,
+            summaries_root: fold_summary(summary, next_shard, unused_proof, depth),
+            leaf_count: leaf_count, shard_count: shard_count, next_shard: next_shard + 1,
+            selected_count: selected_count + closed_shard.selected_count,
+            all_weight: all_weight + closed_shard.all_weight,
+            boosted_weight: boosted_weight + closed_shard.boosted_weight,
+            long_weight: long_weight + closed_shard.long_weight,
+            first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms,
+            collection_complete: next_shard + 1 == shard_count, settled_count: 0, liability_raw: 0, settlement_complete: false,
+        };
+        require(next.value == self.value + closed_shard.value);
+        become next <- KCOMSettlement(changed);
+    }
+    fn ratio(int pool, int weight, int denominator) -> int {
+        require(pool >= 0 && pool <= 10000000000000000);
+        require(denominator > 0 && denominator <= 2000000000000000 && weight > 0 && weight <= denominator);
+        int quotient = 0;
+        int remainder = 0;
+        int divisor = 9007199254740992;
+        for (i, 0, 54, 54) {
+            int numerator = remainder * 2 + ((pool / divisor) % 2) * weight;
+            quotient = quotient * 2 + numerator / denominator;
+            remainder = numerator % denominator;
+            divisor = divisor / 2;
+        }
+        return(quotient);
+    }
+    fn fold_used(byte[32] value, int index, byte[] proof, int depth) -> byte[32] {
+        byte[32] current = value;
+        int at = index;
+        for (i, 0, depth, 20) {
+            byte[32] sibling = byte[32](proof.slice(i * 32, (i + 1) * 32));
+            if (at % 2 == 0) { current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e757365642e6e6f64652f763100) + current + sibling)); }
+            else { current = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e757365642e6e6f64652f763100) + sibling + current)); }
+            at = at / 2;
+        }
+        return(current);
+    }
+    entry settle(byte[32] final_used_root, int shard_selected, int shard_all, int shard_boosted, int shard_long,
+                 byte[] summary_proof, int summary_depth, byte[] used_proof, int used_depth)
+    consumes { claim: KCOMClaimCommitment, }
+    emits { next: KCOMSettlement, entitlement: KCOMEntitlement, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(collection_complete && !settlement_complete && next_shard == shard_count);
+        require(selected_count > 0 && settled_count >= 0 && settled_count < selected_count);
+        require(budget_raw == 10000000000000000 || (budget_raw >= 10 && budget_raw <= 20000 && budget_raw % 10 == 0));
+        require(manifest_total > 0 && manifest_total <= budget_raw / 5);
+        require(all_weight > 0 && all_weight <= manifest_total && boosted_weight >= 0 && boosted_weight <= all_weight && long_weight >= 0 && long_weight <= boosted_weight);
+        require(liability_raw >= 0 && liability_raw <= budget_raw);
+        require(claim.campaign == campaign && claim.token_id == token_id && claim.tge_ms == tge_ms && claim.terms_hash == terms_hash && claim.manifest_total == manifest_total && claim.budget_raw == budget_raw);
+        require(claim.eligibility_root == eligibility_root && claim.leaf_count == leaf_count);
+        require(claim.shard_count == shard_count && claim.shard >= 0 && claim.shard < shard_count);
+        require(claim.index >= 0 && claim.index < leaf_count && claim.weight > 0 && claim.weight <= all_weight);
+        require(claim.tier >= 1 && claim.tier <= 3);
+        require(shard_selected > 0 && shard_selected <= selected_count);
+        require(shard_all >= claim.weight && shard_all <= all_weight && shard_boosted >= 0 && shard_boosted <= shard_all && shard_long >= 0 && shard_long <= shard_boosted);
+        require(summary_depth >= 0 && summary_depth <= 20 && summary_proof.length == summary_depth * 32);
+        int summary_width = 1;
+        for (i, 0, summary_depth, 20) { summary_width = summary_width * 2; }
+        require(summary_width == shard_count);
+        byte[32] summary = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e73756d6d6172792e6c6561662f763100) + campaign + (claim.shard as byte[4]) + final_used_root + (shard_selected as byte[8]) + (shard_all as byte[8]) + (shard_boosted as byte[8]) + (shard_long as byte[8])));
+        require(fold_summary(summary, claim.shard, summary_proof, summary_depth) == summaries_root);
+        require(used_depth >= 0 && used_depth <= 20 && used_proof.length == used_depth * 32);
+        int used_width = 1;
+        for (i, 0, used_depth, 20) { used_width = used_width * 2; }
+        require(used_width >= leaf_count && (used_depth == 0 || used_width / 2 < leaf_count));
+        byte[32] selection = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e73656c656374696f6e2f763100) + campaign + eligibility_root + claim.identity + (claim.tier as byte[1]) + byte[1](claim.beneficiary_scheme) + claim.beneficiary));
+        byte[32] used = blake3(byte[](byte[](0x6b636f6d2e636c61696d2e757365642e6c6561662f763100) + campaign + (claim.index as byte[4]) + selection));
+        require(fold_used(used, claim.index, used_proof, used_depth) == final_used_root);
+        int total = claim.weight;
+        if (claim.tier >= 2) { total = total + ratio((budget_raw / 10) * 3, claim.weight, boosted_weight); }
+        if (claim.tier == 3) {
+            total = total + ratio(budget_raw / 2, claim.weight, long_weight);
+            total = total + ratio(manifest_total - all_weight, claim.weight, long_weight);
+        }
+        require(total > 0 && total <= budget_raw && liability_raw <= budget_raw - total);
+        SettlementState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root, summaries_root: summaries_root, leaf_count: leaf_count, shard_count: shard_count, next_shard: next_shard, selected_count: selected_count, all_weight: all_weight, boosted_weight: boosted_weight, long_weight: long_weight, first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, collection_complete: collection_complete, settled_count: settled_count + 1, liability_raw: liability_raw + total, settlement_complete: settlement_complete,
+        };
+        EntitlementState accepted = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw, manifest_total: manifest_total,
+            eligibility_root: eligibility_root, index: claim.index, original_authority: claim.original_authority,
+            beneficiary: claim.beneficiary, beneficiary_scheme: claim.beneficiary_scheme, tier: claim.tier, total: total,
+        };
+        require(next.value == self.value && entitlement.value == claim.value);
+        become { next <- KCOMSettlement(changed), entitlement <- KCOMEntitlement(accepted), };
+    }
+    entry finish_settlement() emits next: KCOMSettlement {
+        require(OpCovInputCount(token_id) == 0);
+        require(collection_complete && next_shard == shard_count && !settlement_complete);
+        require(budget_raw == 10000000000000000 || (budget_raw >= 10 && budget_raw <= 20000 && budget_raw % 10 == 0));
+        require(selected_count >= 0 && selected_count <= leaf_count && settled_count == selected_count);
+        require(liability_raw >= 0 && liability_raw <= budget_raw);
+        SettlementState finalized = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root, summaries_root: summaries_root, leaf_count: leaf_count, shard_count: shard_count, next_shard: next_shard, selected_count: selected_count, all_weight: all_weight, boosted_weight: boosted_weight, long_weight: long_weight, first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, collection_complete: collection_complete, settled_count: settled_count, liability_raw: liability_raw, settlement_complete: true,
+        };
+        require(next.value == self.value);
+        become next <- KCOMSettlement(finalized);
+    }
+    delegate seal() consumes { vault: KCOMVault, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(collection_complete && settlement_complete && next_shard == shard_count && settled_count == selected_count);
+        require(vault.funded && vault.opened && !vault.settled);
+        require(vault.campaign == campaign && vault.terms_hash == terms_hash && vault.token_id == token_id);
+        require(vault.tge_ms == tge_ms && vault.budget_raw == budget_raw);
+        require(vault.first == first && vault.second == second && vault.third == third);
+        require(liability_raw >= 0 && liability_raw <= budget_raw);
+    }
+
+}
+// Unfunded initialization capability. Reviewed manifest/root certification is external.
+state FactoryState {
+    byte[32] campaign;
+    byte[32] terms_hash;
+    byte[32] token_id;
+    int budget_raw;
+    int manifest_total;
+    byte[32] eligibility_root;
+    byte[32] empty_used_root;
+    byte[32] empty_summaries_root;
+    int leaf_count;
+    int shard_count;
+    int next_shard;
+    int shard_value;
+    byte[32] first;
+    byte[32] second;
+    byte[32] third;
+    int opens_ms;
+    int closes_ms;
+    int tge_ms;
+    bool opened;
+}
+actor KCOMFactory owns FactoryState {
+    entry open(sig signature_a, pubkey key_a, sig signature_b, pubkey key_b)
+    consumes { vault: KCOMVault, }
+    emits { factory: KCOMFactory, reserve: KCOMVault, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(!opened && next_shard == 0);
+        require(vault.funded && !vault.opened && !vault.settled);
+        require(vault.campaign == campaign && vault.terms_hash == terms_hash && vault.token_id == token_id);
+        require(vault.tge_ms == tge_ms && vault.budget_raw == budget_raw);
+        byte[32] a = byte[32](key_a);
+        byte[32] b = byte[32](key_b);
+        require(a != b && (a == first || a == second || a == third) && (b == first || b == second || b == third));
+        require(byte[](signature_a).length == 65 && byte[](signature_b).length == 65);
+        require(byte[](signature_a).slice(64, 65) == byte[](0x01) && byte[](signature_b).slice(64, 65) == byte[](0x01));
+        require(checkSig(signature_a, key_a) && checkSig(signature_b, key_b));
+        FactoryState next_factory = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root,
+            empty_used_root: empty_used_root, empty_summaries_root: empty_summaries_root, leaf_count: leaf_count, shard_count: shard_count,
+            next_shard: 0, shard_value: shard_value, first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, opened: true,
+        };
+        VaultState next_vault = {
+            campaign: vault.campaign, terms_hash: vault.terms_hash, token_id: vault.token_id, tge_ms: vault.tge_ms,
+            budget_raw: vault.budget_raw, extension: vault.extension, treasury_scheme: vault.treasury_scheme, treasury: vault.treasury,
+            first: first, second: second, third: third,
+            funded: true, opened: true, settled: false, recovered: false, liability_raw: 0, activated_raw: 0,
+        };
+        require(factory.value == self.value && reserve.value == vault.value);
+        become { factory <- KCOMFactory(next_factory), reserve <- KCOMVault(next_vault), };
+    }
+    entry create_shard() emits { factory: KCOMFactory, shard: KCOMClaimShard, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(opened);
+        require(next_shard >= 0 && next_shard < shard_count);
+        require(shard_value > 0 && self.value > shard_value);
+        require(factory.value == self.value - shard_value && shard.value == shard_value);
+        FactoryState successor = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root, empty_used_root: empty_used_root,
+            empty_summaries_root: empty_summaries_root, leaf_count: leaf_count,
+            shard_count: shard_count, next_shard: next_shard + 1, shard_value: shard_value,
+            first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, opened: true,
+        };
+        ClaimShardState initial = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root, used_root: empty_used_root,
+            leaf_count: leaf_count, selected_count: 0, all_weight: 0, boosted_weight: 0, long_weight: 0,
+            shard: next_shard, shard_count: shard_count, first: first, second: second, third: third,
+            opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms, closed: false,
+        };
+        become { factory <- KCOMFactory(successor), shard <- KCOMClaimShard(initial), };
+    }
+    entry finish_initialization() emits collector: KCOMSettlement {
+        require(OpCovInputCount(token_id) == 0);
+        require(opened);
+        require(next_shard == shard_count);
+        require(collector.value == self.value);
+        SettlementState initial = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, budget_raw: budget_raw, manifest_total: manifest_total, eligibility_root: eligibility_root, summaries_root: empty_summaries_root,
+            leaf_count: leaf_count, shard_count: shard_count, next_shard: 0,
+            selected_count: 0, all_weight: 0, boosted_weight: 0, long_weight: 0,
+            first: first, second: second, third: third, opens_ms: opens_ms, closes_ms: closes_ms, tge_ms: tge_ms,
+            collection_complete: false, settled_count: 0, liability_raw: 0, settlement_complete: false,
+        };
+        become collector <- KCOMSettlement(initial);
+    }
+}
+
+state VaultState {
+    byte[32] campaign;
+    byte[32] terms_hash;
+    byte[32] token_id;
+    int tge_ms;
+    int budget_raw;
+    byte[32] extension;
+    byte treasury_scheme;
+    byte[32] treasury;
+    byte[32] first;
+    byte[32] second;
+    byte[32] third;
+    bool funded;
+    bool opened;
+    bool settled;
+    bool recovered;
+    int liability_raw;
+    int activated_raw;
+}
+actor KCOMVault owns VaultState {
+    entry fund(int token_input, int reserve_output, byte[] prefix, byte[] suffix)
+    emits next: KCOMVault {
+        require(!funded && !opened && !settled && !recovered && liability_raw == 0 && activated_raw == 0);
+        require(budget_raw > 0 && budget_raw <= 10000000000000000);
+        require(OpCovInputCount(OpInputCovenantId(this.activeInputIndex)) == 1);
+        require(OpCovInputCount(token_id) == 1 && OpInputCovenantId(token_input) == token_id);
+        vesting::TokenState input = readInputStateWithTemplate(token_input, 1, 25264, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(input.amount == budget_raw && input.extension_commitment == extension);
+        require(input.borrow_scheme == 0x00 && input.borrow_guard == byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        vesting::TokenState reserve = {
+            amount: budget_raw, owner: OpInputCovenantId(this.activeInputIndex), owner_scheme: 0x04,
+            borrow_scheme: 0x00, borrow_guard: byte[32](0x0000000000000000000000000000000000000000000000000000000000000000), extension_commitment: extension,
+        };
+        validateOutputStateWithTemplate(reserve_output, reserve, prefix, suffix, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(OpAuthOutputCount(token_input) == 1 && OpAuthOutputIdx(token_input, 0) == reserve_output);
+        require(tx.outputs[reserve_output].value == tx.inputs[token_input].value);
+        require(next.value == self.value);
+        VaultState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw,
+            extension: extension, treasury_scheme: treasury_scheme, treasury: treasury,
+            first: first, second: second, third: third,
+            funded: true, opened: false, settled: false, recovered: false, liability_raw: 0, activated_raw: 0,
+        };
+        become next <- KCOMVault(changed);
+    }
+    delegate open() consumes { factory: KCOMFactory, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(funded && !opened && !settled && !recovered && liability_raw == 0 && activated_raw == 0);
+        require(factory.campaign == campaign && factory.terms_hash == terms_hash && factory.token_id == token_id);
+        require(factory.tge_ms == tge_ms && factory.budget_raw == budget_raw && !factory.opened);
+        require(factory.first == first && factory.second == second && factory.third == third);
+    }
+    entry seal() consumes { collector: KCOMSettlement, } emits next: KCOMVault {
+        require(OpCovInputCount(token_id) == 0);
+        require(funded && opened && !settled && !recovered && liability_raw == 0 && activated_raw == 0);
+        require(collector.collection_complete && collector.settlement_complete);
+        require(collector.next_shard == collector.shard_count && collector.settled_count == collector.selected_count);
+        require(collector.campaign == campaign && collector.terms_hash == terms_hash && collector.token_id == token_id);
+        require(collector.tge_ms == tge_ms && collector.budget_raw == budget_raw);
+        require(collector.first == first && collector.second == second && collector.third == third);
+        require(collector.liability_raw >= 0 && collector.liability_raw <= budget_raw);
+        require(next.value == self.value + collector.value);
+        VaultState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw,
+            extension: extension, treasury_scheme: treasury_scheme, treasury: treasury,
+            first: first, second: second, third: third,
+            funded: true, opened: true, settled: true, recovered: false, liability_raw: collector.liability_raw, activated_raw: 0,
+        };
+        become next <- KCOMVault(changed);
+    }
+    entry activate_partial(int token_input, int position_reserve_output, int vault_reserve_output, byte[] prefix, byte[] suffix)
+    consumes { entitlement: KCOMEntitlement, }
+    spawns position by position_id { outputs { vesting_position: vesting::KCOMClaimVesting::KCOMVesting, } }
+    emits next: KCOMVault {
+        require(funded && opened && settled);
+        require(liability_raw >= 0 && liability_raw <= budget_raw && activated_raw >= 0 && activated_raw <= liability_raw);
+        require(entitlement.campaign == campaign && entitlement.terms_hash == terms_hash && entitlement.token_id == token_id);
+        require(entitlement.tge_ms == tge_ms && entitlement.budget_raw == budget_raw);
+        require(entitlement.total > 0 && entitlement.total <= liability_raw - activated_raw);
+        int available = budget_raw - activated_raw;
+        if (recovered) { available = liability_raw - activated_raw; }
+        require(entitlement.total < available);
+        require(entitlement.tier >= 1 && entitlement.tier <= 3);
+        require(entitlement.beneficiary_scheme == 0x00 || entitlement.beneficiary_scheme == 0x01 || entitlement.beneficiary_scheme == 0x02 || entitlement.beneficiary_scheme == 0x03 || entitlement.beneficiary_scheme == 0x04);
+        require(OpCovInputCount(token_id) == 1 && OpInputCovenantId(token_input) == token_id);
+        vesting::TokenState source = readInputStateWithTemplate(token_input, 1, 25264, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(source.amount == available);
+        require(source.owner_scheme == 0x04 && source.owner == OpInputCovenantId(this.activeInputIndex));
+        require(source.borrow_scheme == 0x00 && source.borrow_guard == byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(source.extension_commitment == extension);
+        vesting::VestingState position_state = {
+            token_id: token_id, beneficiary: entitlement.beneficiary, beneficiary_scheme: entitlement.beneficiary_scheme,
+            extension: extension, total: entitlement.total, released: 0, tier: entitlement.tier, tge_ms: tge_ms,
+            token_prefix_len: 1, token_suffix_len: 25264, token_template_hash: byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29),
+        };
+        require(position.outputs.vesting_position.value == entitlement.value);
+        require position.outputs become { vesting_position <- vesting::KCOMClaimVesting::KCOMVesting(position_state), };
+        vesting::TokenState position_reserve = {
+            amount: entitlement.total, owner: byte[32](position_id), owner_scheme: 0x04,
+            borrow_scheme: 0x00, borrow_guard: byte[32](0x0000000000000000000000000000000000000000000000000000000000000000), extension_commitment: extension,
+        };
+        vesting::TokenState vault_reserve = {
+            amount: source.amount - entitlement.total, owner: source.owner, owner_scheme: source.owner_scheme,
+            borrow_scheme: source.borrow_scheme, borrow_guard: source.borrow_guard, extension_commitment: extension,
+        };
+        require(OpAuthOutputCount(token_input) == 2);
+        require(OpAuthOutputIdx(token_input, 0) == position_reserve_output && OpAuthOutputIdx(token_input, 1) == vault_reserve_output);
+        validateOutputStateWithTemplate(position_reserve_output, position_reserve, prefix, suffix, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        validateOutputStateWithTemplate(vault_reserve_output, vault_reserve, prefix, suffix, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(tx.outputs[position_reserve_output].value >= 100000000 && tx.outputs[vault_reserve_output].value >= 100000000);
+        require(tx.outputs[position_reserve_output].value + tx.outputs[vault_reserve_output].value >= tx.inputs[token_input].value);
+        require(next.value == self.value);
+        VaultState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw,
+            extension: extension, treasury_scheme: treasury_scheme, treasury: treasury,
+            first: first, second: second, third: third,
+            funded: true, opened: true, settled: true, recovered: recovered, liability_raw: liability_raw, activated_raw: activated_raw + entitlement.total,
+        };
+        become next <- KCOMVault(changed);
+    }
+    entry activate_final(int token_input, int position_reserve_output, byte[] prefix, byte[] suffix)
+    consumes { entitlement: KCOMEntitlement, }
+    spawns position by position_id { outputs { vesting_position: vesting::KCOMClaimVesting::KCOMVesting, } }
+    emits next: KCOMVault {
+        require(funded && opened && settled);
+        require(liability_raw >= 0 && liability_raw <= budget_raw && activated_raw >= 0 && activated_raw < liability_raw);
+        require(entitlement.campaign == campaign && entitlement.terms_hash == terms_hash && entitlement.token_id == token_id);
+        require(entitlement.tge_ms == tge_ms && entitlement.budget_raw == budget_raw);
+        int available = budget_raw - activated_raw;
+        if (recovered) { available = liability_raw - activated_raw; }
+        require(entitlement.total > 0 && entitlement.total == available && entitlement.total == liability_raw - activated_raw);
+        require(entitlement.tier >= 1 && entitlement.tier <= 3);
+        require(entitlement.beneficiary_scheme == 0x00 || entitlement.beneficiary_scheme == 0x01 || entitlement.beneficiary_scheme == 0x02 || entitlement.beneficiary_scheme == 0x03 || entitlement.beneficiary_scheme == 0x04);
+        require(OpCovInputCount(token_id) == 1 && OpInputCovenantId(token_input) == token_id);
+        vesting::TokenState source = readInputStateWithTemplate(token_input, 1, 25264, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(source.amount == entitlement.total && source.owner_scheme == 0x04 && source.owner == OpInputCovenantId(this.activeInputIndex));
+        require(source.borrow_scheme == 0x00 && source.borrow_guard == byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(source.extension_commitment == extension);
+        vesting::VestingState position_state = {
+            token_id: token_id, beneficiary: entitlement.beneficiary, beneficiary_scheme: entitlement.beneficiary_scheme,
+            extension: extension, total: entitlement.total, released: 0, tier: entitlement.tier, tge_ms: tge_ms,
+            token_prefix_len: 1, token_suffix_len: 25264, token_template_hash: byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29),
+        };
+        require(position.outputs.vesting_position.value == entitlement.value);
+        require position.outputs become { vesting_position <- vesting::KCOMClaimVesting::KCOMVesting(position_state), };
+        vesting::TokenState position_reserve = {
+            amount: entitlement.total, owner: byte[32](position_id), owner_scheme: 0x04,
+            borrow_scheme: 0x00, borrow_guard: byte[32](0x0000000000000000000000000000000000000000000000000000000000000000), extension_commitment: extension,
+        };
+        require(OpAuthOutputCount(token_input) == 1 && OpAuthOutputIdx(token_input, 0) == position_reserve_output);
+        validateOutputStateWithTemplate(position_reserve_output, position_reserve, prefix, suffix, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(tx.outputs[position_reserve_output].value == tx.inputs[token_input].value);
+        require(next.value == self.value);
+        VaultState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw,
+            extension: extension, treasury_scheme: treasury_scheme, treasury: treasury,
+            first: first, second: second, third: third,
+            funded: true, opened: true, settled: true, recovered: recovered, liability_raw: liability_raw, activated_raw: liability_raw,
+        };
+        become next <- KCOMVault(changed);
+    }
+    entry recover_partial(sig signature_a, pubkey key_a, sig signature_b, pubkey key_b,
+                          int token_input, int treasury_output, int reserve_output, byte[] prefix, byte[] suffix)
+    emits next: KCOMVault {
+        require(funded && opened && settled && !recovered);
+        require(liability_raw >= 0 && liability_raw < budget_raw && activated_raw >= 0 && activated_raw < liability_raw);
+        byte[32] a = byte[32](key_a);
+        byte[32] b = byte[32](key_b);
+        require(a != b && (a == first || a == second || a == third) && (b == first || b == second || b == third));
+        require(byte[](signature_a).length == 65 && byte[](signature_b).length == 65);
+        require(byte[](signature_a).slice(64, 65) == byte[](0x01) && byte[](signature_b).slice(64, 65) == byte[](0x01));
+        require(checkSig(signature_a, key_a) && checkSig(signature_b, key_b));
+        require(OpCovInputCount(OpInputCovenantId(this.activeInputIndex)) == 1);
+        require(OpCovInputCount(token_id) == 1 && OpInputCovenantId(token_input) == token_id);
+        vesting::TokenState source = readInputStateWithTemplate(token_input, 1, 25264, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(source.amount == budget_raw - activated_raw && source.owner_scheme == 0x04 && source.owner == OpInputCovenantId(this.activeInputIndex));
+        require(source.borrow_scheme == 0x00 && source.borrow_guard == byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(source.extension_commitment == extension);
+        vesting::TokenState treasury_tokens = {
+            amount: budget_raw - liability_raw, owner: treasury, owner_scheme: treasury_scheme,
+            borrow_scheme: 0x00, borrow_guard: byte[32](0x0000000000000000000000000000000000000000000000000000000000000000), extension_commitment: extension,
+        };
+        vesting::TokenState remaining = {
+            amount: liability_raw - activated_raw, owner: source.owner, owner_scheme: source.owner_scheme,
+            borrow_scheme: source.borrow_scheme, borrow_guard: source.borrow_guard, extension_commitment: extension,
+        };
+        require(OpAuthOutputCount(token_input) == 2);
+        require(OpAuthOutputIdx(token_input, 0) == treasury_output && OpAuthOutputIdx(token_input, 1) == reserve_output);
+        validateOutputStateWithTemplate(treasury_output, treasury_tokens, prefix, suffix, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        validateOutputStateWithTemplate(reserve_output, remaining, prefix, suffix, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(tx.outputs[treasury_output].value >= 100000000 && tx.outputs[reserve_output].value >= 100000000);
+        require(tx.outputs[treasury_output].value + tx.outputs[reserve_output].value >= tx.inputs[token_input].value);
+        require(next.value == self.value);
+        VaultState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw,
+            extension: extension, treasury_scheme: treasury_scheme, treasury: treasury,
+            first: first, second: second, third: third,
+            funded: true, opened: true, settled: true, recovered: true, liability_raw: liability_raw, activated_raw: activated_raw,
+        };
+        become next <- KCOMVault(changed);
+    }
+    entry recover_final(sig signature_a, pubkey key_a, sig signature_b, pubkey key_b,
+                        int token_input, int treasury_output, byte[] prefix, byte[] suffix)
+    emits next: KCOMVault {
+        require(funded && opened && settled && !recovered);
+        require(liability_raw >= 0 && liability_raw < budget_raw && activated_raw == liability_raw);
+        byte[32] a = byte[32](key_a);
+        byte[32] b = byte[32](key_b);
+        require(a != b && (a == first || a == second || a == third) && (b == first || b == second || b == third));
+        require(byte[](signature_a).length == 65 && byte[](signature_b).length == 65);
+        require(byte[](signature_a).slice(64, 65) == byte[](0x01) && byte[](signature_b).slice(64, 65) == byte[](0x01));
+        require(checkSig(signature_a, key_a) && checkSig(signature_b, key_b));
+        require(OpCovInputCount(OpInputCovenantId(this.activeInputIndex)) == 1);
+        require(OpCovInputCount(token_id) == 1 && OpInputCovenantId(token_input) == token_id);
+        vesting::TokenState source = readInputStateWithTemplate(token_input, 1, 25264, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(source.amount == budget_raw - liability_raw && source.owner_scheme == 0x04 && source.owner == OpInputCovenantId(this.activeInputIndex));
+        require(source.borrow_scheme == 0x00 && source.borrow_guard == byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+        require(source.extension_commitment == extension);
+        vesting::TokenState treasury_tokens = {
+            amount: budget_raw - liability_raw, owner: treasury, owner_scheme: treasury_scheme,
+            borrow_scheme: 0x00, borrow_guard: byte[32](0x0000000000000000000000000000000000000000000000000000000000000000), extension_commitment: extension,
+        };
+        require(OpAuthOutputCount(token_input) == 1 && OpAuthOutputIdx(token_input, 0) == treasury_output);
+        validateOutputStateWithTemplate(treasury_output, treasury_tokens, prefix, suffix, byte[32](0x5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29));
+        require(tx.outputs[treasury_output].value == tx.inputs[token_input].value);
+        require(next.value == self.value);
+        VaultState changed = {
+            campaign: campaign, terms_hash: terms_hash, token_id: token_id, tge_ms: tge_ms, budget_raw: budget_raw,
+            extension: extension, treasury_scheme: treasury_scheme, treasury: treasury,
+            first: first, second: second, third: third,
+            funded: true, opened: true, settled: true, recovered: true, liability_raw: liability_raw, activated_raw: activated_raw,
+        };
+        become next <- KCOMVault(changed);
+    }
+}
+
+state ClaimCommitmentState {
+    byte[32] campaign;
+    byte[32] terms_hash;
+    byte[32] token_id;
+    int tge_ms;
+    int budget_raw;
+    int manifest_total;
+    byte[32] eligibility_root;
+    int leaf_count;
+    int index;
+    byte[32] original_authority;
+    byte[32] identity;
+    int weight;
+    int tier;
+    byte beneficiary_scheme;
+    byte[32] beneficiary;
+    int shard;
+    int shard_count;
+}
+actor KCOMClaimCommitment owns ClaimCommitmentState {
+    delegate settle() consumes { collector: KCOMSettlement, } {
+        require(OpCovInputCount(token_id) == 0);
+        require(collector.collection_complete && !collector.settlement_complete);
+        require(collector.campaign == campaign && collector.token_id == token_id && collector.tge_ms == tge_ms && collector.terms_hash == terms_hash && collector.budget_raw == budget_raw);
+    }
+}
+state EntitlementState {
+    byte[32] campaign;
+    byte[32] terms_hash;
+    byte[32] token_id;
+    int tge_ms;
+    int budget_raw;
+    int manifest_total;
+    byte[32] eligibility_root;
+    int index;
+    byte[32] original_authority;
+    byte[32] beneficiary;
+    byte beneficiary_scheme;
+    int tier;
+    int total;
+}
+actor KCOMEntitlement owns EntitlementState {
+    delegate activate_partial() consumes { vault: KCOMVault, } {
+        require(vault.funded && vault.opened && vault.settled);
+        require(vault.campaign == campaign && vault.terms_hash == terms_hash && vault.token_id == token_id);
+        require(vault.tge_ms == tge_ms && vault.budget_raw == budget_raw);
+        require(total > 0 && total <= vault.liability_raw - vault.activated_raw);
+    }
+    delegate activate_final() consumes { vault: KCOMVault, } {
+        require(vault.funded && vault.opened && vault.settled);
+        require(vault.campaign == campaign && vault.terms_hash == terms_hash && vault.token_id == token_id);
+        require(vault.tge_ms == tge_ms && vault.budget_raw == budget_raw);
+        require(total > 0 && total == vault.liability_raw - vault.activated_raw);
+    }
+    entry unavailable() emits {} { require(false); }
+}
+app KCOMEntitlementGraph { actor KCOMClaimShard; actor KCOMSettlement; actor KCOMFactory; actor KCOMVault; actor KCOMClaimCommitment; actor KCOMEntitlement; }

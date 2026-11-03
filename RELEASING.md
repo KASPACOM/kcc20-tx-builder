@@ -95,6 +95,16 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
+Version `0.8.0-fee.9` permits up to 500,000 compute mass for the bounded
+fee-market two-ask builder, while retaining its 900,000 transient and 450,000
+storage checks. Consolidation and other operation limits are unchanged. A
+regression with a burned ticket and two creator-fee obligations reproduces the
+465,140 compute shape previously rejected before signing. The candidate also
+passed funded TN10 execution with two distinct sellers and a third wallet as
+buyer, retaining per-fill creator fees and returning exact ticket collateral.
+This does not enable market creation or waive application and parity gates.
+It retains the wide snapshot supply correction from fee.8.
+
 Version `0.8.0-fee.7` fixes seller sweeps built from enriched indexer bid
 state and marks the two-ask buyer group submit-ready. Funded DEV TN10
 transactions passed for 3- and 10-bid seller sweeps, a two-ask buy, partial

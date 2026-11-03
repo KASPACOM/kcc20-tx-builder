@@ -13,7 +13,7 @@ const keys = {
   receipt: "KCC20FeeEscrowV1", root: "KCC20OrderbookFeeRootV1",
   holder: "KCC20OrderbookFeeHolderV1", ask: "KCC20OrderbookFeeAskV1",
   bid: "KCC20OrderbookFeeBidV1", ticket: "KCC20FeeTicket",
-  wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV1",
+  wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV2",
 };
 const artifacts = Object.fromEntries(Object.entries(keys).map(([role, name]) => [
   role, JSON.parse(readFileSync(new URL(`../artifacts/${name}.placeholder.json`, import.meta.url))),

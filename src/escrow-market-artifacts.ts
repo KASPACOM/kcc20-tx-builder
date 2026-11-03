@@ -12,7 +12,7 @@ const PINS = {
   bid: ["KCC20OrderbookFeeBidV1.placeholder.json", "KCC20OrderbookFeeBidV1", "98d7c97319bbe1ca954c7f4f6a02467e90a7f3e84c14c91db650f8ef5887ee0e"],
   ticket: ["KCC20FeeTicket.placeholder.json", "KCC20FeeTicket", "289f3f74914deb383d2cccc11128187a77e4bcea90e61c83e05d86c5c9d63bc5"],
   wrapper: ["KCC20WrapperFeeV1.placeholder.json", "KCC20WrapperFeeV1", "84c3844493efd4bdf6b2e3435e1ac511f5b5a7f58b5b6c093c91e2edcae1a2e0"],
-  argentWrapper: ["KCC20WrapperFeeArgentV1.placeholder.json", "KCC20WrapperFeeArgentV1", "130f25462e070523821579d28809577fac6d010f8d5deabc66ad2de1c11d2c73"],
+  argentWrapper: ["KCC20WrapperFeeArgentV2.placeholder.json", "KCC20WrapperFeeArgentV2", "8a3b33e4c4b340fb88069e86536106b446014fe68cd533117fe4ec1499325c23"],
 } as const;
 
 export type Kcc20FeeArtifactRole = keyof typeof PINS;

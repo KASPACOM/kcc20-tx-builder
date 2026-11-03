@@ -1,0 +1,1865 @@
+{
+  "generator": "independent Python integer reference",
+  "baseEntitlementsRaw": [
+    "333333333333333",
+    "666666666666666",
+    "1000000000000001"
+  ],
+  "cases": [
+    {
+      "tiers": [
+        0,
+        0,
+        0
+      ],
+      "liabilityRaw": "0",
+      "treasuryRaw": "10000000000000000",
+      "allocations": []
+    },
+    {
+      "tiers": [
+        0,
+        0,
+        1
+      ],
+      "liabilityRaw": "1000000000000001",
+      "treasuryRaw": "8999999999999999",
+      "allocations": [
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        0,
+        2
+      ],
+      "liabilityRaw": "4000000000000001",
+      "treasuryRaw": "5999999999999999",
+      "allocations": [
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "4000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        0,
+        3
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "999999999999999",
+          "finalAllocationRaw": "10000000000000000"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        1,
+        0
+      ],
+      "liabilityRaw": "666666666666666",
+      "treasuryRaw": "9333333333333334",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        1,
+        1
+      ],
+      "liabilityRaw": "1666666666666667",
+      "treasuryRaw": "8333333333333333",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        1,
+        2
+      ],
+      "liabilityRaw": "4666666666666667",
+      "treasuryRaw": "5333333333333333",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "4000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        1,
+        3
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "333333333333333",
+          "finalAllocationRaw": "9333333333333334"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        2,
+        0
+      ],
+      "liabilityRaw": "3666666666666666",
+      "treasuryRaw": "6333333333333334",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        2,
+        1
+      ],
+      "liabilityRaw": "4666666666666667",
+      "treasuryRaw": "5333333333333333",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        2,
+        2
+      ],
+      "liabilityRaw": "4666666666666666",
+      "treasuryRaw": "5333333333333334",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1866666666666664"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2800000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        2,
+        3
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1866666666666664"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "333333333333333",
+          "finalAllocationRaw": "8133333333333335"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        3,
+        0
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "1333333333333334",
+          "finalAllocationRaw": "10000000000000000"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        3,
+        1
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "333333333333333",
+          "finalAllocationRaw": "8999999999999999"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        3,
+        2
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "333333333333333",
+          "finalAllocationRaw": "7199999999999997"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2800000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        0,
+        3,
+        3
+      ],
+      "liabilityRaw": "9999999999999997",
+      "treasuryRaw": "3",
+      "allocations": [
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "1999999999999997",
+          "unclaimedRedistributionRaw": "133333333333333",
+          "finalAllocationRaw": "3999999999999994"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "3000000000000002",
+          "unclaimedRedistributionRaw": "199999999999999",
+          "finalAllocationRaw": "6000000000000003"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        0,
+        0
+      ],
+      "liabilityRaw": "333333333333333",
+      "treasuryRaw": "9666666666666667",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        0,
+        1
+      ],
+      "liabilityRaw": "1333333333333334",
+      "treasuryRaw": "8666666666666666",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        0,
+        2
+      ],
+      "liabilityRaw": "4333333333333334",
+      "treasuryRaw": "5666666666666666",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "4000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        0,
+        3
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "666666666666666",
+          "finalAllocationRaw": "9666666666666667"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        1,
+        0
+      ],
+      "liabilityRaw": "999999999999999",
+      "treasuryRaw": "9000000000000001",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        1,
+        1
+      ],
+      "liabilityRaw": "2000000000000000",
+      "treasuryRaw": "8000000000000000",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        1,
+        2
+      ],
+      "liabilityRaw": "5000000000000000",
+      "treasuryRaw": "5000000000000000",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "4000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        1,
+        3
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "9000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        2,
+        0
+      ],
+      "liabilityRaw": "3999999999999999",
+      "treasuryRaw": "6000000000000001",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        2,
+        1
+      ],
+      "liabilityRaw": "5000000000000000",
+      "treasuryRaw": "5000000000000000",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        2,
+        2
+      ],
+      "liabilityRaw": "4999999999999999",
+      "treasuryRaw": "5000000000000001",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1866666666666664"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2800000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        2,
+        3
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1866666666666664"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "7800000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        3,
+        0
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "1000000000000001",
+          "finalAllocationRaw": "9666666666666667"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        3,
+        1
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "8666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        3,
+        2
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "6866666666666664"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2800000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        1,
+        3,
+        3
+      ],
+      "liabilityRaw": "9999999999999998",
+      "treasuryRaw": "2",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "1199999999999998",
+          "longBoostRaw": "1999999999999997",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3866666666666661"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1800000000000001",
+          "longBoostRaw": "3000000000000002",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "5800000000000004"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        0,
+        0
+      ],
+      "liabilityRaw": "3333333333333333",
+      "treasuryRaw": "6666666666666667",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3333333333333333"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        0,
+        1
+      ],
+      "liabilityRaw": "4333333333333334",
+      "treasuryRaw": "5666666666666666",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3333333333333333"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        0,
+        2
+      ],
+      "liabilityRaw": "4333333333333333",
+      "treasuryRaw": "5666666666666667",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1083333333333331"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3250000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        0,
+        3
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1083333333333331"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "666666666666666",
+          "finalAllocationRaw": "8916666666666668"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        1,
+        0
+      ],
+      "liabilityRaw": "3999999999999999",
+      "treasuryRaw": "6000000000000001",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        1,
+        1
+      ],
+      "liabilityRaw": "5000000000000000",
+      "treasuryRaw": "5000000000000000",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        1,
+        2
+      ],
+      "liabilityRaw": "4999999999999999",
+      "treasuryRaw": "5000000000000001",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1083333333333331"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3250000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        1,
+        3
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1083333333333331"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "8250000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        2,
+        0
+      ],
+      "liabilityRaw": "3999999999999999",
+      "treasuryRaw": "6000000000000001",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        2,
+        1
+      ],
+      "liabilityRaw": "5000000000000000",
+      "treasuryRaw": "5000000000000000",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        2,
+        2
+      ],
+      "liabilityRaw": "4999999999999999",
+      "treasuryRaw": "5000000000000001",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "833333333333332"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1666666666666665"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2500000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        2,
+        3
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "833333333333332"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1666666666666665"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "7500000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        3,
+        0
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "1000000000000001",
+          "finalAllocationRaw": "8666666666666667"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        3,
+        1
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "7666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        3,
+        2
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "833333333333332"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "6666666666666665"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2500000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        2,
+        3,
+        3
+      ],
+      "liabilityRaw": "9999999999999998",
+      "treasuryRaw": "2",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "833333333333332"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "1999999999999997",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3666666666666662"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "3000000000000002",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "5500000000000004"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        0,
+        0
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "1666666666666667",
+          "finalAllocationRaw": "10000000000000000"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        0,
+        1
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "666666666666666",
+          "finalAllocationRaw": "8999999999999999"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        0,
+        2
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "666666666666666",
+          "finalAllocationRaw": "6749999999999997"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3250000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        0,
+        3
+      ],
+      "liabilityRaw": "9999999999999997",
+      "treasuryRaw": "3",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "1249999999999998",
+          "unclaimedRedistributionRaw": "166666666666666",
+          "finalAllocationRaw": "2499999999999995"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "3750000000000001",
+          "unclaimedRedistributionRaw": "499999999999999",
+          "finalAllocationRaw": "7500000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        1,
+        0
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "1000000000000001",
+          "finalAllocationRaw": "9333333333333334"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        1,
+        1
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "3000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "8333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        1,
+        2
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "6083333333333331"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3250000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        1,
+        3
+      ],
+      "liabilityRaw": "9999999999999998",
+      "treasuryRaw": "2",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "749999999999998",
+          "longBoostRaw": "1249999999999998",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2333333333333329"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "2250000000000001",
+          "longBoostRaw": "3750000000000001",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "7000000000000003"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        2,
+        0
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "1000000000000001",
+          "finalAllocationRaw": "7333333333333334"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        2,
+        1
+      ],
+      "liabilityRaw": "10000000000000000",
+      "treasuryRaw": "0",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "6333333333333333"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2666666666666666"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        2,
+        2
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "5000000000000000",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "5833333333333332"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1666666666666665"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2500000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        2,
+        3
+      ],
+      "liabilityRaw": "9999999999999998",
+      "treasuryRaw": "2",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "1249999999999998",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2083333333333330"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1666666666666665"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "3750000000000001",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "6250000000000003"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        3,
+        0
+      ],
+      "liabilityRaw": "9999999999999998",
+      "treasuryRaw": "2",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "1666666666666666",
+          "unclaimedRedistributionRaw": "333333333333333",
+          "finalAllocationRaw": "3333333333333332"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "3333333333333333",
+          "unclaimedRedistributionRaw": "666666666666667",
+          "finalAllocationRaw": "6666666666666666"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        3,
+        1
+      ],
+      "liabilityRaw": "9999999999999999",
+      "treasuryRaw": "1",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "1000000000000000",
+          "longBoostRaw": "1666666666666666",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2999999999999999"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "2000000000000000",
+          "longBoostRaw": "3333333333333333",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "5999999999999999"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "0",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1000000000000001"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        3,
+        2
+      ],
+      "liabilityRaw": "9999999999999998",
+      "treasuryRaw": "2",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "1666666666666666",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2499999999999998"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "3333333333333333",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "4999999999999998"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "0",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "2500000000000002"
+        }
+      ]
+    },
+    {
+      "tiers": [
+        3,
+        3,
+        3
+      ],
+      "liabilityRaw": "9999999999999998",
+      "treasuryRaw": "2",
+      "allocations": [
+        {
+          "leafIndex": 0,
+          "baseRaw": "333333333333333",
+          "mediumBoostRaw": "499999999999999",
+          "longBoostRaw": "833333333333332",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "1666666666666664"
+        },
+        {
+          "leafIndex": 1,
+          "baseRaw": "666666666666666",
+          "mediumBoostRaw": "999999999999999",
+          "longBoostRaw": "1666666666666665",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "3333333333333330"
+        },
+        {
+          "leafIndex": 2,
+          "baseRaw": "1000000000000001",
+          "mediumBoostRaw": "1500000000000001",
+          "longBoostRaw": "2500000000000002",
+          "unclaimedRedistributionRaw": "0",
+          "finalAllocationRaw": "5000000000000004"
+        }
+      ]
+    }
+  ]
+}

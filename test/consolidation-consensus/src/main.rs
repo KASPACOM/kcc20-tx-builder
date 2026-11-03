@@ -91,7 +91,10 @@ fn main() {
                     spk(&u["scriptPublicKey"]),
                     num(&u["blockDaaScore"]),
                     u["isCoinbase"].as_bool().unwrap(),
-                    if idx < count { Some(cid) } else { None },
+                    if let Some(ids) = case["covenantIds"].as_array() {
+                        assert_eq!(ids.len(), tx.inputs.len());
+                        if ids[idx].is_null() { None } else { Some(hash(&ids[idx])) }
+                    } else if idx < count { Some(cid) } else { None },
                 )
             })
             .collect();
@@ -99,7 +102,7 @@ fn main() {
         let ctx = CovenantsContext::from_tx(&populated).expect("valid covenant context");
         let reused = SigHashReusedValuesUnsync::new();
         let cache = Cache::new(10000);
-        let mut failures = 0;
+        let mut failures = Vec::new();
         for (idx, input) in tx.inputs.iter().enumerate() {
             let mut vm = TxScriptEngine::from_transaction_input(
                 &populated,
@@ -115,16 +118,20 @@ fn main() {
                 },
             );
             if let Err(e) = vm.execute() {
-                failures += 1;
+                failures.push(idx);
                 eprintln!("{} input {}: {:?}", case["name"], idx, e);
             }
             checked += 1;
         }
         if case["expectFailure"].as_bool().unwrap_or(false) {
-            assert!(failures > 0, "negative case accepted: {}", case["name"]);
+            assert!(!failures.is_empty(), "negative case accepted: {}", case["name"]);
+            if let Some(expected) = case["expectedFailureInputs"].as_array() {
+                let expected: Vec<usize> = expected.iter().map(|v| num(v) as usize).collect();
+                assert_eq!(failures, expected, "negative must fail only the intended covenant: {}", case["name"]);
+            }
         } else {
             assert_eq!(
-                failures, 0,
+                failures.len(), 0,
                 "contract rejected {} / {} inputs",
                 case["profileId"], count
             );

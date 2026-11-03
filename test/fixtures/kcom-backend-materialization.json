@@ -1,0 +1,204 @@
+{
+  "schema": "kcom-backend-materialization-fixture/v1",
+  "synthetic": true,
+  "source": {
+    "repository": "KASPACOM/backend-v2",
+    "revision": "c5eca2183b6e1e9ae3dc416ccf278fa68ae05b5c",
+    "files": {
+      "airdrop-allocation.service.ts": "f4c149d006e9dba7cf8ce7f5a4af632336579262d4ad4ab84e369825e5df54d3",
+      "airdrop-eligibility.service.ts": "de2ddfc8d08460f28dbd3797f806ec51e8fdda194813492ae475dc3a498543a3",
+      "airdrop-materialization.service.ts": "bad7e3dd52f59c63c8008d14feb5aa2212a6bf18cff7e3d4dfa68cff5191238e"
+    }
+  },
+  "input": {
+    "policyVersion": "kcom-86-10-4-fixture-v1",
+    "integrityManifestHash": "5e66b18fa6287232bfb4c7f94ced2f778b08d3210ce48dc331ff6ea15139bf7f",
+    "sources": [
+      {
+        "bucket": "l1",
+        "sourceWallet": "kaspatest:qr7gtl2427pgxmq22jdpkp3wkyjk5xn2y27q2ct4r6vmzqxpz7pkc87l2hg5h",
+        "rawMicroPoints": "60000000"
+      },
+      {
+        "bucket": "l1",
+        "sourceWallet": "kaspatest:qzg9uss9ewquuxs0p57a6jtuvnaerp53dcv89evr3hn2nvh76zfc7ndufrqwr",
+        "rawMicroPoints": "40000000"
+      },
+      {
+        "bucket": "l2-production",
+        "sourceWallet": "0x0000000000000000000000000000000000000001",
+        "rawMicroPoints": "25000000"
+      },
+      {
+        "bucket": "l2-production",
+        "sourceWallet": "0x0000000000000000000000000000000000000002",
+        "rawMicroPoints": "75000000"
+      },
+      {
+        "bucket": "l2-testnet",
+        "sourceWallet": "0x0000000000000000000000000000000000000003",
+        "rawMicroPoints": "100000000"
+      },
+      {
+        "bucket": "l2-testnet",
+        "sourceWallet": "0x0000000000000000000000000000000000000004",
+        "rawMicroPoints": "1000000000"
+      },
+      {
+        "bucket": "l2-production",
+        "sourceWallet": "0x0000000000000000000000000000000000000005",
+        "rawMicroPoints": "1000000000"
+      }
+    ],
+    "membership": [
+      {
+        "sourceWallet": "0x0000000000000000000000000000000000000001",
+        "primaryL1": "kaspatest:qr7gtl2427pgxmq22jdpkp3wkyjk5xn2y27q2ct4r6vmzqxpz7pkc87l2hg5h"
+      },
+      {
+        "sourceWallet": "0x0000000000000000000000000000000000000002",
+        "primaryL1": "kaspatest:qzg9uss9ewquuxs0p57a6jtuvnaerp53dcv89evr3hn2nvh76zfc7ndufrqwr"
+      },
+      {
+        "sourceWallet": "0x0000000000000000000000000000000000000003",
+        "primaryL1": "kaspatest:qr7gtl2427pgxmq22jdpkp3wkyjk5xn2y27q2ct4r6vmzqxpz7pkc87l2hg5h"
+      },
+      {
+        "sourceWallet": "0x0000000000000000000000000000000000000005",
+        "primaryL1": "kaspatest:qr7gtl2427pgxmq22jdpkp3wkyjk5xn2y27q2ct4r6vmzqxpz7pkc87l2hg5h"
+      }
+    ],
+    "exclusions": [
+      {
+        "bucket": "l2-production",
+        "sourceWallet": "0x0000000000000000000000000000000000000005",
+        "reason": "synthetic-excluded-test-wallet",
+        "evidence": "offline-fixture-only"
+      }
+    ],
+    "policy": [
+      {
+        "bucket": "l1",
+        "weightBps": 8600
+      },
+      {
+        "bucket": "l2-production",
+        "weightBps": 1000
+      },
+      {
+        "bucket": "l2-testnet",
+        "weightBps": 400
+      }
+    ]
+  },
+  "materialization": {
+    "policyVersion": "kcom-86-10-4-fixture-v1",
+    "integrityManifestHash": "5e66b18fa6287232bfb4c7f94ced2f778b08d3210ce48dc331ff6ea15139bf7f",
+    "allocation": {
+      "treasuryWeightBps": 0,
+      "bucketTotals": [
+        {
+          "bucket": "l1",
+          "weightBps": 8600,
+          "rawMicroPoints": "100000000",
+          "empty": false
+        },
+        {
+          "bucket": "l2-production",
+          "weightBps": 1000,
+          "rawMicroPoints": "100000000",
+          "empty": false
+        },
+        {
+          "bucket": "l2-testnet",
+          "weightBps": 400,
+          "rawMicroPoints": "100000000",
+          "empty": false
+        }
+      ],
+      "destinations": [
+        {
+          "destination": "kaspatest:qr7gtl2427pgxmq22jdpkp3wkyjk5xn2y27q2ct4r6vmzqxpz7pkc87l2hg5h",
+          "rank": 1,
+          "shareNumerator": "581",
+          "shareDenominator": "1000",
+          "buckets": [
+            {
+              "bucket": "l1",
+              "rawMicroPoints": "60000000",
+              "shareNumerator": "129",
+              "shareDenominator": "250"
+            },
+            {
+              "bucket": "l2-production",
+              "rawMicroPoints": "25000000",
+              "shareNumerator": "1",
+              "shareDenominator": "40"
+            },
+            {
+              "bucket": "l2-testnet",
+              "rawMicroPoints": "100000000",
+              "shareNumerator": "1",
+              "shareDenominator": "25"
+            }
+          ]
+        },
+        {
+          "destination": "kaspatest:qzg9uss9ewquuxs0p57a6jtuvnaerp53dcv89evr3hn2nvh76zfc7ndufrqwr",
+          "rank": 2,
+          "shareNumerator": "419",
+          "shareDenominator": "1000",
+          "buckets": [
+            {
+              "bucket": "l1",
+              "rawMicroPoints": "40000000",
+              "shareNumerator": "43",
+              "shareDenominator": "125"
+            },
+            {
+              "bucket": "l2-production",
+              "rawMicroPoints": "75000000",
+              "shareNumerator": "3",
+              "shareDenominator": "40"
+            }
+          ]
+        }
+      ]
+    },
+    "unlinked": [
+      {
+        "bucket": "l2-testnet",
+        "sourceWallet": "0x0000000000000000000000000000000000000004",
+        "rawMicroPoints": "1000000000",
+        "reason": "not_linked_at_cutoff"
+      }
+    ],
+    "excluded": [
+      {
+        "bucket": "l2-production",
+        "sourceWallet": "0x0000000000000000000000000000000000000005",
+        "rawMicroPoints": "1000000000",
+        "reason": "synthetic-excluded-test-wallet",
+        "evidence": "offline-fixture-only"
+      }
+    ],
+    "contentHash": "b6d88954534e0f5813e8b002ae30f83f4dcaf6b81440a1d48f4881f729cff14b"
+  },
+  "campaignId": "0000000000000000000000000000000000000000000000000000000000000001",
+  "tokenId": "236a744fec72146a8296b168c9db884cebcc101239c7ff0647c882b917a411be",
+  "provenance": {
+    "materializationHash": "b6d88954534e0f5813e8b002ae30f83f4dcaf6b81440a1d48f4881f729cff14b",
+    "membershipSnapshotHash": "d844f0cb789e096927f351921422ae8621fbb73f64e2337ef99d5c67006946f8",
+    "integrityManifestHash": "5e66b18fa6287232bfb4c7f94ced2f778b08d3210ce48dc331ff6ea15139bf7f",
+    "sourceManifestHashes": [
+      "34e42d37c67e7fa92ae3548be21e2194f12b48d91ee4e656426c5e6cf1a0ad39",
+      "fbed8960794b6d338bd401fb8856fb1ff3ac36e87b3a19e67d3fd47825a21d44",
+      "a2a2dc9eaa787ead02606a7edb567d9291f7eae9c45e47894fc173307fb8f82e"
+    ],
+    "cutoffMs": "1794700800000"
+  },
+  "destinationScripts": {
+    "kaspatest:qr7gtl2427pgxmq22jdpkp3wkyjk5xn2y27q2ct4r6vmzqxpz7pkc87l2hg5h": "20fc85fd555782836c0a549a1b062eb1256a1a6a22bc0561751e99b100c117836cac",
+    "kaspatest:qzg9uss9ewquuxs0p57a6jtuvnaerp53dcv89evr3hn2nvh76zfc7ndufrqwr": "20905e4205cb81ce1a0f0d3ddd497c64fb9186916e1872e5838de6a9b2fed0938fac"
+  }
+}

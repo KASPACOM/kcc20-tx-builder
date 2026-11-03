@@ -1,10 +1,39 @@
 # Changelog
 
-## 0.8.0-fee.9
+## 0.8.1-kcom.3 (unpublished)
 
+- Combine the fee-market builder through `0.8.0-fee.14` with the KCOM vesting and claim transaction builders.
 - Encode wide fixed snapshot `maxSupply` and `premintSupply` claims as canonical base-2^63 `u64[2]` limbs instead of overflowing scalar `u64` values.
 - Parse and validate the final KCC20 deployment payload, including limb reconstruction, reserve conservation and the V2 holder commitment opening.
 - Build and parse Nacho's exact funded five-controller snapshot-start transaction as an integration regression.
+- Keep package publication and runtime enablement pending independent review.
+
+## 0.8.0-fee.13
+
+- Accept the indexer ownerScheme alias in seller-sweep bid inputs after checking it agrees with owner_scheme; preserve strict runtime state and script checks.
+
+## 0.8.0-fee.12 (unreleased)
+
+- Build imported Argent fee-market wrap/unwrap and profile-aware trades with the corrected V2 wrapper.
+- Preserve old artifacts and native/snapshot flows; reject the obsolete wrapper for new Argent setup.
+- Execute the exact packaged transaction shapes in signed consensus.
+
+## 0.8.0-fee.11
+
+- Build the pinned recipient covenant, delegated fee claims and rotation back to wallet control through the shared PSKT flow.
+- Revalidate recipient authority and live UTXOs; preserve account and recipient principals and the other party's fees.
+- Execute signed recipient claims and rotation in pinned consensus, including re-signed invalid payout rejection.
+
+## 0.8.0-fee.10
+
+- Add fee-market crossed settlement to the backend-only matcher, with exact payouts, preserved order deposits and one receipt.
+- Require a positive total matcher spending limit and reject mismatched or stale sources before submission.
+- Allow a hash-controlled fee account to rotate back to its underlying key and reject unchanged key/hash authorities.
+
+## 0.8.0-fee.9
+
+- Allow the funded two-ask FeeTicket and creator-fee shape through its operation-specific compute check. Keep transient, storage and consolidation limits unchanged.
+- Add the signed creator-fee regression missing from the original ticket-group test.
 
 ## 0.8.0-fee.8
 

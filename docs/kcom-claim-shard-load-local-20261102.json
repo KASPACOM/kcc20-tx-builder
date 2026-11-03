@@ -1,0 +1,80 @@
+{
+  "schema": "kcom-shard-load-local/v2",
+  "network": "testnet-10",
+  "scope": "signed synthetic first-selection transactions, optional pinned-engine execution, and deterministic route distribution; no TN10 contention measurement",
+  "builderRevision": "f22c9311066408cb16e8b8a14587932af3cf2df7",
+  "engineSha256": "76ced9cb35dd59306c03644328460fd986cf53bc0b1274cbce3e9263d1e50e92",
+  "rows": [
+    {
+      "count": 1024,
+      "proofDepth": 10,
+      "proofBytes": 320,
+      "generatedMs": 115,
+      "transactionMass": "79705",
+      "maximumMass": "100000",
+      "engineVerified": true,
+      "shardSignatureScriptBytes": 21534,
+      "sponsorSignatureScriptBytes": 66
+    },
+    {
+      "count": 4096,
+      "proofDepth": 12,
+      "proofBytes": 384,
+      "generatedMs": 350,
+      "transactionMass": "79705",
+      "maximumMass": "100000",
+      "engineVerified": true,
+      "shardSignatureScriptBytes": 21661,
+      "sponsorSignatureScriptBytes": 66
+    },
+    {
+      "count": 65536,
+      "proofDepth": 16,
+      "proofBytes": 512,
+      "generatedMs": 4876,
+      "transactionMass": "79705",
+      "maximumMass": "100000",
+      "engineVerified": true,
+      "shardSignatureScriptBytes": 21918,
+      "sponsorSignatureScriptBytes": 66
+    }
+  ],
+  "distribution": [
+    {
+      "wallets": 4096,
+      "shards": 4,
+      "minPerShard": 994,
+      "maxPerShard": 1056,
+      "meanPerShard": 1024,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "400000000"
+    },
+    {
+      "wallets": 4096,
+      "shards": 16,
+      "minPerShard": 217,
+      "maxPerShard": 286,
+      "meanPerShard": 256,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "1600000000"
+    },
+    {
+      "wallets": 4096,
+      "shards": 64,
+      "minPerShard": 46,
+      "maxPerShard": 81,
+      "meanPerShard": 64,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "6400000000"
+    },
+    {
+      "wallets": 4096,
+      "shards": 256,
+      "minPerShard": 6,
+      "maxPerShard": 29,
+      "meanPerShard": 16,
+      "emptyShards": 0,
+      "lockedShardKasSompiAtOneKasEach": "25600000000"
+    }
+  ]
+}
