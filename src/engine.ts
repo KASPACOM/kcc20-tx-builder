@@ -5349,15 +5349,19 @@ export function createKcc20PsktBuilderEngine(
           String(utxo.state.wrapper_spk_hash).toLowerCase() !== holderPlan.wrapper.scriptHash) {
         throw new Error(`bid ${slot} differs from fixed market policy`);
       }
-      // The indexer adds policy summary fields for API consumers. They are not
+      // The indexer adds policy summaries and an ownerScheme alias. They are not
       // part of the on-chain bid state and must not enter script reconstruction.
       const { creatorFeeBps: indexedCreatorFeeBps,
-        feePolicyVersion: indexedFeePolicyVersion, ...bidState } = utxo.state;
+        feePolicyVersion: indexedFeePolicyVersion,
+        ownerScheme: indexedOwnerScheme, ...bidState } = utxo.state;
       if ((indexedCreatorFeeBps !== undefined &&
             Number(indexedCreatorFeeBps) !== params.feePolicy.creatorFeeBps) ||
           (indexedFeePolicyVersion !== undefined &&
             Number(indexedFeePolicyVersion) !== params.feePolicy.version)) {
         throw new Error(`bid ${slot} indexed policy summary differs from fixed policy`);
+      }
+      if (indexedOwnerScheme !== undefined && indexedOwnerScheme !== scheme) {
+        throw new Error(`bid ${slot} indexed owner scheme differs from contract state`);
       }
       const bidScript = buildKcc20FeeMarketRoleScript({ artifact: artifacts.bid,
         role: "bid", state: bidState });

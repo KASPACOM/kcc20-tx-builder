@@ -1,6 +1,6 @@
 {
   "schema": "kcc20-example-compatibility/v1",
-  "packageVersion": "0.8.0-fee.12",
+  "packageVersion": "0.8.0-fee.13",
   "contractsRepository": "https://github.com/KASPACOM/kaspa-covenants",
   "contractsCommit": "1a15362b35661464587cf07ffe8a42186a545897",
   "compiler": {

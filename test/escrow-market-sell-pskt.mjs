@@ -265,3 +265,25 @@ for (const count of [3,10]) for (const useTicket of [false,true]) test(`Argent $
     covenantIds:ids,signedTransaction:JSON.parse(tx.serializeToSafeJSON()),built:{metadata:{covenantId:marketId}}});
   if(process.env.ARGENT_FEE_EVIDENCE){mkdirSync(process.env.ARGENT_FEE_EVIDENCE,{recursive:true});writeFileSync(process.env.ARGENT_FEE_EVIDENCE+"/argent-sale-transactions.json",JSON.stringify(importedSales,null,2));}
 });
+
+for (const count of [3, 10]) {
+  test(`seller sweep accepts indexed owner alias for ${count} bids`, async () => {
+    const f = fixture(count, { partialFirst: count === 3, holderExtra: count === 3 ? 1 : 0 });
+    for (const bid of f.bids) bid.bidUtxo.state.ownerScheme = bid.bidUtxo.state.owner_scheme;
+    const result = await f.engine.build(f.request);
+    assert.equal(result.submitTransactionSupported, true);
+    f.bids[0].bidUtxo.state.ownerScheme = 1;
+    await assert.rejects(f.engine.build(f.request), /indexed owner scheme differs/);
+    f.bids[0].bidUtxo.state.ownerScheme = 0;
+    f.bids[0].bidUtxo.state.unrecognizedField = true;
+    await assert.rejects(f.engine.build(f.request), /runtime state fields mismatch/);
+  });
+}
+
+test("indexed aliases do not bypass an oversized partial sweep mass rejection", async () => {
+  const f = fixture(10, { partialFirst: true, holderExtra: 1 });
+  for (const bid of f.bids) bid.bidUtxo.state.ownerScheme = bid.bidUtxo.state.owner_scheme;
+  await assert.rejects(f.engine.build(f.request), error =>
+    error.builderErrorCode === "TRANSACTION_MASS_EXCEEDED" &&
+    BigInt(error.builderErrorDetails.storageMass) > 450_000n);
+});
