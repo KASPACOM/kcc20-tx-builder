@@ -20,6 +20,7 @@ import {
 
 const NATIVE_SUBNETWORK_ID = "00".repeat(20);
 const MAX_I64 = 9_223_372_036_854_775_807n;
+const WIDE_SUPPLY_ARGUMENT_TYPE = "u64[2]";
 const MAX_COMPUTE_BUDGET = 65_535;
 const DEFAULT_COVENANT_COMPUTE_BUDGET = 1_000;
 const START_CONTROLLER_COMPUTE_BUDGET = 100;
@@ -120,9 +121,9 @@ export function buildSnapshotKcc20DeploymentPayload({
   const firstReserve = normalizedReserves[0];
   const args = [
     claimArg("creator", "byte[32]", normalizedCreator),
-    claimArg("maxSupply", "u64", normalizedTotalSupply.toString()),
+    supplyClaimArg("maxSupply", normalizedTotalSupply),
     claimArg("mintLaneCount", "u64", "1"),
-    claimArg("premintSupply", "u64", normalizedTotalSupply.toString()),
+    supplyClaimArg("premintSupply", normalizedTotalSupply),
     claimArg("premintRecipient", "byte[32]", firstReserve.owner),
     claimArg("premintOwnerScheme", "u64", "4"),
     claimArg("mintPolicy", "u64", "0"),
@@ -142,9 +143,176 @@ export function buildSnapshotKcc20DeploymentPayload({
     ),
     claimArg("snapshotReserves", "object", normalizedReserves),
   ];
-  return new TextEncoder().encode(
+  const payload = new TextEncoder().encode(
     JSON.stringify({ tn10: { v: 1, tmpl: "KCC20", args } }),
   );
+  parseSnapshotKcc20DeploymentPayload(payload);
+  return payload;
+}
+
+export function parseSnapshotKcc20DeploymentPayload(payload) {
+  let decoded;
+  try {
+    decoded = JSON.parse(
+      new TextDecoder().decode(Uint8Array.from(payload ?? [])),
+    );
+  } catch {
+    throw new Error("snapshot KCC20 deployment payload is not valid JSON");
+  }
+  const envelope = decoded?.tn10;
+  if (
+    envelope?.v !== 1 ||
+    envelope?.tmpl !== "KCC20" ||
+    !Array.isArray(envelope?.args)
+  ) {
+    throw new Error("snapshot KCC20 deployment payload envelope is invalid");
+  }
+  const argumentsByName = new Map();
+  for (const argument of envelope.args) {
+    const name = String(argument?.name ?? "");
+    if (!name || argumentsByName.has(name)) {
+      throw new Error("snapshot KCC20 deployment arguments are ambiguous");
+    }
+    argumentsByName.set(name, argument);
+  }
+
+  const creator = deploymentHexArgument(argumentsByName, "creator");
+  const maxSupply = deploymentSupplyArgument(argumentsByName, "maxSupply");
+  const premintSupply = deploymentSupplyArgument(
+    argumentsByName,
+    "premintSupply",
+  );
+  if (
+    maxSupply.amount !== premintSupply.amount ||
+    maxSupply.type !== premintSupply.type
+  ) {
+    throw new Error("snapshot fixed deployment must premint its full supply");
+  }
+  const mintLaneCount = deploymentI64Argument(
+    argumentsByName,
+    "mintLaneCount",
+  );
+  const premintRecipient = deploymentHexArgument(
+    argumentsByName,
+    "premintRecipient",
+  );
+  const premintOwnerScheme = deploymentI64Argument(
+    argumentsByName,
+    "premintOwnerScheme",
+  );
+  const mintPolicy = deploymentI64Argument(argumentsByName, "mintPolicy");
+  const displayScale = deploymentI64Argument(
+    argumentsByName,
+    "displayScale",
+  );
+  const mintPriceSompi = deploymentI64Argument(
+    argumentsByName,
+    "mintPriceSompi",
+  );
+  const treasury = deploymentHexArgument(argumentsByName, "treasury");
+  const protocolFeeRecipient = deploymentHexArgument(
+    argumentsByName,
+    "protocolFeeRecipient",
+  );
+  const protocolFeeBps = deploymentI64Argument(
+    argumentsByName,
+    "protocolFeeBps",
+  );
+  const ticker = deploymentTextArgument(argumentsByName, "ticker");
+  const name = deploymentTextArgument(argumentsByName, "name");
+  const expectedHolderCommitment = deploymentHexArgument(
+    argumentsByName,
+    "holderExtensionCommitment",
+  );
+  const migrationId = deploymentHexArgument(
+    argumentsByName,
+    "snapshotMigrationId",
+  );
+  const manifestCommitment = deploymentHexArgument(
+    argumentsByName,
+    "snapshotManifestCommitment",
+  );
+  if (
+    mintLaneCount !== 1n ||
+    premintOwnerScheme !== 4n ||
+    mintPolicy !== 0n ||
+    mintPriceSompi !== 0n ||
+    protocolFeeBps > 10_000n
+  ) {
+    throw new Error("snapshot KCC20 fixed deployment policy is invalid");
+  }
+
+  const reservesArgument = argumentsByName.get("snapshotReserves");
+  if (
+    reservesArgument?.type !== "object" ||
+    !Array.isArray(reservesArgument?.value) ||
+    reservesArgument.value.length < 1 ||
+    reservesArgument.value.length > 8
+  ) {
+    throw new Error("snapshot KCC20 deployment reserves are invalid");
+  }
+  const reserves = reservesArgument.value.map((reserve, index) => {
+    if (String(reserve?.shardIndex) !== String(index)) {
+      throw new Error("snapshot KCC20 reserve indexes must be contiguous");
+    }
+    const amount = positiveI64(
+      reserve?.amount,
+      `snapshot reserve ${index} amount`,
+    );
+    const owner = hex32(reserve?.owner, `snapshot reserve ${index} owner`);
+    if (Number(reserve?.ownerScheme) !== 4) {
+      throw new Error("snapshot KCC20 reserves must use covenant-id owners");
+    }
+    return { shardIndex: index, amount, owner, ownerScheme: 4 };
+  });
+  if (
+    reserves.reduce((sum, reserve) => sum + reserve.amount, 0n) !==
+      maxSupply.amount ||
+    premintRecipient !== reserves[0].owner
+  ) {
+    throw new Error("snapshot KCC20 reserves do not conserve the fixed supply");
+  }
+
+  const actualHolderCommitment = bytesHex(
+    holderExtensionCommitment({
+      kind: maxSupply.type === WIDE_SUPPLY_ARGUMENT_TYPE ? 2 : 1,
+      creator: hexBytes(creator, "snapshot token creator"),
+      ticker: fixedText32(ticker, "snapshot token ticker"),
+      name: fixedText32(name, "snapshot token name"),
+      displayScale,
+      maxSupply: maxSupply.amount,
+      mintLaneCount,
+      mintPolicy: Number(mintPolicy),
+      mintPriceSompi,
+      treasury: hexBytes(treasury, "snapshot token treasury"),
+      protocolFeeRecipient: hexBytes(
+        protocolFeeRecipient,
+        "snapshot token protocol fee recipient",
+      ),
+      protocolFeeBps,
+    }),
+  );
+  if (actualHolderCommitment !== expectedHolderCommitment) {
+    throw new Error(
+      "snapshot KCC20 deployment does not open its holder commitment",
+    );
+  }
+
+  return {
+    creator,
+    maxSupply: maxSupply.amount,
+    maxSupplyLimbs: maxSupply.limbs,
+    premintSupply: premintSupply.amount,
+    premintSupplyLimbs: premintSupply.limbs,
+    premintRecipient,
+    displayScale,
+    ticker,
+    name,
+    holderExtensionCommitment: expectedHolderCommitment,
+    migrationId,
+    manifestCommitment,
+    reserves,
+  };
 }
 
 export function buildSnapshotControllerScriptForState(artifact, state) {
@@ -750,6 +918,90 @@ function deploymentPayload(template, name, value) {
 
 function claimArg(name, type, value) {
   return { name, type, value };
+}
+
+function supplyClaimArg(name, amount) {
+  if (amount <= MAX_I64) {
+    return claimArg(name, "u64", amount.toString());
+  }
+  const limbs = wideAmountLimbs(amount, name);
+  return claimArg(name, WIDE_SUPPLY_ARGUMENT_TYPE, [
+    limbs.high.toString(),
+    limbs.low.toString(),
+  ]);
+}
+
+function deploymentSupplyArgument(argumentsByName, name) {
+  const argument = argumentsByName.get(name);
+  if (argument?.type === "u64") {
+    const amount = decimalInteger(argument.value, name);
+    if (amount <= 0n || amount > MAX_I64) {
+      throw new Error(`${name} scalar deployment argument exceeds signed-64`);
+    }
+    return { amount, limbs: null, type: "u64" };
+  }
+  if (
+    argument?.type !== WIDE_SUPPLY_ARGUMENT_TYPE ||
+    !Array.isArray(argument?.value) ||
+    argument.value.length !== 2
+  ) {
+    throw new Error(`${name} deployment argument has an invalid encoding`);
+  }
+  const high = decimalInteger(argument.value[0], `${name} high limb`);
+  const low = decimalInteger(argument.value[1], `${name} low limb`);
+  if (high <= 0n || high > MAX_I64 || low > MAX_I64) {
+    throw new Error(`${name} deployment limbs are outside signed-64`);
+  }
+  const amount = high * (1n << 63n) + low;
+  if (amount <= MAX_I64 || amount > (1n << 126n) - 1n) {
+    throw new Error(`${name} deployment limbs are not canonical`);
+  }
+  return {
+    amount,
+    limbs: { high, low },
+    type: WIDE_SUPPLY_ARGUMENT_TYPE,
+  };
+}
+
+function deploymentI64Argument(argumentsByName, name) {
+  const argument = argumentsByName.get(name);
+  if (argument?.type !== "u64") {
+    throw new Error(`${name} deployment argument must be u64`);
+  }
+  const amount = decimalInteger(argument.value, name);
+  if (amount > MAX_I64) {
+    throw new Error(`${name} deployment argument exceeds signed-64`);
+  }
+  return amount;
+}
+
+function deploymentHexArgument(argumentsByName, name) {
+  const argument = argumentsByName.get(name);
+  if (argument?.type !== "byte[32]") {
+    throw new Error(`${name} deployment argument must be byte[32]`);
+  }
+  return hex32(argument.value, name);
+}
+
+function deploymentTextArgument(argumentsByName, name) {
+  const argument = argumentsByName.get(name);
+  if (argument?.type !== "string") {
+    throw new Error(`${name} deployment argument must be a string`);
+  }
+  return printableText(argument.value, name);
+}
+
+function decimalInteger(value, label) {
+  if (typeof value !== "string" || !/^(?:0|[1-9][0-9]*)$/.test(value)) {
+    throw new Error(`${label} must be a canonical unsigned integer string`);
+  }
+  return BigInt(value);
+}
+
+function wideAmountLimbs(value, label) {
+  const amount = positiveWideAmount(value, label);
+  const base = 1n << 63n;
+  return { high: amount / base, low: amount % base };
 }
 
 function printableText(value, label) {
