@@ -15,6 +15,13 @@ const PINS = {
   argentWrapper: ["KCC20WrapperFeeArgentV2.placeholder.json", "KCC20WrapperFeeArgentV2", "8a3b33e4c4b340fb88069e86536106b446014fe68cd533117fe4ec1499325c23"],
 } as const;
 
+const WRAPPER_V2_PIN = ["KCC20WrapperFeeV2.placeholder.json", "KCC20WrapperFeeV2", "32d242f5298a26395e329e44b3db5cad98e6afec2204de388b9f41918ede3b19"] as const;
+
+function artifactPin(role: Kcc20FeeArtifactRole, artifact: unknown) {
+  return role === "wrapper" && (artifact as { contract_name?: string })?.contract_name === "KCC20WrapperFeeV2"
+    ? WRAPPER_V2_PIN : PINS[role];
+}
+
 export type Kcc20FeeArtifactRole = keyof typeof PINS;
 export type Kcc20FeeArtifactSet = { [K in Kcc20FeeArtifactRole]: unknown };
 const POLICY_ROLES = ["receipt", "root", "holder", "ask", "bid", "ticket"] as const;
@@ -36,7 +43,7 @@ export function buildKcc20FeeMarketRoleScript(input: {
   role: "root" | "holder" | "ask" | "bid" | "wrapper" | "argentWrapper";
   state: Record<string, unknown>;
 }) {
-  const [key, name, metadataHash] = PINS[input.role];
+  const [key, name, metadataHash] = artifactPin(input.role, input.artifact);
   const raw = input.artifact as {
     contracts?: Record<string, { runtime_state?: { fields?: Array<{ name: string; type: { kind: string; len?: number } }> } }>;
   };
@@ -99,7 +106,7 @@ export function verifyKcc20FeeMarketArtifacts(input: {
   const verified = {} as Record<Kcc20FeeArtifactRole, ReturnType<typeof templateParts>>;
   for (const role of [...POLICY_ROLES, input.wrapperProfile === "native" ? "wrapper" : "argentWrapper"] as Kcc20FeeArtifactRole[]) {
     const artifact = input.artifacts[role];
-    const [key, name, metadataHash] = PINS[role];
+    const [key, name, metadataHash] = artifactPin(role, artifact);
     if (!artifact || typeof artifact !== "object") throw new Error(`missing ${role} fee-market artifact`);
     const actualMetadataHash = hex(sha256(new TextEncoder().encode(JSON.stringify(artifact))));
     if (actualMetadataHash !== metadataHash) throw new Error(`${role} fee-market artifact metadata mismatch`);

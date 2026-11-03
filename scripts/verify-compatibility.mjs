@@ -14,6 +14,8 @@ for (const [name, expected] of Object.entries(manifest.wasm.files)) {
   assert.equal(hash(await readFile(new URL(`examples/vendor/kaspa/${name}`, root))), expected, `WASM file changed: ${name}`);
 }
 for (const [name, expected] of Object.entries(manifest.artifacts)) {
+  assert.equal(expected.contractsCommit ?? manifest.contractsCommit, manifest.contractsCommit,
+    `Artifact source revision differs from the global contracts pin: ${name}`);
   const file = await readFile(new URL(`artifacts/${name}`, root));
   const artifact = JSON.parse(file);
   assert.equal(hash(file), expected.fileSha256, `Artifact file changed: ${name}`);

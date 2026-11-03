@@ -33,6 +33,8 @@ export const KCC20_ARTIFACT_SCRIPT_SHA256 = Object.freeze({
     "a87e25c0c66d206bc31f33d79094f5b31177f1dd261804b071ad7bc3b3b6b8b5",
   "KCC20OrderbookFeeBidV1.placeholder.json":
     "9289b3b5fcd46f30af4f236c65f76f369bd856311319474d20e06c5ba919ea8f",
+  "KCC20WrapperFeeV2.placeholder.json":
+    "b30dfa711438da7c02ca187d6dd40829e78d920867401966eea4215921c60d0c",
   "KCC20WrapperFeeV1.placeholder.json":
     "53338a33d4e57964ff76ffe2c95e25786995f7c1f96f9375b57bcac3c124d3ba",
   "KCC20WrapperFeeArgentV1.placeholder.json":
@@ -49,6 +51,7 @@ export const KCC20_FEE_V1_ARTIFACT_SHA256 = Object.freeze({
   "KCC20OrderbookFeeHolderV1.placeholder.json": "1124365e746ebe108fe8e5a9a7d13ea351bba0768011fd3228567d35de0847d1",
   "KCC20OrderbookFeeAskV1.placeholder.json": "e2f04e79a64acf330ae45ad55bab61f92039c76d1c59e4d9b39d41b1c3296553",
   "KCC20OrderbookFeeBidV1.placeholder.json": "4a6150291bb9e459a4ca61609854af7063c5f7314e0f5c2438a7f462627d33d4",
+  "KCC20WrapperFeeV2.placeholder.json": "1bebe5434045e44a423a622b10f0d6fb70f3ba5792c46d2788dc2c0dde1b282e",
   "KCC20WrapperFeeV1.placeholder.json": "345cbefc8f870b2daa408e2608c4fcf50d27d9f5ebb505439ee22092715f0007",
   "KCC20WrapperFeeArgentV1.placeholder.json": "d14cdd05f9522b393e9b5e674a4645cf6b51f8831a5bb370882eb0e9a2f8d4b0",
   "KCC20WrapperFeeArgentV2.placeholder.json": "eec339c8b255fc59790fbff699acbbf6c1f06baecb855fbbd590c9428d5611be",
