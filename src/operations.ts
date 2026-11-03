@@ -40,6 +40,7 @@ export const KCC20_BUILDER_KEYS = [
   "fee-ticket.burn",
   "fee-ticket.transfer",
   "kcc20fee.create-account",
+  "kcc20fee.create-recipient",
   "kcc20fee.bind-account",
   "kcc20fee.deploy-market-genesis",
   "kcc20fee.bind-market",

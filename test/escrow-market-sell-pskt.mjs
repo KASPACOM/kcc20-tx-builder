@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { blake3 } from "@noble/hashes/blake3";
 import * as kw from "../examples/vendor/kaspa/kaspa.js";
 import {
@@ -15,7 +15,7 @@ const names = {
   receipt: "KCC20FeeEscrowV1", root: "KCC20OrderbookFeeRootV1",
   holder: "KCC20OrderbookFeeHolderV1", ask: "KCC20OrderbookFeeAskV1",
   bid: "KCC20OrderbookFeeBidV1", ticket: "KCC20FeeTicket",
-  wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV1",
+  wrapper: "KCC20WrapperFeeV1", argentWrapper: "KCC20WrapperFeeArgentV2",
 };
 const artifacts = Object.fromEntries(Object.entries(names).map(([role, name]) => [
   role, JSON.parse(readFileSync(new URL(`../artifacts/${name}.placeholder.json`, import.meta.url))),
@@ -52,11 +52,11 @@ const base = { tokenId, feeTicketId: "00".repeat(32), priceScale: 1n,
 const policyId = prepareKcc20FeeMarketGenesis(base).policyId;
 
 function fixture(count, { partialFirst = false, holderExtra = 0, useTicket = false,
-  creatorFeeBps = 0, bidPriceSompi = 100_000_000n } = {}) {
+  wrapperProfile = "native", creatorFeeBps = 0, bidPriceSompi = 100_000_000n } = {}) {
   const ticketRoot = useTicket ? "05".repeat(32) : "00".repeat(32);
   const marketPolicy = creatorFeeBps > 0
     ? { ...policy, creatorFeeBps, creatorAccountId: "07".repeat(32) } : policy;
-  const marketBase = { ...base, feeTicketId: ticketRoot, policy: marketPolicy };
+  const marketBase = { ...base, wrapperProfile, feeTicketId: ticketRoot, policy: marketPolicy };
   const marketPolicyId = prepareKcc20FeeMarketGenesis(marketBase).policyId;
   const holder = prepareKcc20FeeMarketWrappedHolder({ ...marketBase,
     recipientOwner: owner, recipientOwnerScheme: 0,
@@ -89,7 +89,8 @@ function fixture(count, { partialFirst = false, holderExtra = 0, useTicket = fal
   const fundingEntry = { outpoint: { transactionId: "ee".repeat(32), index: 0 },
     amount: 10_000_000_000n, scriptPublicKey: sellerSpk, blockDaaScore: 0n,
     isCoinbase: false };
-  const byAddress = new Map([[holderAddress, [holderEntry]], [wallet, [fundingEntry]]]);
+  const fundingEntries = [fundingEntry];
+  const byAddress = new Map([[holderAddress, [holderEntry]], [wallet, fundingEntries]]);
   for (const bid of bids) byAddress.set(bid.bidUtxo.address, [bid.entry]);
   const ticket = useTicket ? (() => {
     const utilityTokenId = "06".repeat(32);
@@ -127,7 +128,7 @@ function fixture(count, { partialFirst = false, holderExtra = 0, useTicket = fal
       ...(ticket ? { feeTicketUtxo: ticket.utxo } : {}),
     },
   } };
-  return { engine, request, holderEntry, bids, fundingEntry, ticket };
+  return { engine, request, holderEntry, bids, fundingEntry, fundingEntries, ticket };
 }
 
 function signBuilt(built, f) {
@@ -249,4 +250,66 @@ test("creator fees survive a grouped ticket waiver", async () => {
   assert(mass.computeMass <= 450_000n);
   assert(mass.transientMass <= 900_000n);
   assert(f.engine.protocol.calculateToccataStorageMass(tx, "creator ticket sweep") <= 450_000n);
+});
+
+const importedSales = [];
+for (const count of [3,10]) for (const useTicket of [false,true]) test(`Argent ${count}-bid sweep ticket=${useTicket} preserves grouped fees`, async () => {
+  const f = fixture(count, { wrapperProfile: "argent", useTicket });
+  const built = await f.engine.build(f.request), tx = signBuilt(built, f);
+  assert.equal(built.metadata.protocolFeeSompi, useTicket ? "0" : String(count * 50000000));
+  assert.equal(built.metadata.creatorFeeSompi,"0");
+  const mass = f.engine.protocol.calculateToccataV1NonContextualMass(tx,"Argent sweep");
+  assert(mass.computeMass<=450000n); assert(mass.transientMass<=900000n);
+  assert(f.engine.protocol.calculateToccataStorageMass(tx,"Argent sweep")<=450000n);
+  const ids = Array(count+1).fill(marketId); if(useTicket) ids.push("05".repeat(32)); ids.push(null);
+  importedSales.push({name:`argent-sell-${count}-${useTicket}`,profileId:"argent-fee",count:ids.length-1,
+    covenantIds:ids,signedTransaction:JSON.parse(tx.serializeToSafeJSON()),built:{metadata:{covenantId:marketId}}});
+  if(process.env.ARGENT_FEE_EVIDENCE){mkdirSync(process.env.ARGENT_FEE_EVIDENCE,{recursive:true});writeFileSync(process.env.ARGENT_FEE_EVIDENCE+"/argent-sale-transactions.json",JSON.stringify(importedSales,null,2));}
+});
+
+for (const count of [3, 10]) {
+  test(`seller sweep accepts indexed owner alias for ${count} bids`, async () => {
+    const f = fixture(count, { partialFirst: count === 3, holderExtra: count === 3 ? 1 : 0 });
+    for (const bid of f.bids) bid.bidUtxo.state.ownerScheme = bid.bidUtxo.state.owner_scheme;
+    const result = await f.engine.build(f.request);
+    assert.equal(result.submitTransactionSupported, true);
+    f.bids[0].bidUtxo.state.ownerScheme = 1;
+    await assert.rejects(f.engine.build(f.request), /indexed owner scheme differs/);
+    f.bids[0].bidUtxo.state.ownerScheme = 0;
+    f.bids[0].bidUtxo.state.unrecognizedField = true;
+    await assert.rejects(f.engine.build(f.request), /runtime state fields mismatch/);
+  });
+}
+
+test("indexed aliases do not bypass an oversized partial sweep mass rejection", async () => {
+  const f = fixture(10, { partialFirst: true, holderExtra: 1 });
+  for (const bid of f.bids) bid.bidUtxo.state.ownerScheme = bid.bidUtxo.state.owner_scheme;
+  await assert.rejects(f.engine.build(f.request), error =>
+    error.builderErrorCode === "TRANSACTION_MASS_EXCEEDED" &&
+    BigInt(error.builderErrorDetails.storageMass) > 450_000n);
+});
+
+
+test("partial ten-bid sale selects a fitting wallet UTXO without changing payouts", async () => {
+  const f = fixture(10, { partialFirst: true, holderExtra: 1,
+    creatorFeeBps: 100, bidPriceSompi: 200_000_000n });
+  f.fundingEntry.amount = 230_000_000_000n;
+  const alternative = { ...f.fundingEntry,
+    outpoint: { transactionId: "ef".repeat(32), index: 0 }, amount: 150_000_000n };
+  f.fundingEntries.push(...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,
+    outpoint: { transactionId: (100 + i).toString(16).repeat(32), index: 0 },
+    amount: 60_000_000n })), ...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,
+    outpoint: { transactionId: (120 + i).toString(16).repeat(32), index: 0 },
+    amount: 100_000_000n })), alternative);
+  const built = await f.engine.build(f.request);
+  const tx = signBuilt(built, f), serialized = JSON.parse(tx.serializeToSafeJSON());
+  assert.equal(serialized.inputs.at(-1).transactionId, alternative.outpoint.transactionId);
+  assert(f.engine.protocol.calculateToccataStorageMass(tx, "partial funding") <= 450_000n);
+  assert.equal(built.metadata.protocolFeeSompi, "500000000");
+  assert.equal(built.metadata.creatorFeeSompi, "500000000");
+  assert.equal(serialized.outputs[1].value, "400000000");
+  assert.equal(serialized.outputs[built.metadata.sellerChangeIndex].value, "50000000");
+  f.request.request.params.fundingOutpoint = f.fundingEntry.outpoint;
+  await assert.rejects(() => f.engine.build(f.request), error =>
+    error.builderErrorCode === "TRANSACTION_MASS_EXCEEDED");
 });
