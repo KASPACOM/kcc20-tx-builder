@@ -19,6 +19,8 @@ const artifactSources = [
   ["kcc20-wrapper", "KCC20Wrapper"],
   ["kcc20-fee-ticket", "KCC20FeeTicket"],
   ["kcc20-vesting", "KCC20Vesting"],
+  ["kcc20-wrapper-fee-argent-v2", "KCC20WrapperFeeArgentV2"],
+  ["kcc20-wrapper-fee-v2", "KCC20WrapperFeeV2"],
 ];
 const sourceMap = Object.fromEntries(
   artifactSources.map(([stem, name]) => [name, stem]),

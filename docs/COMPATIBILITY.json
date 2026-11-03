@@ -2,7 +2,7 @@
   "schema": "kcc20-example-compatibility/v1",
   "packageVersion": "0.8.2-fee.0",
   "contractsRepository": "https://github.com/KASPACOM/kaspa-covenants",
-  "contractsCommit": "1a15362b35661464587cf07ffe8a42186a545897",
+  "contractsCommit": "e32d2f000395b1ee69efeb306a8668c099985558",
   "compiler": {
     "repository": "https://github.com/kaspanet/silverscript",
     "tag": "v1.0.0",
@@ -90,7 +90,6 @@
       "compilerBuild": "verified-release"
     },
     "KCC20WrapperFeeV2.placeholder.json": {
-      "contractsCommit": "e32d2f000395b1ee69efeb306a8668c099985558",
       "fileSha256": "1bebe5434045e44a423a622b10f0d6fb70f3ba5792c46d2788dc2c0dde1b282e",
       "scriptSha256": "b30dfa711438da7c02ca187d6dd40829e78d920867401966eea4215921c60d0c",
       "sourceSha256": "e1d9c39469b81c9a82f8e211358588be625ab8452cc3c0af36fb01245aa0f8dd",
