@@ -5622,7 +5622,7 @@ export function createKcc20PsktBuilderEngine(
       } catch (initialError) {
         // A large funding input can increase contextual storage mass. Preserve
         // caller-selected inputs; otherwise try at most seven smaller live
-        // wallet UTXOs without changing the trade, fees, or mass limits.
+        // wallet UTXO amounts without changing the trade, fees, or mass limits.
         const details = initialError?.builderErrorDetails;
         if (params.fundingOutpoint != null ||
             initialError?.builderErrorCode !== "TRANSACTION_MASS_EXCEEDED" ||
@@ -5640,12 +5640,16 @@ export function createKcc20PsktBuilderEngine(
           .sort((a, b) => utxoAmountSompi(a) < utxoAmountSompi(b) ? -1 :
             utxoAmountSompi(a) > utxoAmountSompi(b) ? 1 : 0);
         let attempted = 0;
+        const attemptedAmounts = new Set<string>();
         for (const candidate of candidates) {
           if (attempted === 7) break;
+          const amountKey = utxoAmountSompi(candidate).toString();
+          if (attemptedAmounts.has(amountKey)) continue;
           let selected;
           try { selected = selectFundingEntry([candidate], fundingNeeded, skipped, params.fundingOutpoint); }
           catch { continue; }
           skipped.push(selected.outpoint);
+          attemptedAmounts.add(amountKey);
           attempted++;
           try { return buildWithFunding(selected); }
           catch (error) {

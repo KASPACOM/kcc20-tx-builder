@@ -298,7 +298,9 @@ test("partial ten-bid sale selects a fitting wallet UTXO without changing payout
     outpoint: { transactionId: "ef".repeat(32), index: 0 }, amount: 150_000_000n };
   f.fundingEntries.push(...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,
     outpoint: { transactionId: (100 + i).toString(16).repeat(32), index: 0 },
-    amount: 60_000_000n })), alternative);
+    amount: 60_000_000n })), ...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,
+    outpoint: { transactionId: (120 + i).toString(16).repeat(32), index: 0 },
+    amount: 100_000_000n })), alternative);
   const built = await f.engine.build(f.request);
   const tx = signBuilt(built, f), serialized = JSON.parse(tx.serializeToSafeJSON());
   assert.equal(serialized.inputs.at(-1).transactionId, alternative.outpoint.transactionId);
