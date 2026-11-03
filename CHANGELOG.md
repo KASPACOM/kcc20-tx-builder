@@ -3,7 +3,9 @@
 ## 0.8.1-kcom.3 (unpublished)
 
 - Combine the fee-market builder through `0.8.0-fee.14` with the KCOM vesting and claim transaction builders.
-- Include the wide snapshot supply fix from `0.8.0-fee.8`.
+- Encode wide fixed snapshot `maxSupply` and `premintSupply` claims as canonical base-2^63 `u64[2]` limbs instead of overflowing scalar `u64` values.
+- Parse and validate the final KCC20 deployment payload, including limb reconstruction, reserve conservation and the V2 holder commitment opening.
+- Build and parse Nacho's exact funded five-controller snapshot-start transaction as an integration regression.
 - Keep package publication and runtime enablement pending independent review.
 
 ## 0.8.0-fee.13
