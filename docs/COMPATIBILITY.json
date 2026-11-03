@@ -1,6 +1,6 @@
 {
   "schema": "kcc20-example-compatibility/v1",
-  "packageVersion": "0.8.1-kcom.3",
+  "packageVersion": "0.8.2-fee.0",
   "contractsRepository": "https://github.com/KASPACOM/kaspa-covenants",
   "contractsCommit": "1a15362b35661464587cf07ffe8a42186a545897",
   "compiler": {
@@ -87,6 +87,15 @@
       "sourceSha256": "58dea339989b15246a3b2023bd26a6d7961a3de9ae03a157794a0321218c99ec",
       "constructorArgsSha256": "59ff68e3dfb05dcf7c6324687de8e0cb68669fea9d517f9dc90e4d03f410361d",
       "abiSha256": "f7074233d7055be3ada2445a3266bf56fcafb72b9915a743e6a99c9e6b691f72",
+      "compilerBuild": "verified-release"
+    },
+    "KCC20WrapperFeeV2.placeholder.json": {
+      "contractsCommit": "e32d2f000395b1ee69efeb306a8668c099985558",
+      "fileSha256": "1bebe5434045e44a423a622b10f0d6fb70f3ba5792c46d2788dc2c0dde1b282e",
+      "scriptSha256": "b30dfa711438da7c02ca187d6dd40829e78d920867401966eea4215921c60d0c",
+      "sourceSha256": "e1d9c39469b81c9a82f8e211358588be625ab8452cc3c0af36fb01245aa0f8dd",
+      "constructorArgsSha256": "1f48d05f4497cb3ec627d0505236364435b78315295c8ed4f5a68708e2d8ce81",
+      "abiSha256": "044778ae84dfe0a752fef9c092ba126d0bf5d1fb3695a435a8dc0928a79be2dc",
       "compilerBuild": "verified-release"
     }
   },
