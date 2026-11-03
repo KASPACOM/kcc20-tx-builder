@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0-fee.13
+
+- Accept the indexer ownerScheme alias in seller-sweep bid inputs after checking it agrees with owner_scheme; preserve strict runtime state and script checks.
+
 ## 0.8.0-fee.12 (unreleased)
 
 - Build imported Argent fee-market wrap/unwrap and profile-aware trades with the corrected V2 wrapper.
