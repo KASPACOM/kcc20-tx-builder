@@ -2,7 +2,7 @@
 
 V2 fixes the creator-approved fee policy at activation. Later wrapping requires the token holder's normal signature and no creator proof. Setup must insert the backend-provisioned protocol account into the deployment policy. Automatic provisioning is a separate application integration task; customers must not choose that protocol account.
 
-This is an unreleased addition. Existing native V1 and Argent artifacts retain their behavior. New-market creation must remain disabled until the final artifacts, package and funded lifecycle pass their gates.
+This is a prerelease-only addition. Existing native V1 and Argent artifacts retain their behavior. New-market creation must remain disabled until the final artifacts and the exact package candidate pass the funded TN10 lifecycle gates.
 
 ## Setup
 
@@ -22,4 +22,4 @@ The script and policy remain authoritative. A backend label alone cannot make an
 
 ## Verification scope
 
-Local builder tests cover activation at 0%, 1% and 5%, missing or altered consent and token evidence, V2 wrapping without creator proof, partial/full unwrap, and automatic wrapper detection. They do not establish node acceptance. Signed consensus and funded TN10 proof are separate gates.
+Local builder tests cover activation at 0%, 1% and 5%, missing or altered consent and token evidence, V2 wrapping without creator proof, partial/full unwrap, and automatic wrapper detection. They do not establish node acceptance. Exact-candidate funded TN10 deploy, transfer, wrap, trade and snapshot evidence remains a separate gate before stable promotion or market enablement.
