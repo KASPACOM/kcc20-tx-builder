@@ -1,9 +1,10 @@
 # Changelog
 
-## 0.8.3 (unpublished)
+## 0.8.3-fee.0 (integration prerelease)
 
-- Publish the reviewed wide-snapshot supply and exact Nacho deployment-payload fixes as a stable release.
+- Carry the reviewed wide-snapshot supply and exact Nacho deployment-payload fixes into the next fee-integration candidate.
 - Include the fee-wrapper activation integration changes from `0.8.2-fee.0`.
+- Publish only under the `next` tag. Exact-candidate funded TN10 deploy, transfer, wrap, trade and snapshot evidence remains required before any stable promotion or market enablement.
 
 ## 0.8.2-fee.0 (integration prerelease)
 
