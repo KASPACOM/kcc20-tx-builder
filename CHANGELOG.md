@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3 (unpublished)
+
+- Publish the reviewed wide-snapshot supply and exact Nacho deployment-payload fixes as a stable release.
+- Include the fee-wrapper activation integration changes from `0.8.2-fee.0`.
+
 ## 0.8.2-fee.0 (integration prerelease)
 
 - Add explicit `wrapperVersion: 2` for native fee-market deployment, activation, wrapping and unwrapping; keep V1 dispatch for existing markets.
