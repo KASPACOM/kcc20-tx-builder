@@ -1,9 +1,10 @@
 # Changelog
 
-## 0.8.3 (unpublished)
+## 0.8.3-fee.0 (integration prerelease)
 
-- Publish the reviewed wide-snapshot supply and exact Nacho deployment-payload fixes as a stable release.
+- Package the reviewed wide-snapshot supply and exact Nacho deployment-payload fixes for integration testing.
 - Include the fee-wrapper activation integration changes from `0.8.2-fee.0`.
+- Retain funded V2 lifecycle proof and live release gates before stable publication or market enablement.
 
 ## 0.8.2-fee.0 (integration prerelease)
 
