@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { KCOM_V2_PINS } from "./kcom-configurable-pins.js";
+import { decodeKcomSchedules, validateKcomSchedule } from "./kcom-configurable-schedule.js";
 import { blake3 } from "@noble/hashes/blake3";
 import { createKcomClaimTn10ProofPolicy, verifyKcomClaimManifest } from "./kcom-claim-policy.js";
 import { ADMIN_SIGNATURE_PLACEHOLDER, checkedKcomAdminPair,
@@ -37,7 +39,7 @@ function emptyRoot(kind, campaign, count) {
 }
 function checkedTerms(p, codec, network) {
   const s = p.initState;
-  if (!s || typeof p.termsHex !== "string" || !/^[0-9a-f]{554}$/.test(p.termsHex))
+  if (!s || typeof p.termsHex !== "string" || !(codec.configurable ? /^[0-9a-f]{746}$/ : /^[0-9a-f]{554}$/).test(p.termsHex))
     throw new Error("Exact 277-byte frozen campaign terms required");
   const terms = Buffer.from(p.termsHex, "hex");
   const budget = BigInt(s.budget_raw), manifest = BigInt(s.manifest_total);
@@ -51,7 +53,7 @@ function checkedTerms(p, codec, network) {
       (shardCount & (shardCount - 1n)) !== 0n || shardValue <= 0n ||
       shardValue > 9223372036754775806n / shardCount ||
       opens < 500000000000n || opens > 9223372034262775807n ||
-      closes !== opens + 2592000000n || tge <= closes || tge > 9000000000000000n)
+      (codec.configurable ? closes <= opens || closes - opens > 31622400000n : closes !== opens + 2592000000n) || tge <= closes || tge > 9000000000000000n)
     throw new Error("Campaign budget, shards or frozen dates are invalid");
   const campaign = requireHex32(s.campaign, "campaign id");
   const tokenId = requireHex32(s.token_id, "campaign token id");
@@ -79,7 +81,7 @@ function checkedTerms(p, codec, network) {
       m.leaves.length !== Number(leafCount))
     throw new Error("Reviewed eligibility manifest differs from frozen initializer");
   const hex = (start, end) => terms.subarray(start, end).toString("hex");
-  if (hex(0, 20) !== MAGIC ||
+  if (hex(0, 20) !== (codec.configurable ? "6b636f6d2e636c61696d2e7465726d732f763300" : MAGIC) ||
       bytesToHex(blake3(terms)) !== s.terms_hash ||
       hex(20, 52) !== campaign || hex(52, 84) !== s.eligibility_root ||
       !terms.subarray(84, 92).equals(le(budget, 8)) ||
@@ -88,7 +90,7 @@ function checkedTerms(p, codec, network) {
       terms.readUInt32LE(196) !== 1 || terms.readUInt32LE(200) !== 25264 ||
       !terms.subarray(204, 212).equals(le(tge, 8)) ||
       terms[212] > 4 || hex(213, 245) === "00".repeat(32) ||
-      hex(245, 277) !== FOOTER)
+      hex(245, 277) !== (codec.configurable ? KCOM_V2_PINS.vesting.id : FOOTER))
     throw new Error("Campaign terms preimage differs from frozen initializer");
   const factoryState = { ...s, next_shard: "0", opened: false };
   const vaultState = {
@@ -102,7 +104,8 @@ function checkedTerms(p, codec, network) {
   codec.script("KCOMInitialize", s);
   codec.linkedScript("KCOMFactory", factoryState);
   codec.linkedScript("KCOMVault", vaultState);
-  return { state: s, terms, factoryState, vaultState,
+  const scheduleArgs = codec.configurable ? decodeKcomSchedules(terms, s.terms_hash).flatMap(validateKcomSchedule) : [];
+  return { scheduleArgs, state: s, terms, factoryState, vaultState,
     shardCount, shardValue, campaign, tokenId, expectedHash };
 }
 function rpcClient(options, kw, req) {
@@ -194,7 +197,7 @@ export async function buildKcomClaimInitialize({ options, kw, req, p, codec, add
       "KCOMEntitlementGraph::KCOMFactory": codec.linkedTemplateParts("KCOMFactory"),
       "KCOMEntitlementGraph::KCOMVault": codec.linkedTemplateParts("KCOMVault"),
     }, spawnOutputIndices: { factory: 0, vault: 1 } };
-    const appendExplicit = witness => witness.addData(checked.terms);
+    const appendExplicit = witness => { witness.addData(checked.terms); for (const n of checked.scheduleArgs) witness.addI64(n); };
     const inputs = [source, funding].map((entry, i) => ({
       previousOutpoint: entry.outpoint, utxo: entry, sequence: 0n,
       computeBudget: i === 0 ? 60 : 10, sigOpCount: 0,

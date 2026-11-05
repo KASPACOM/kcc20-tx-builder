@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { KCOM_V2_PINS, KCOM_V2_LINKED_GENESIS_HASHES } from "./kcom-configurable-pins.js";
 import { sha256 } from "@noble/hashes/sha256";
 import {
   concatBytes,
@@ -61,8 +62,9 @@ function encodedField(field, value) {
 
 /** Encode only reviewed graph actors; generated cross-actor template hashes never come from a caller. */
 export function kcomClaimCodec({ graph: rawGraph, opening: rawOpening }) {
-  const graph = checkedArtifact(rawGraph, KCOM_CLAIM_GRAPH_ARTIFACT_ID, KCOM_CLAIM_GRAPH_ABI_SHA256);
-  const opening = checkedArtifact(rawOpening, KCOM_CLAIM_OPEN_ARTIFACT_ID, KCOM_CLAIM_OPEN_ABI_SHA256);
+  const configurable = rawGraph?.id === KCOM_V2_PINS.graph.id;
+  const graph = checkedArtifact(rawGraph, configurable ? KCOM_V2_PINS.graph.id : KCOM_CLAIM_GRAPH_ARTIFACT_ID, configurable ? KCOM_V2_PINS.graph.abiSha256 : KCOM_CLAIM_GRAPH_ABI_SHA256);
+  const opening = checkedArtifact(rawOpening, configurable ? KCOM_V2_PINS.initializer.id : KCOM_CLAIM_OPEN_ARTIFACT_ID, configurable ? KCOM_V2_PINS.initializer.abiSha256 : KCOM_CLAIM_OPEN_ABI_SHA256);
   const plans = [...graph.argent.template_plan.templates, ...opening.argent.template_plan.templates];
   const bySymbol = new Map();
   for (const plan of plans) {
@@ -121,7 +123,7 @@ export function kcomClaimCodec({ graph: rawGraph, opening: rawOpening }) {
       throw new Error(`Missing reviewed linked ${name} template`);
     const prefix = Uint8Array.from(raw.prefix), suffix = Uint8Array.from(raw.suffix);
     const hash = Uint8Array.from(raw.hash);
-    if (hash.length !== 32 || bytesToHex(hash) !== LINKED_GENESIS_HASHES[name] ||
+    if (hash.length !== 32 || bytesToHex(hash) !== (configurable ? KCOM_V2_LINKED_GENESIS_HASHES[name] : LINKED_GENESIS_HASHES[name]) ||
         bytesToHex(calculateTemplateHash(prefix, suffix)) !== bytesToHex(hash))
       throw new Error(`Invalid linked ${name} template hash`);
     return { prefix, suffix, hash };
@@ -177,7 +179,7 @@ export function kcomClaimCodec({ graph: rawGraph, opening: rawOpening }) {
       }
     }
   }
-  return { script, dispatch, templateHash, templateParts: name => actor(name).parts,
+  return { configurable, script, dispatch, templateHash, templateParts: name => actor(name).parts,
     linkedTemplateParts, linkedScript, appendHiddenWitness,
     graphArtifactId: graph.id, openingArtifactId: opening.id };
 }
