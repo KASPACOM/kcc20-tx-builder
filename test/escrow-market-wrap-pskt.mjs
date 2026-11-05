@@ -1020,8 +1020,15 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
     protocol_account: "00".repeat(32), creator_account: "00".repeat(32),
     protocol_amount: "0", creator_amount: "0",
     owner: accountOwnerScheme === 1
-      ? hex(blake3(Buffer.from(owner, "hex"))) : owner,
+      ? hex(blake3(Buffer.from(owner, "hex")))
+      : accountOwnerScheme === 2
+        ? hex(blake3(Buffer.from(key.toKeypair().publicKey, "hex")))
+        : accountOwnerScheme === 3
+          ? String(kw.payToScriptHashScript(Uint8Array.of(0x51)).script).slice(4, 68)
+          : owner,
     owner_scheme: accountOwnerScheme,
+    // Exact-P2SH account authorization also requires this action-signing key.
+    ...(accountOwnerScheme === 3 ? { guard_template: owner } : {}),
     action_hash: "00".repeat(32), roleName: "account" };
   const receiptScript = buildKcc20FeeEscrowScript(escrow, receiptState);
   const accountScript = buildKcc20FeeEscrowScript(escrow, accountState);
@@ -1056,15 +1063,46 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
       params: { party, marketId, contractCanonicalTokenId: tokenId,
         policyId: "03".repeat(32), protocolAccountId: "04".repeat(32),
         creatorAccountId: "05".repeat(32), receipts, account } } };
+  const rpcCalls = { connect: 0, read: 0, disconnect: 0 };
   const engine = createKcc20PsktBuilderEngine({ wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
-    rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
-      getUtxosByAddresses: async ({ addresses }) => ({ entries:
-        addresses.includes(wallet) ? [fundingEntry]
-          : [...receiptEntries, accountEntry] }) }) });
+    rpcClientFactory: () => ({
+      connect: async () => { rpcCalls.connect++; },
+      disconnect: async () => { rpcCalls.disconnect++; },
+      getUtxosByAddresses: async ({ addresses }) => {
+        rpcCalls.read++;
+        return { entries: addresses.includes(wallet) ? [fundingEntry]
+          : [...receiptEntries, accountEntry] };
+      },
+    }) });
   return { engine, request, receiptEntry: receiptEntries[0], receiptEntries,
-    accountEntry, fundingEntry, receipt: receipts[0], receipts, account };
+    accountEntry, fundingEntry, receipt: receipts[0], receipts, account, rpcCalls };
+}
+
+// Contract authority support is broader than the current fee-account builder.
+// Keep unsupported spending explicit until its own signed path is implemented.
+for (const scheme of [2, 3]) {
+  for (const party of ["protocol", "creator"]) {
+    for (const operation of ["claim", "rotate-account"]) {
+      test(`fee ${party} ${operation} rejects unsupported authority ${scheme} before RPC`, async () => {
+        const f = claimFixture(party, 1, scheme);
+        if (operation === "rotate-account") {
+          f.request.request.builderKey = "kcc20fee.rotate-account";
+          f.request.request.params = {
+            contractCanonicalTokenId: tokenId, marketId,
+            policyId: "03".repeat(32), accountId: f.account.covenantIdHex,
+            account: f.account, newOwner: owner, newOwnerScheme: 0,
+          };
+        }
+        const before = structuredClone(f.request);
+        await assert.rejects(f.engine.build(f.request),
+          /fee account is not controlled by the signing wallet/);
+        assert.deepEqual(f.rpcCalls, { connect: 0, read: 0, disconnect: 0 });
+        assert.deepEqual(f.request, before);
+      });
+    }
+  }
 }
 
 test("fee-market protocol claim preserves creator share and account principal", async () => {
