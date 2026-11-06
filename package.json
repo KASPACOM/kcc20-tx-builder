@@ -101,6 +101,7 @@
     "test:consolidation:consensus": "npm run build && node scripts/test-consolidation-consensus.mjs"
   },
   "devDependencies": {
+    "@noble/curves": "1.9.7",
     "typescript": "^5.9.3"
   },
   "dependencies": {

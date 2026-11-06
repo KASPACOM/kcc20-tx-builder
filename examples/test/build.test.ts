@@ -208,3 +208,14 @@ test("reject a present funding input that cannot cover the required KAS", async 
     /no single funding UTXO can cover/,
   );
 });
+
+
+test("ECDSA signing instructions require explicit wallet support", () => {
+  const built = { psktTransactionJson: "", signInputs: [{ index: 1, sighashType: 1 }],
+    scripts: [{ inputIndex: 0, scriptHex: "51", signType: 1, signatureAlgorithm: "ecdsa" as const }],
+    metadata: {}, submitTransactionSupported: true };
+  assert.throws(() => signingInputs(built), /does not support ecdsa/);
+  assert.deepEqual(signingInputs(built, { schnorr: true, ecdsa: true }), [
+    { index: 0, sighashType: 1, signatureAlgorithm: "ecdsa" }, { index: 1, sighashType: 1 },
+  ]);
+});
