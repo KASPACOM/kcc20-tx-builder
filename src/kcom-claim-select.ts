@@ -58,7 +58,7 @@ export async function buildKcomClaimSelect({ options, kw, req, p, codec, graphId
       !(budget === 10000000000000000n || (budget >= 10n && budget <= 20000n && budget % 10n === 0n)) ||
       manifest < 1n || manifest > budget / 5n || all < 0n || all > manifest ||
       boosted < 0n || boosted > all || long < 0n || long > boosted ||
-      opens < 500000000000n || closes !== opens + 2592000000n ||
+      opens < 500000000000n || (codec.configurable ? closes <= opens || closes - opens > 31622400000n : closes !== opens + 2592000000n) ||
       closes > 9223372034262775806n || ![1, 2, 3].includes(p.tier) ||
       !Number.isInteger(p.beneficiary?.scheme) || p.beneficiary.scheme < 0 || p.beneficiary.scheme > 4)
     throw new Error("Claim shard and selection terms are invalid");

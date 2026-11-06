@@ -25,7 +25,7 @@ export async function buildKcomClaimClose({ options, kw, req, p, codec, graphId,
       manifest <= 0n || manifest > budget / 5n ||
       all < 0n || all > manifest || boosted < 0n || boosted > all ||
       long < 0n || long > boosted || opens < 500000000000n ||
-      closes !== opens + 2592000000n || closes > 9223372034262775806n)
+      (codec.configurable ? closes <= opens || closes - opens > 31622400000n : closes !== opens + 2592000000n) || closes > 9223372034262775806n)
     throw new Error("Claim shard is not ready for frozen-window close");
   requireHex32(state.token_id, "campaign token id");
   const { publicKeys, approvals } = checkedKcomAdminPair(p, state);

@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { KCOM_V2_PINS } from "./kcom-configurable-pins.js";
+import { kcomArtifactFiles } from "./kcom-artifact-profile.js";
 import { sha256 } from "@noble/hashes/sha256";
 import {
   buildKcc20ScriptForState,
@@ -28,11 +30,9 @@ export const KCOM_VESTING_KEYS = [
   "kcom-vesting.finish",
 ] as const;
 export function kcomVestingCodec(raw) {
-  if (
-    bytesToHex(
-      sha256(new TextEncoder().encode(JSON.stringify(raw?.sil_abi))),
-    ) !== KCOM_VESTING_ABI_SHA256
-  )
+  const configurable = raw?.id === KCOM_V2_PINS.vesting.id;
+  const expectedAbi = configurable ? KCOM_V2_PINS.vesting.abiSha256 : KCOM_VESTING_ABI_SHA256;
+  if (bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(raw?.sil_abi)))) !== expectedAbi)
     throw new Error("KCOM vesting ABI/artifact pin mismatch");
   const abi = raw.sil_abi,
     normalized = normalizeSilverScriptArtifact(abi),
@@ -64,6 +64,10 @@ export function kcomVestingCodec(raw) {
       BigInt(s.tge_ms) > 9000000000000000n
     )
       throw new Error("Invalid vesting state");
+    if (configurable && (BigInt(s.period_ms) < 1000n || BigInt(s.period_ms) > 31622400000n ||
+        BigInt(s.first_period) < 1n || BigInt(s.first_period) > 1200n ||
+        BigInt(s.period_count) < 1n || BigInt(s.period_count) > 1200n ||
+        BigInt(s.tge_bps) > 10000n)) throw new Error("Invalid configurable schedule");
   }
   function script(s) {
     validate(s);
@@ -87,15 +91,15 @@ export function kcomVestingCodec(raw) {
     const now = BigInt(time),
       tge = BigInt(s.tge_ms),
       tier = Number(s.tier),
-      periods = tier === 3 ? 36n : 18n,
-      first = tier === 1 ? 1n : tier === 2 ? 6n : 10n,
+      periods = configurable ? BigInt(s.period_count) : tier === 3 ? 36n : 18n,
+      first = configurable ? BigInt(s.first_period) : tier === 1 ? 1n : tier === 2 ? 6n : 10n,
       total = BigInt(s.total),
       upfront =
-        (total * (tier === 1 ? 1000n : tier === 2 ? 500n : 0n)) / 10000n;
+        (total * (configurable ? BigInt(s.tge_bps) : tier === 1 ? 1000n : tier === 2 ? 500n : 0n)) / 10000n;
     let completed = 0n,
       vested = 0n;
     if (now >= tge) {
-      const elapsed = (now - tge) / 2592000000n;
+      const elapsed = (now - tge) / (configurable ? BigInt(s.period_ms) : 2592000000n);
       completed =
         elapsed < first
           ? 0n
@@ -113,7 +117,7 @@ export function kcomVestingCodec(raw) {
         now < tge && upfront > BigInt(s.released)
           ? String(tge)
           : completed < periods
-          ? String(tge + (first + completed) * 2592000000n)
+          ? String(tge + (first + completed) * (configurable ? BigInt(s.period_ms) : 2592000000n))
           : null,
     };
   }
@@ -134,7 +138,7 @@ export function createKcomVestingPsktBuilder(options) {
     const key = req.builderKey;
     if (!KCOM_VESTING_KEYS.includes(key))
       throw new Error("Unsupported vesting operation");
-    const codec = kcomVestingCodec(await load("KCOMVesting.artifact.json")),
+    const codec = kcomVestingCodec(await load(kcomArtifactFiles(p.artifactProfile).vesting)),
       state = p.state;
     codec.validate(state);
     const canonical = normalizeSilverScriptArtifact(

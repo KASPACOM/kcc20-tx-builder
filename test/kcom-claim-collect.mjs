@@ -5,8 +5,12 @@ import { loadPinnedKaspaWasm } from "./load-kaspa-wasm.mjs";
 import { createKcomClaimPsktBuilder, kcomClaimCodec } from "../dist/index.js";
 
 const kw = await loadPinnedKaspaWasm(process.env.SNAPSHOT_TEST_WASM);
+const configurable = process.argv.includes("--configurable-fast");
+const artifactProfile = configurable ? "kcom-configurable-v2" : "kcom-production";
+const graphKey = configurable ? "KCOMClaimGraphV2.artifact.json" : "KCOMClaimGraph.artifact.json";
+const openingKey = configurable ? "KCOMClaimOpenV2.artifact.json" : "KCOMClaimOpen.artifact.json";
 const read = name => JSON.parse(readFileSync(new URL(`../artifacts/${name}`, import.meta.url)));
-const graph = read("KCOMClaimGraph.artifact.json"), opening = read("KCOMClaimOpen.artifact.json");
+const graph = read(graphKey), opening = read(openingKey);
 const codec = kcomClaimCodec({ graph, opening });
 const vector = JSON.parse(readFileSync(new URL("./fixtures/kcom-claim-script-vectors.json", import.meta.url)));
 const enc = new TextEncoder();
@@ -21,7 +25,7 @@ const closed = {
   used_root: "12".repeat(32), leaf_count: "4", selected_count: "1", all_weight: "27",
   boosted_weight: "0", long_weight: "0", shard: "0", shard_count: "1",
   first: vector.factoryState.first, second: vector.factoryState.second, third: vector.factoryState.third,
-  opens_ms: "1700000000000", closes_ms: "1702592000000", tge_ms: "1703196800000", closed: true,
+  opens_ms: "1700000000000", closes_ms: configurable ? "1700003600000" : "1702592000000", tge_ms: "1703196800000", closed: true,
 };
 const initialRoot = Buffer.from(digest("empty", campaign, shardIndex)).toString("hex");
 const collectorState = {
@@ -47,13 +51,13 @@ const rpc = {
   getUtxosByAddresses: async ([addr]) => ({ entries: entries.get(addr) ?? [] }),
 };
 const options = { wasm: kw, artifacts: {
-  "KCOMClaimGraph.artifact.json": graph, "KCOMClaimOpen.artifact.json": opening,
+  [graphKey]: graph, [openingKey]: opening,
 }, rpcClientFactory: () => rpc };
 const build = createKcomClaimPsktBuilder(options);
 const request = (extra = {}) => ({
   schema: "kcc20-in-process-pskt-builder-input/v1",
   request: { builderKey: "kcom-claim.collect", network: "testnet-10", owner: { walletAddress: nativeAddress },
-    params: { graphId: vector.graphId, collectorState, closedShardState: closed, depth: 0,
+    params: { artifactProfile, graphId: vector.graphId, collectorState, closedShardState: closed, depth: 0,
       unusedProof: "", collector: collector.outpoint, closedShard: shard.outpoint, ...extra } },
 });
 const result = await build(request());
