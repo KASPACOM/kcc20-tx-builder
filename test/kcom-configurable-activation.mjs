@@ -51,7 +51,7 @@ const rpc = {
   getUtxosByAddresses: async ([address]) => ({ entries: entries.get(address) ?? [] }),
 };
 const build = createKcomClaimPsktBuilder({
-  wasm: kw, config:{KCOM_CONTRACT_VERSION:2}, artifacts: {
+  wasm: kw,  artifacts: {
     "KCOMClaimGraphV2.artifact.json": graph, "KCOMClaimOpenV2.artifact.json": opening,
     "KCC20.placeholder.json": canonical, "KCOMVestingV2.artifact.json": vesting,
   }, rpcClientFactory: () => rpc,
@@ -59,12 +59,12 @@ const build = createKcomClaimPsktBuilder({
 const request = (extra = {}) => ({
   schema: "kcc20-in-process-pskt-builder-input/v1",
   request: { builderKey: "kcom-claim.activate", network: "testnet-10", owner: { walletAddress },
-    params: { termsHex:vectors.termsHex, graphId, vaultState, entitlementState: first.entitlementState, tokenState,
+    params: { artifactProfile: "kcom-configurable-v2", termsHex:vectors.termsHex, graphId, vaultState, entitlementState: first.entitlementState, tokenState,
       vault: vault.outpoint, entitlement: entitlement.outpoint, token: token.outpoint, ...extra } },
 });
 const built = await build(request());
 const engine = createKcc20PsktBuilderEngine({
-  wasm: kw, config:{KCOM_CONTRACT_VERSION:2}, artifacts: {
+  wasm: kw,  artifacts: {
     "KCOMClaimGraphV2.artifact.json": graph, "KCOMClaimOpenV2.artifact.json": opening,
     "KCC20.placeholder.json": canonical, "KCOMVestingV2.artifact.json": vesting,
   }, rpcClientFactory: () => rpc,
@@ -88,7 +88,7 @@ await assert.rejects(build(request({ tokenState: { ...tokenState, amount: "995" 
 await assert.rejects(build(request({ vaultState: { ...vaultState, settled: false } })), /not settled/);
 await assert.rejects(build(request({ token: { ...token.outpoint, index: 9 } })), /SOURCE_STALE/);
 const alteredFeeBuild = createKcomClaimPsktBuilder({
-  wasm: kw, config:{KCOM_CONTRACT_VERSION:2}, artifacts: {
+  wasm: kw,  artifacts: {
     "KCOMClaimGraphV2.artifact.json": graph, "KCOMClaimOpenV2.artifact.json": opening,
     "KCC20.placeholder.json": canonical, "KCOMVestingV2.artifact.json": vesting,
   }, rpcClientFactory: () => rpc,
@@ -100,7 +100,7 @@ const alteredFeeBuild = createKcomClaimPsktBuilder({
 });
 await assert.rejects(alteredFeeBuild(request()), /changed a custody output/);
 const redirectedFeeBuild = createKcomClaimPsktBuilder({
-  wasm: kw, config:{KCOM_CONTRACT_VERSION:2}, artifacts: {
+  wasm: kw,  artifacts: {
     "KCOMClaimGraphV2.artifact.json": graph, "KCOMClaimOpenV2.artifact.json": opening,
     "KCC20.placeholder.json": canonical, "KCOMVestingV2.artifact.json": vesting,
   }, rpcClientFactory: () => rpc,

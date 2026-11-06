@@ -8,6 +8,7 @@ import {
 } from "./abi.js";
 import { assertKcc20ArtifactScriptHash } from "./artifacts.js";
 import { kcomClaimCodec } from "./kcom-claim-codec.js";
+import { kcomArtifactFiles } from "./kcom-artifact-profile.js";
 import { buildKcomClaimActivation } from "./kcom-claim-activation.js";
 import { buildKcomClaimSeal } from "./kcom-claim-seal.js";
 import { buildKcomClaimFinishSettlement } from "./kcom-claim-finish-settlement.js";
@@ -157,9 +158,10 @@ export function createKcomClaimPsktBuilder(options) {
     const address = req.owner?.walletAddress;
     if (typeof address !== "string" || !address.startsWith("kaspatest:"))
       throw new Error("TN10 funding wallet required");
+    const files = kcomArtifactFiles(p.artifactProfile);
     const codec = kcomClaimCodec({
-      graph: await load(options.config?.KCOM_CONTRACT_VERSION === 2 ? "KCOMClaimGraphV2.artifact.json" : "KCOMClaimGraph.artifact.json"),
-      opening: await load(options.config?.KCOM_CONTRACT_VERSION === 2 ? "KCOMClaimOpenV2.artifact.json" : "KCOMClaimOpen.artifact.json"),
+      graph: await load(files.graph),
+      opening: await load(files.opening),
     });
     if (req.builderKey === "kcom-claim.deploy-initializer")
       return buildKcomClaimDeployInitializer({ options, kw, req, p, codec, address });
@@ -167,7 +169,7 @@ export function createKcomClaimPsktBuilder(options) {
       return buildKcomClaimInitialize({ options, kw, req, p, codec, address });
     const graphId = requireHex32(p.graphId, "graph covenant id");
     if (req.builderKey === "kcom-claim.activate")
-      return buildKcomClaimActivation({ options, kw, req, p, codec, graphId, address, canonicalArtifact: await load("KCC20.placeholder.json"), vestingArtifact: await load(options.config?.KCOM_CONTRACT_VERSION === 2 ? "KCOMVestingV2.artifact.json" : "KCOMVesting.artifact.json") });
+      return buildKcomClaimActivation({ options, kw, req, p, codec, graphId, address, canonicalArtifact: await load("KCC20.placeholder.json"), vestingArtifact: await load(files.vesting) });
     if (req.builderKey === "kcom-claim.recover")
       return buildKcomClaimRecovery({ options, kw, req, p, codec, graphId, address, canonicalArtifact: await load("KCC20.placeholder.json") });
     if (req.builderKey === "kcom-claim.seal")

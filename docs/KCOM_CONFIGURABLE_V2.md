@@ -2,8 +2,11 @@
 
 This implements transaction construction for a new, separately pinned Argent
 artifact family. Existing v1 artifacts and their default builders remain intact.
-V2 is selected explicitly with trusted builder option
-`config: { KCOM_CONTRACT_VERSION: 2 }`. It remains TN10-only.
+V2 is selected per request with `params.artifactProfile: "kcom-configurable-v2"`.
+The backend must derive this from its authenticated campaign or position record.
+Omitting the profile selects existing v1; unknown profiles fail closed. Source
+UTXOs and reconstructed scripts must match the selected pinned family. One
+builder instance can serve both versions concurrently. V2 remains TN10-only.
 
 Supply KCOMVestingV2.artifact.json, KCOMClaimGraphV2.artifact.json and
 KCOMClaimOpenV2.artifact.json through the existing artifact provider. Their

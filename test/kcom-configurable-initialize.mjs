@@ -38,10 +38,10 @@ const sponsor = { outpoint: { transactionId: "d1".repeat(32), index: 0 }, amount
 const entries = new Map([[sponsorAddress, [sponsor]]]);
 const rpc = { connect: async () => {}, disconnect: async () => {},
   getUtxosByAddresses: async ([addr]) => ({ entries: entries.get(addr) ?? [] }) };
-const options = { wasm: kw, config:{KCOM_CONTRACT_VERSION:2}, artifacts: { "KCOMClaimGraphV2.artifact.json": graph,
+const options = { wasm: kw,  artifacts: { "KCOMClaimGraphV2.artifact.json": graph,
   "KCOMClaimOpenV2.artifact.json": opening }, rpcClientFactory: () => rpc };
 const builder = createKcomClaimPsktBuilder(options);
-const base = { initState, termsHex: scenario.termsPreimageHex,
+const base = { artifactProfile: "kcom-configurable-v2", initState, termsHex: scenario.termsPreimageHex,
   eligibilityManifest: manifest, expectedManifestContentHash: manifest.contentHash };
 const request = (key, params) => ({ schema: "kcc20-in-process-pskt-builder-input/v1",
   request: { builderKey: key, network: "testnet-10",

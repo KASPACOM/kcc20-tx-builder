@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { KCOM_V2_PINS } from "./kcom-configurable-pins.js";
+import { kcomArtifactFiles } from "./kcom-artifact-profile.js";
 import { sha256 } from "@noble/hashes/sha256";
 import {
   buildKcc20ScriptForState,
@@ -137,7 +138,7 @@ export function createKcomVestingPsktBuilder(options) {
     const key = req.builderKey;
     if (!KCOM_VESTING_KEYS.includes(key))
       throw new Error("Unsupported vesting operation");
-    const codec = kcomVestingCodec(await load(config.KCOM_CONTRACT_VERSION === 2 ? "KCOMVestingV2.artifact.json" : "KCOMVesting.artifact.json")),
+    const codec = kcomVestingCodec(await load(kcomArtifactFiles(p.artifactProfile).vesting)),
       state = p.state;
     codec.validate(state);
     const canonical = normalizeSilverScriptArtifact(

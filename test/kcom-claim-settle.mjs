@@ -4,8 +4,12 @@ import { loadPinnedKaspaWasm } from "./load-kaspa-wasm.mjs";
 import { createKcomClaimPsktBuilder, kcomClaimCodec } from "../dist/index.js";
 
 const kw = await loadPinnedKaspaWasm(process.env.SNAPSHOT_TEST_WASM);
+const configurable = process.argv.includes("--configurable-fast");
+const artifactProfile = configurable ? "kcom-configurable-v2" : "kcom-production";
+const graphKey = configurable ? "KCOMClaimGraphV2.artifact.json" : "KCOMClaimGraph.artifact.json";
+const openingKey = configurable ? "KCOMClaimOpenV2.artifact.json" : "KCOMClaimOpen.artifact.json";
 const artifact = name => JSON.parse(readFileSync(new URL(`../artifacts/${name}`, import.meta.url)));
-const graph = artifact("KCOMClaimGraph.artifact.json"), opening = artifact("KCOMClaimOpen.artifact.json");
+const graph = artifact(graphKey), opening = artifact(openingKey);
 const vector = JSON.parse(readFileSync(new URL("./fixtures/kcom-claim-script-vectors.json", import.meta.url)));
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/kcom-claim-settlement-vector.json", import.meta.url)));
 const step = fixture.step, codec = kcomClaimCodec({ graph, opening });
@@ -14,7 +18,7 @@ const numbers = new Set(["budget_raw", "manifest_total", "leaf_count", "selected
   "settled_count", "liability_raw", "index", "weight", "tier"]);
 const normalize = state => Object.fromEntries(Object.entries(state).map(([key, value]) =>
   [key, numbers.has(key) ? String(value) : value]));
-const dates = { opens_ms: "1700000000000", closes_ms: "1702592000000", tge_ms: String(step.before.tge_ms) };
+const dates = { opens_ms: "1700000000000", closes_ms: configurable ? "1700003600000" : "1702592000000", tge_ms: String(step.before.tge_ms) };
 const admins = { first: vector.factoryState.first, second: vector.factoryState.second,
   third: vector.factoryState.third };
 const collectorState = { ...normalize(step.before), ...dates, ...admins };
@@ -36,8 +40,8 @@ const entries = new Map([[address(collector), [collector]], [address(commitment)
   [sponsorAddress, [sponsor]]]);
 const rpc = { connect: async () => {}, disconnect: async () => {},
   getUtxosByAddresses: async ([addr]) => ({ entries: entries.get(addr) ?? [] }) };
-const options = { wasm: kw, artifacts: { "KCOMClaimGraph.artifact.json": graph,
-  "KCOMClaimOpen.artifact.json": opening }, rpcClientFactory: () => rpc };
+const options = { wasm: kw, artifacts: { [graphKey]: graph,
+  [openingKey]: opening }, rpcClientFactory: () => rpc };
 const builder = createKcomClaimPsktBuilder(options);
 const params = { graphId, collectorState, commitmentState, closedShardSummary: step.summary,
   collector: collector.outpoint, commitment: commitment.outpoint,
@@ -45,7 +49,7 @@ const params = { graphId, collectorState, commitmentState, closedShardSummary: s
   usedProof: step.usedProof, usedDepth: step.usedDepth };
 const request = (extra = {}) => ({ schema: "kcc20-in-process-pskt-builder-input/v1",
   request: { builderKey: "kcom-claim.settle", network: "testnet-10",
-    owner: { walletAddress: sponsorAddress }, params: { ...params, ...extra } } });
+    owner: { walletAddress: sponsorAddress }, params: { artifactProfile, ...params, ...extra } } });
 const built = await builder(request());
 assert.equal(built.submitTransactionSupported, true);
 assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);

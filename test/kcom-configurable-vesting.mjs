@@ -141,7 +141,7 @@ const rpc = {
 };
 const build = createKcomVestingPsktBuilder({
   wasm: kw,
-  config: {KCOM_CONTRACT_VERSION:2},
+
   artifacts: {
     "KCOMVestingV2.artifact.json": artifact,
     "KCC20.placeholder.json": canonical,
@@ -154,7 +154,7 @@ const input = (key, extra = {}) => ({
     builderKey: key,
     network: "testnet-10",
     owner: { walletAddress },
-    params: {
+    params: { artifactProfile: "kcom-configurable-v2",
       state,
       positionId,
       position: position.outpoint,
@@ -168,7 +168,7 @@ assert.equal(deploy.signInputs[0].index, 0);
 assert.ok(deploy.metadata.positionId);
 const engine = createKcc20PsktBuilderEngine({
   wasm: kw,
-  config: {KCOM_CONTRACT_VERSION:2},
+
   artifacts: {
     "KCOMVestingV2.artifact.json": artifact,
     "KCC20.placeholder.json": canonical,
@@ -228,3 +228,19 @@ console.log(
 assert.throws(() => codec.validate({...state,total:9007199254740992}), /Invalid/);
 assert.equal(codec.availability({...state,released:"1"},1799999999999n).releasable,0n);
 assert.equal(codec.availability(state,1799999999999n).nextTrancheMs,state.tge_ms);
+
+// A single engine must select each request independently, even with concurrent versions.
+const legacy = JSON.parse(readFileSync(new URL("../artifacts/KCOMVesting.artifact.json", import.meta.url)));
+const mixedEngine = createKcc20PsktBuilderEngine({ wasm: kw,
+  artifacts: {"KCOMVesting.artifact.json": legacy, "KCOMVestingV2.artifact.json": artifact,
+    "KCC20.placeholder.json": canonical}, rpcClientFactory: () => rpc });
+const legacyState = {...state};
+for (const field of ["period_ms", "first_period", "period_count", "tge_bps"]) delete legacyState[field];
+const legacyInput = input("kcom-vesting.deploy", {artifactProfile: "kcom-production", state: legacyState});
+const mixed = await Promise.all([mixedEngine.build(legacyInput), mixedEngine.build(input("kcom-vesting.deploy"))]);
+assert.notEqual(kw.Transaction.deserializeFromSafeJSON(mixed[0].psktTransactionJson).outputs[0].scriptPublicKey.script,
+  kw.Transaction.deserializeFromSafeJSON(mixed[1].psktTransactionJson).outputs[0].scriptPublicKey.script);
+await assert.rejects(mixedEngine.build(input("kcom-vesting.deploy", {artifactProfile: "unreviewed"})), /Unsupported KCOM artifact profile/);
+await assert.rejects(mixedEngine.build(input("kcom-vesting.deploy", {artifactProfile: "kcom-production"})), /state/);
+await assert.rejects(mixedEngine.build(input("kcom-vesting.deploy", {state: legacyState})), /state/);
+console.log("ok concurrent v1 and v2 requests use distinct pinned artifacts and reject mismatched state");

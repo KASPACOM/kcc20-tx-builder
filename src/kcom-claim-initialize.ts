@@ -37,7 +37,7 @@ function emptyRoot(kind, campaign, count) {
   }
   return bytesToHex(row[0]);
 }
-function checkedTerms(p, codec, network) {
+export function validateKcomClaimInitializer(p, codec, network) {
   const s = p.initState;
   if (!s || typeof p.termsHex !== "string" || !(codec.configurable ? /^[0-9a-f]{746}$/ : /^[0-9a-f]{554}$/).test(p.termsHex))
     throw new Error("Exact 277-byte frozen campaign terms required");
@@ -116,7 +116,7 @@ function rpcClient(options, kw, req) {
 }
 
 export async function buildKcomClaimDeployInitializer({ options, kw, req, p, codec, address }) {
-  const checked = checkedTerms(p, codec, req.network);
+  const checked = validateKcomClaimInitializer(p, codec, req.network);
   const value = BigInt(p.initializerValueSompi ?? -1);
   if (value <= checked.shardValue * checked.shardCount + VAULT_CELL || value > MAX_I64)
     throw new Error("Initializer native KAS does not fund all frozen shards and vault");
@@ -162,7 +162,7 @@ export async function buildKcomClaimDeployInitializer({ options, kw, req, p, cod
 }
 
 export async function buildKcomClaimInitialize({ options, kw, req, p, codec, address }) {
-  const checked = checkedTerms(p, codec, req.network);
+  const checked = validateKcomClaimInitializer(p, codec, req.network);
   const initializerId = requireHex32(p.initializerId, "accepted initializer id");
   const { publicKeys, approvals } = checkedKcomAdminPair(p, checked.state);
   const script = codec.script("KCOMInitialize", checked.state);
