@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { planFeeAccountAuthority } from "./escrow-authority.js";
 import { planTokenOwnerWitness } from "./token-authorization.js";
 import { sha256 } from "@noble/hashes/sha256";
 import { blake3 } from "@noble/hashes/blake3";
@@ -5781,14 +5782,16 @@ export function createKcc20PsktBuilderEngine(
     const owner = requireHex32(request.owner?.kcc20Owner, "claim owner");
     assertFeeAccountSchnorrWalletOwner(walletAddress, owner);
     const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
-    const accountOwner = accountOwnerScheme === 1
-      ? bytesToHex(blake3(hexToBytes(owner))) : owner;
+    const authorityPlan = planFeeAccountAuthority({
+      scheme: accountOwnerScheme, accountOwner: String(indexedAccount.state?.owner).toLowerCase(),
+      guardKey: String(indexedAccount.state?.guard_template).toLowerCase(),
+      signingOwner: owner, publicKey: request.owner?.publicKey,
+      capabilities: options.walletSigningCapabilities ?? { schnorr: true, ecdsa: false },
+      authority: params.authority,
+    });
     const delegated = accountOwnerScheme === 4;
-    if ((!delegated && ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
-        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner)) ||
-        (delegated && !indexedRecipient)) {
-      throw new Error("fee account is not controlled by the signing wallet");
-    }
+    const p2sh = accountOwnerScheme === 3;
+    if (delegated && !indexedRecipient) throw new Error("fee recipient authority is required");
     const network = request.network || env.KASPA_NETWORK || "testnet-10";
     const artifact = (await readFeeMarketArtifacts()).receipt;
     const recipientKey = "KCC20FeeRecipientV1.placeholder.json";
@@ -5805,7 +5808,7 @@ export function createKcc20PsktBuilderEngine(
     const priorityFee = parseU64(
       env.KCC20_FEE_MARKET_CLAIM_PRIORITY_FEE_SOMPI || DEFAULT_PRIORITY_FEE.toString(),
       "priorityFee");
-    const sourceAddresses = [...indexedReceipts, indexedAccount, ...(delegated ? [indexedRecipient] : [])]
+    const sourceAddresses = [...indexedReceipts, indexedAccount, ...(delegated ? [indexedRecipient] : []), ...(p2sh ? [authorityPlan.authority] : [])]
       .map(item => requireKaspaAddress(item.address));
     const rpc = new RpcClient({ url: env.KASPA_WRPC_URL || DEFAULT_WRPC_URL,
       encoding: Encoding.Borsh, networkId: network });
@@ -5865,7 +5868,9 @@ export function createKcc20PsktBuilderEngine(
         : null;
       const accountInputIndex = checkedReceipts.length;
       const recipientInputIndex = delegated ? accountInputIndex + 1 : -1;
-      const fundingInputIndex = accountInputIndex + 1 + Number(delegated);
+      const authorityInputIndex = p2sh ? accountInputIndex + 1 : -1;
+      const authority = p2sh ? liveFeeP2shAuthority(authorityPlan.authority, covenantUtxos.entries, network) : null;
+      const fundingInputIndex = accountInputIndex + 1 + Number(delegated || p2sh);
       const outputs = [new TransactionOutput(transition.claimSompi, payoutSpk),
         new TransactionOutput(transition.accountPrincipalSompi,
           payToScriptHashScript(successor.redeemScript),
@@ -5877,9 +5882,11 @@ export function createKcc20PsktBuilderEngine(
       if (approval) outputs.push(new TransactionOutput(approval.principalSompi,
         payToScriptHashScript(approval.successorRedeemScript),
         new CovenantBinding(recipientInputIndex, new Hash(approval.covenantId))));
+      const authorityOutputIndex = p2sh ? outputs.length : -1;
+      if (authority) outputs.push(new TransactionOutput(utxoAmountSompi(authority.entry), authority.spk));
       const fundingEntry = selectFundingEntry(walletUtxos.entries,
         priorityFee + 10_000n,
-        [...checkedReceipts.map(item => item.entry.outpoint), accountEntry.outpoint, ...(recipientLive ? [recipientLive.entry.outpoint] : [])],
+        [...checkedReceipts.map(item => item.entry.outpoint), accountEntry.outpoint, ...(recipientLive ? [recipientLive.entry.outpoint] : []), ...(authority ? [authority.entry.outpoint] : [])],
         params.fundingOutpoint);
       const fundingChangeIndex = outputs.length;
       outputs.push(new TransactionOutput(utxoAmountSompi(fundingEntry) - priorityFee,
@@ -5893,6 +5900,8 @@ export function createKcc20PsktBuilderEngine(
           sequence: 0n, sigOpCount: 0, computeBudget: 100 },
         ...(recipientLive ? [{ previousOutpoint: recipientLive.entry.outpoint, utxo: recipientLive.entry,
           sequence: 0n, sigOpCount: 0, computeBudget: 100 }] : []),
+        ...(authority ? [{ previousOutpoint: authority.entry.outpoint, utxo: authority.entry,
+          sequence: 0n, sigOpCount: 0, computeBudget: authorityPlan.authority.computeBudget }] : []),
         { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
           sequence: 0n, sigOpCount: 0, computeBudget: 30 },
       ];
@@ -5906,6 +5915,7 @@ export function createKcc20PsktBuilderEngine(
       transaction.inputs[accountInputIndex].computeBudget = 100;
       transaction.inputs[fundingInputIndex].computeBudget = 30;
       if (delegated) transaction.inputs[recipientInputIndex].computeBudget = 100;
+      if (authority) transaction.inputs[authorityInputIndex].computeBudget = authorityPlan.authority.computeBudget;
       assertUniqueTransactionInputOutpoints(transaction, "fee-market claim");
       for (const [index, checked] of checkedReceipts.entries()) {
         const prefix = covenantScriptBuilder(kw);
@@ -5925,11 +5935,12 @@ export function createKcc20PsktBuilderEngine(
           dataTemplateArg(dispatchTagFor(recipientArtifact, "approveFeeAccountAction")),
         ] } }] : [{ inputIndex: accountInputIndex,
         scriptHex: bytesToHex(checkedAccount.redeemScript), signType: 1,
+        signatureAlgorithm: authorityPlan.algorithm,
         signatureScript: { mode: "ordered-args", args: [
           i64TemplateArg(1),
           ...feeAccountStateTemplateArgs(transition.successorAccountState),
           i64TemplateArg(1), { type: "signature",
-            ...(accountOwnerScheme === 1 ? { prefixHex: owner } : {}) },
+            prefixHex: p2sh ? authorityInputIndex.toString(16).padStart(2, "0") : authorityPlan.prefixHex },
           i64TemplateArg(-1), i64TemplateArg(-1),
           ...feeAccountStateTemplateArgs(transition.successorAccountState),
           dataTemplateArg(new Uint8Array(0)),
@@ -5952,6 +5963,7 @@ export function createKcc20PsktBuilderEngine(
         transaction.inputs[accountInputIndex].signatureScript = encodeCovenantP2shSignatureScript(
           accountWitness.drain(), checkedAccount.redeemScript);
       }
+      if (authority) attachFeeP2shAuthority(transaction, scripts, authorityPlan.authority, authorityInputIndex);
       const feeResult = transactionWithPredictedSignedFeeChange(
         kw, transaction, fundingChangeIndex, network, "fee-market claim", candidate => {
           const serialized = candidate.serializeToSafeJSON();
@@ -5981,7 +5993,7 @@ export function createKcc20PsktBuilderEngine(
         metadata: { builderKey: "kcc20fee.claim", operation: "fee-market-claim",
           network, walletAddress, tokenId, marketId, policyId, party, accountId,
           receiptCount: checkedReceipts.length,
-          recipientInputIndex, recipientOutputIndex,
+          recipientInputIndex, recipientOutputIndex, authorityInputIndex, authorityOutputIndex,
           ...(approval ? { recipientContinuation: {
             covenantIdHex: approval.covenantId, vout: recipientOutputIndex,
             address: kw.addressFromScriptPublicKey(payToScriptHashScript(approval.successorRedeemScript), network).toString(),
@@ -6015,14 +6027,16 @@ export function createKcc20PsktBuilderEngine(
     const currentOwner = requireHex32(request.owner?.kcc20Owner, "current fee account owner");
     assertFeeAccountSchnorrWalletOwner(walletAddress, currentOwner);
     const accountOwnerScheme = Number(indexedAccount.state?.owner_scheme);
-    const accountOwner = accountOwnerScheme === 1
-      ? bytesToHex(blake3(hexToBytes(currentOwner))) : currentOwner;
+    const authorityPlan = planFeeAccountAuthority({
+      scheme: accountOwnerScheme, accountOwner: String(indexedAccount.state?.owner).toLowerCase(),
+      guardKey: String(indexedAccount.state?.guard_template).toLowerCase(),
+      signingOwner: currentOwner, publicKey: request.owner?.publicKey,
+      capabilities: options.walletSigningCapabilities ?? { schnorr: true, ecdsa: false },
+      authority: params.authority,
+    });
     const delegated = accountOwnerScheme === 4;
-    if ((!delegated && ((accountOwnerScheme !== 0 && accountOwnerScheme !== 1) ||
-        String(indexedAccount.state?.owner).toLowerCase() !== accountOwner)) ||
-        (delegated && !indexedRecipient)) {
-      throw new Error("fee account is not controlled by the signing wallet");
-    }
+    const p2sh = accountOwnerScheme === 3;
+    if (delegated && !indexedRecipient) throw new Error("fee recipient authority is required");
     const newOwner = requireHex32(params.newOwner, "new fee account owner");
     const newScheme = Number(params.newOwnerScheme);
     if (!Number.isInteger(newScheme) || newScheme < 0 || newScheme > 4) {
@@ -6079,7 +6093,7 @@ export function createKcc20PsktBuilderEngine(
     await rpc.connect();
     try {
       const [accountUtxos, walletUtxos] = await Promise.all([
-        getUtxosByAddresses(rpc, [accountAddress, ...(delegated ? [requireKaspaAddress(indexedRecipient.address)] : [])]),
+        getUtxosByAddresses(rpc, [accountAddress, ...(delegated ? [requireKaspaAddress(indexedRecipient.address)] : []), ...(p2sh ? [requireKaspaAddress(authorityPlan.authority.address)] : [])]),
         getUtxosByAddresses(rpc, [walletAddress]),
       ]);
       const accountEntry = findUtxoEntry(accountUtxos.entries,
@@ -6113,11 +6127,14 @@ export function createKcc20PsktBuilderEngine(
           scriptPublicKey:{version:Number(recipientSpk?.version),scriptHex:String(recipientSpk?.script).toLowerCase()}},
         account:checked.account,nextAccount:nextState,signingOwner:currentOwner,action:2 }) : null;
       if (approval) assertScriptAddress(kw, approval.currentRedeemScript, indexedRecipient.address, network, "fee recipient address");
-      const fundingInputIndex = delegated ? 2 : 1;
-      const fundingChangeIndex = delegated ? 2 : 1;
+      const authority = p2sh ? liveFeeP2shAuthority(authorityPlan.authority, accountUtxos.entries, network) : null;
+      const authorityInputIndex = p2sh ? 1 : -1;
+      const authorityOutputIndex = p2sh ? 1 : -1;
+      const fundingInputIndex = delegated || p2sh ? 2 : 1;
+      const fundingChangeIndex = delegated || p2sh ? 2 : 1;
       const successor = buildKcc20FeeEscrowScript(artifact, nextState);
       const fundingEntry = selectFundingEntry(walletUtxos.entries,
-        priorityFee + 10_000n, [accountEntry.outpoint, ...(recipientEntry ? [recipientEntry.outpoint] : [])], params.fundingOutpoint);
+        priorityFee + 10_000n, [accountEntry.outpoint, ...(recipientEntry ? [recipientEntry.outpoint] : []), ...(authority ? [authority.entry.outpoint] : [])], params.fundingOutpoint);
       const fundingChange = utxoAmountSompi(fundingEntry) - priorityFee;
       if (fundingChange <= 10_000n) throw new Error("fee account rotation funding is too small");
       const outputs = [new TransactionOutput(checked.account.principalSompi,
@@ -6125,6 +6142,7 @@ export function createKcc20PsktBuilderEngine(
         new CovenantBinding(0, new Hash(accountId))),
       ...(approval ? [new TransactionOutput(approval.principalSompi,
         payToScriptHashScript(approval.successorRedeemScript),new CovenantBinding(1,new Hash(approval.covenantId)))] : []),
+      ...(authority ? [new TransactionOutput(utxoAmountSompi(authority.entry), authority.spk)] : []),
       new TransactionOutput(fundingChange, payToAddressScript(walletAddress))];
       const transaction = new Transaction({ version: 1, lockTime: 0n,
         inputs: [
@@ -6132,20 +6150,23 @@ export function createKcc20PsktBuilderEngine(
             sequence: 0n, sigOpCount: 0, computeBudget: 100 },
           ...(recipientEntry ? [{ previousOutpoint:recipientEntry.outpoint,utxo:recipientEntry,
             sequence:0n,sigOpCount:0,computeBudget:100 }] : []),
+          ...(authority ? [{ previousOutpoint: authority.entry.outpoint, utxo: authority.entry,
+            sequence: 0n, sigOpCount: 0, computeBudget: authorityPlan.authority.computeBudget }] : []),
           { previousOutpoint: fundingEntry.outpoint, utxo: fundingEntry,
             sequence: 0n, sigOpCount: 0, computeBudget: 30 },
         ], outputs, subnetworkId: SUBNETWORK_ID_NATIVE, gas: 0n, payload: "",
       });
       setVersionOneInputMassFields(transaction, 100);
       transaction.inputs[fundingInputIndex].computeBudget = 30;
+      if (authority) transaction.inputs[authorityInputIndex].computeBudget = authorityPlan.authority.computeBudget;
       assertUniqueTransactionInputOutpoints(transaction, "fee account rotation");
       const scripts = approval ? [{ inputIndex:1,scriptHex:bytesToHex(approval.currentRedeemScript),signType:1,
         signatureScript:{mode:"ordered-args",args:[{type:"signature"},...feeAccountStateTemplateArgs(approval.nextState),
           i64TemplateArg(1),dataTemplateArg(dispatchTagFor(recipientArtifact,"approveFeeAccountAction"))]} }] : [{ inputIndex: 0, scriptHex: bytesToHex(checked.redeemScript),
-        signType: 1, signatureScript: { mode: "ordered-args", args: [
+        signType: 1, signatureAlgorithm: authorityPlan.algorithm, signatureScript: { mode: "ordered-args", args: [
           i64TemplateArg(2), ...feeAccountStateTemplateArgs(nextState),
           i64TemplateArg(0), { type: "signature",
-            ...(accountOwnerScheme === 1 ? { prefixHex: currentOwner } : {}) },
+            prefixHex: p2sh ? "01" : authorityPlan.prefixHex },
           i64TemplateArg(-1), i64TemplateArg(-1),
           ...feeAccountStateTemplateArgs(nextState),
           dataTemplateArg(new Uint8Array(0)),
@@ -6165,6 +6186,7 @@ export function createKcc20PsktBuilderEngine(
         }
         transaction.inputs[0].signatureScript = encodeCovenantP2shSignatureScript(witness.drain(),checked.redeemScript);
       }
+      if (authority) attachFeeP2shAuthority(transaction, scripts, authorityPlan.authority, authorityInputIndex);
       const feeResult = transactionWithPredictedSignedFeeChange(
         kw, transaction, fundingChangeIndex, network, "fee account rotation", candidate => {
           const serialized = candidate.serializeToSafeJSON();
@@ -6195,7 +6217,7 @@ export function createKcc20PsktBuilderEngine(
           operation: "fee-market-rotate-account", network, walletAddress,
           tokenId, marketId, policyId, accountId, newOwner,
           newOwnerScheme: newScheme, accountOutputIndex: 0,
-          transfersAllUnclaimedEntitlements: true,
+          transfersAllUnclaimedEntitlements: true, authorityInputIndex, authorityOutputIndex,
           recipientInputIndex: delegated ? 1 : -1, recipientOutputIndex: delegated ? 1 : -1,
           signedMass: { compute: signedMass.computeMass.toString(),
             transient: signedMass.transientMass.toString(),
@@ -17251,6 +17273,38 @@ export function createKcc20PsktBuilderEngine(
     if (!/^kaspa(?:test|dev)?:/i.test(address))
       throw new Error("owner.walletAddress must be a Kaspa address");
     return address;
+  }
+
+  function liveFeeP2shAuthority(descriptor, entries, network) {
+    const entry = findUtxoEntry(entries, descriptor.txidHex, descriptor.vout);
+    if (!entry) throw new Error("P2SH authority is spent or unavailable");
+    const spk = entry.scriptPublicKey ?? entry.entry?.scriptPublicKey ?? entry.utxoEntry?.scriptPublicKey;
+    const expected = kaspaWasm.payToScriptHashScript(hexToBytes(descriptor.redeemScriptHex));
+    if (Number(spk?.version) !== Number(expected.version) ||
+        String(spk?.script).toLowerCase() !== String(expected.script).toLowerCase())
+      throw new Error("live P2SH authority script mismatch");
+    const covenant = entry.covenantId ?? entry.entry?.covenantId ?? entry.utxoEntry?.covenantId;
+    if (covenant && String(covenant) !== ZERO_HASH)
+      throw new Error("lineage authority requires the recipient covenant path");
+    if (utxoAmountSompi(entry) <= 0n) throw new Error("P2SH authority principal must be positive");
+    assertScriptAddress(kaspaWasm, hexToBytes(descriptor.redeemScriptHex), descriptor.address, network, "P2SH authority address");
+    return { entry, spk };
+  }
+
+  function attachFeeP2shAuthority(transaction, scripts, descriptor, index) {
+    if (descriptor.arguments.some(arg => arg.type === "signature")) {
+      scripts.push({ inputIndex: index, scriptHex: descriptor.redeemScriptHex,
+        signType: 1, signatureAlgorithm: "schnorr",
+        signatureScript: { mode: "ordered-args", args: descriptor.arguments } });
+    } else {
+      const witness = covenantScriptBuilder(kaspaWasm);
+      for (const arg of descriptor.arguments) {
+        if (arg.type === "i64") witness.addI64(BigInt(arg.value));
+        else witness.addData(hexToBytes(arg.hex));
+      }
+      transaction.inputs[index].signatureScript = encodeCovenantP2shSignatureScript(
+        witness.drain(), hexToBytes(descriptor.redeemScriptHex));
+    }
   }
 
   function assertFeeAccountSchnorrWalletOwner(walletAddress, owner) {

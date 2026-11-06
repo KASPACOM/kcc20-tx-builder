@@ -26,6 +26,7 @@ export type ScriptHint = {
   inputIndex: number;
   scriptHex: string;
   signType?: number;
+  signatureAlgorithm?: "schnorr" | "ecdsa";
   signatureScript?: {
     mode: "ordered-args" | "signature-first-args" | "wrap-signature";
     args?: ScriptArgument[];
