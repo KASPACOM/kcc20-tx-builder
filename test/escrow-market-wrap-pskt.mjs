@@ -1447,4 +1447,3 @@ for (const scheme of [2, 3]) for (const party of ["protocol", "creator"]) {
     });
   }
 }
-
