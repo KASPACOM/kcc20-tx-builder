@@ -58,5 +58,14 @@ jobs:
       - name: Execute signed consolidation transactions against pinned consensus
         run: npm run test:consolidation:consensus
         env:
+          CONSOLIDATION_EVIDENCE: ${{ runner.temp }}/kcc20-consensus-evidence
           CARGO_PROFILE_DEV_DEBUG: 0
           CARGO_INCREMENTAL: 0
+      - name: Retain signed consensus fixtures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-consensus-${{ github.sha }}
+          path: ${{ runner.temp }}/kcc20-consensus-evidence
+          if-no-files-found: error
+          retention-days: 14
