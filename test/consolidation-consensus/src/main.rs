@@ -2,7 +2,7 @@
 //! Test fixtures only. No RPC, private wallet files or broadcast capability.
 use kaspa_consensus_core::{
     Hash,
-    hashing::sighash::SigHashReusedValuesUnsync,
+    hashing::{sighash::{SigHashReusedValuesUnsync, calc_schnorr_signature_hash, calc_ecdsa_signature_hash}, sighash_type::SIG_HASH_ALL},
     tx::{
         CovenantBinding, PopulatedTransaction, ScriptPublicKey, Transaction, TransactionInput,
         TransactionOutpoint, TransactionOutput, UtxoEntry, VerifiableTransaction,
@@ -99,6 +99,13 @@ fn main() {
             })
             .collect();
         let populated = PopulatedTransaction::new(&tx, entries);
+        if let Some(hashes) = case["signingHashes"].as_array() {
+            assert_eq!(hashes.len(), tx.inputs.len());
+            for (i, expected) in hashes.iter().enumerate() {
+                assert_eq!(calc_schnorr_signature_hash(&populated, i, SIG_HASH_ALL, &SigHashReusedValuesUnsync::new()).to_string(), expected["schnorr"].as_str().unwrap());
+                assert_eq!(calc_ecdsa_signature_hash(&populated, i, SIG_HASH_ALL, &SigHashReusedValuesUnsync::new()).to_string(), expected["ecdsa"].as_str().unwrap());
+            }
+        }
         let ctx = CovenantsContext::from_tx(&populated).expect("valid covenant context");
         let reused = SigHashReusedValuesUnsync::new();
         let cache = Cache::new(10000);

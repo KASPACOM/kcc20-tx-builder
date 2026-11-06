@@ -24,7 +24,7 @@ for (const [program, args] of [
   ],
   ["cargo", ["run", "--locked", "--manifest-path", "test/consolidation-consensus/Cargo.toml", "--", join(evidence, "recipient-transactions.json")]],
   ["cargo", ["run", "--locked", "--manifest-path", "test/consolidation-consensus/Cargo.toml", "--", join(evidence, "argent-fee-transactions.json")]],
-  ...["argent-sale-transactions.json", "argent-cross-transactions.json"].map(file => ["cargo", ["run", "--locked", "--manifest-path", "test/consolidation-consensus/Cargo.toml", "--", join(evidence, file)]]),
+  ...["argent-sale-transactions.json", "argent-cross-transactions.json", "authority-transactions.json"].map(file => ["cargo", ["run", "--locked", "--manifest-path", "test/consolidation-consensus/Cargo.toml", "--", join(evidence, file)]]),
 ]) {
   const result = spawnSync(program, args, {
     cwd: root,
