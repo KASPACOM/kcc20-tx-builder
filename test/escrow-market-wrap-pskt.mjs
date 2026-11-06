@@ -1492,6 +1492,23 @@ for (const scheme of [2, 3]) for (const party of ["protocol", "creator"]) {
           const b = Buffer.from(w); b[scheme === 2 ? 33 : 1] ^= 1; return b;
         });
         recordAuthority(f, built, bad, name + "-invalid-account-signature", { expectFailure: true, expectedFailureInputs: [count] });
+        if (scheme === 3) {
+          const wrongIndex = signFeeAuthorityBuild(kw, built, key, () => {}, (w, hint) => {
+            if (hint.inputIndex !== count) return w;
+            const b = Buffer.from(w); b[0] = built.signInputs[0].index; return b;
+          });
+          recordAuthority(f, built, wrongIndex, name + "-wrong-authority-index", { expectFailure: true, expectedFailureInputs: [count] });
+          const diverted = signFeeAuthorityBuild(kw, built, key);
+          diverted.outputs[built.metadata.authorityOutputIndex].value = f.authorityEntry.amount - 1n;
+          recordAuthority(f, built, diverted, name + "-changed-authority-principal", { expectFailure: true,
+            expectedFailureInputs: [count, built.metadata.authorityInputIndex, built.signInputs[0].index] });
+          const wrongSourceJson = JSON.parse(tx.serializeToSafeJSON());
+          wrongSourceJson.inputs[built.metadata.authorityInputIndex].utxo.scriptPublicKey =
+            "0000" + String(kw.payToScriptHashScript(Uint8Array.of(0x51)).script);
+          const wrongSource = kw.Transaction.deserializeFromSafeJSON(JSON.stringify(wrongSourceJson));
+          recordAuthority(f, built, wrongSource, name + "-changed-authority-source", { expectFailure: true,
+            expectedFailureInputs: [count, built.metadata.authorityInputIndex] });
+        }
       }
     });
   }
