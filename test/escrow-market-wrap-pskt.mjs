@@ -1453,11 +1453,15 @@ const authorityEvidence = [];
 function recordAuthority(f, built, tx, name, extra = {}) {
   const json = JSON.parse(tx.serializeToSafeJSON());
   authorityEvidence.push({ name, profileId: "fee-account-authority", count: json.inputs.length - 1,
-    covenantIds: json.inputs.map(i => i.transactionId === f.account.txidHex ? f.account.covenantIdHex
-      : f.receipts.some(r => r.txidHex === i.transactionId) ? marketId : null),
+    covenantIds: json.inputs.map(i => i.transactionId === f.account.txidHex && i.index === f.account.vout ? f.account.covenantIdHex
+      : f.receipts.some(r => r.txidHex === i.transactionId && r.vout === i.index) ? marketId : null),
     signedTransaction: json, built: { metadata: { covenantId: marketId } },
     signingHashes: json.inputs.map((_, i) => ({ schnorr: hex(feeSigningHash(kw, tx, i)), ecdsa: hex(feeSigningHash(kw, tx, i, true)) })),
     ...extra });
+  // Reused parent txids do not make funding/authority outputs covenant receipts.
+  assert.equal(authorityEvidence.at(-1).covenantIds[built.signInputs[0].index], null);
+  if (built.metadata.authorityInputIndex >= 0)
+    assert.equal(authorityEvidence.at(-1).covenantIds[built.metadata.authorityInputIndex], null);
   if (process.env.RECIPIENT_EVIDENCE) {
     mkdirSync(process.env.RECIPIENT_EVIDENCE, { recursive: true });
     writeFileSync(process.env.RECIPIENT_EVIDENCE + "/authority-transactions.json", JSON.stringify(authorityEvidence, null, 2));
