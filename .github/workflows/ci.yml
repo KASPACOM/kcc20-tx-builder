@@ -37,6 +37,11 @@ jobs:
         env:
           SNAPSHOT_TEST_WASM: ${{ github.workspace }}/examples/vendor/kaspa
 
+      - name: Verify configurable KCOM schedules and fast campaign builders
+        run: npm run test:kcom-configurable
+        env:
+          SNAPSHOT_TEST_WASM: ${{ github.workspace }}/examples/vendor/kaspa
+
   consolidation-consensus:
     runs-on: ubuntu-latest
     steps:
