@@ -56,3 +56,7 @@ export * from "./kcom-vesting.js";
 export * from "./kcom-claim-policy.js";
 export * from "./kcom-claim-codec.js";
 export * from "./kcom-claim-builder.js";
+
+export * from "./kcom-configurable-schedule.js";
+export * from "./kcom-configurable-pins.js";
+export * from "./kcom-artifact-profile.js";

@@ -4,12 +4,16 @@ import { loadPinnedKaspaWasm } from "./load-kaspa-wasm.mjs";
 import { createKcomClaimPsktBuilder, kcomClaimCodec } from "../dist/index.js";
 
 const kw = await loadPinnedKaspaWasm(process.env.SNAPSHOT_TEST_WASM);
+const configurable = process.argv.includes("--configurable-fast");
+const artifactProfile = configurable ? "kcom-configurable-v2" : "kcom-production";
+const graphKey = configurable ? "KCOMClaimGraphV2.artifact.json" : "KCOMClaimGraph.artifact.json";
+const openingKey = configurable ? "KCOMClaimOpenV2.artifact.json" : "KCOMClaimOpen.artifact.json";
 const artifact = name => JSON.parse(readFileSync(new URL(`../artifacts/${name}`, import.meta.url)));
-const graph = artifact("KCOMClaimGraph.artifact.json"), opening = artifact("KCOMClaimOpen.artifact.json");
+const graph = artifact(graphKey), opening = artifact(openingKey);
 const vector = JSON.parse(readFileSync(new URL("./fixtures/kcom-claim-script-vectors.json", import.meta.url)));
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/kcom-claim-selection-vector.json", import.meta.url)));
 const step = fixture.step, args = step.args, codec = kcomClaimCodec({ graph, opening });
-const dates = { opens_ms: "1700000000000", closes_ms: "1702592000000", tge_ms: String(step.before.tge_ms) };
+const dates = { opens_ms: "1700000000000", closes_ms: configurable ? "1700003600000" : "1702592000000", tge_ms: String(step.before.tge_ms) };
 const admins = { first: vector.factoryState.first, second: vector.factoryState.second,
   third: vector.factoryState.third };
 const decimalFields = new Set(["budget_raw", "manifest_total", "leaf_count", "selected_count",
@@ -36,7 +40,7 @@ const rpc = {
     address === sponsorAddress ? [sponsor] : [] }),
 };
 const builder = createKcomClaimPsktBuilder({ wasm: kw, artifacts: {
-  "KCOMClaimGraph.artifact.json": graph, "KCOMClaimOpen.artifact.json": opening,
+  [graphKey]: graph, [openingKey]: opening,
 }, rpcClientFactory: () => rpc });
 const proof = { campaignId: shardState.campaign, leafCount: Number(shardState.leaf_count),
   leaf: { index: args.index, authority: { scheme: 0, identifier: args.key },
@@ -47,7 +51,7 @@ const params = { graphId, shardState, shard: shard.outpoint,
   beneficiary: { scheme: args.scheme, identifier: args.beneficiary }, unusedProof: args.unusedProof };
 const request = (overrides = {}) => ({ schema: "kcc20-in-process-pskt-builder-input/v1",
   request: { builderKey: "kcom-claim.select", network: "testnet-10",
-    owner: { walletAddress: sponsorAddress }, params: { ...params, ...overrides } } });
+    owner: { walletAddress: sponsorAddress }, params: { artifactProfile, ...params, ...overrides } } });
 const prepared = await builder(request());
 assert.equal(prepared.submitTransactionSupported, false);
 const unsigned = kw.Transaction.deserializeFromSafeJSON(prepared.psktTransactionJson);
@@ -77,7 +81,7 @@ await assert.rejects(builder(request({ authorityApproval: approval,
   expectedSigningCommitment: "ff".repeat(32) })), /SIGNING_INTENT_STALE/);
 await assert.rejects(builder(request({ shard: { ...shard.outpoint, index: 1 } })), /SOURCE_STALE/);
 const alteredFee = createKcomClaimPsktBuilder({ wasm: kw, artifacts: {
-  "KCOMClaimGraph.artifact.json": graph, "KCOMClaimOpen.artifact.json": opening,
+  [graphKey]: graph, [openingKey]: opening,
 }, rpcClientFactory: () => rpc,
 transactionWithMinimumCalculatedFeeChange: (_runtime, tx, changeIndex) => {
   assert.equal(changeIndex, 2);

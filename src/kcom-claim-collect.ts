@@ -50,7 +50,7 @@ export async function buildKcomClaimCollect({ options, kw, req, p, codec, graphI
       long > boosted || boosted > all)
     throw new Error("Closed shard participation exceeds campaign bounds");
   const closeTime = BigInt(collectorState.closes_ms);
-  if (closeTime !== BigInt(collectorState.opens_ms) + 2592000000n ||
+  if ((codec.configurable ? closeTime <= BigInt(collectorState.opens_ms) || closeTime - BigInt(collectorState.opens_ms) > 31622400000n : closeTime !== BigInt(collectorState.opens_ms) + 2592000000n) ||
       closeTime < 500000000000n || closeTime > 9223372034262775805n)
     throw new Error("Invalid frozen campaign close time");
   const campaign = hexToBytes(requireHex32(collectorState.campaign, "campaign id"));

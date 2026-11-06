@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { decodeKcomSchedules, validateKcomSchedule } from "./kcom-configurable-schedule.js";
 import {
   buildKcc20ScriptForState,
   buildKcc20TransferSigScript,
@@ -52,7 +53,11 @@ export async function buildKcomClaimActivation({ options, kw, req, p, codec, gra
   if (bytesToHex(parts.hash) !== TOKEN_HASH || parts.prefix.length !== 1 || parts.suffix.length !== 25264)
     throw new Error("Canonical token template does not match activation covenant");
   const vesting = kcomVestingCodec(vestingArtifact);
+  const terms = codec.configurable ? hexToBytes(p.termsHex ?? "") : null;
+  const schedule = terms ? decodeKcomSchedules(terms, vaultState.terms_hash)[Number(entitlementState.tier) - 1] : null;
+  const scheduleArgs = schedule ? validateKcomSchedule(schedule) : [];
   const positionState = {
+    ...(schedule ? {period_ms:schedule.periodMs,first_period:schedule.firstPeriod,period_count:schedule.periodCount,tge_bps:schedule.tgeBps} : {}),
     token_id: tokenId, beneficiary: entitlementState.beneficiary,
     beneficiary_scheme: entitlementState.beneficiary_scheme,
     extension: vaultState.extension, total: String(total), released: "0",
@@ -135,6 +140,7 @@ export async function buildKcomClaimActivation({ options, kw, req, p, codec, gra
     vaultWitness.addI64(2n); vaultWitness.addI64(2n);
     if (!final) vaultWitness.addI64(3n);
     vaultWitness.addData(parts.prefix); vaultWitness.addData(parts.suffix);
+    if (terms) { vaultWitness.addData(terms); for (const n of scheduleArgs) vaultWitness.addI64(n); }
     codec.appendHiddenWitness(kw, vaultWitness, "KCOMVault", final ? "activate_final" : "activate_partial", {
       externalTemplates: { "KCOMClaimVesting::KCOMVesting": templateParts(vestingArtifact.sil_abi) },
       spawnOutputIndex: 1,
