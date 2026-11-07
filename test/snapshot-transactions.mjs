@@ -299,9 +299,13 @@ const deploymentAllocations = [
     '4915199665605975056',
   ],
 ];
-for (const allocations of deploymentAllocations) {
+for (const { allocations, cellSompi } of [
+  ...deploymentAllocations.map(allocations => ({ allocations, cellSompi: undefined })),
+  { allocations: ['1000'], cellSompi: '50000000' },
+]) {
   const count = allocations.length;
   const definition = {
+    ...(cellSompi ? { cellSompi } : {}),
     migrationId: hex(migration), manifestCommitment: hex(manifest), context: hex(context),
     creator: hex(bytes(0x50)), ticker: 'TEST', displayScale: '100',
     totalSupply: allocations.reduce((sum, allocation) => sum + BigInt(allocation), 0n).toString(),
@@ -310,6 +314,7 @@ for (const allocations of deploymentAllocations) {
       allocationTotal: allocations[shardIndex], initialRoot: hex(root),
     })),
   };
+  const expectedCell = cellSompi ?? '200000000';
   const deployments = new Map();
   const order = [...Array.from({length: count - 1}, (_, index) => index + 1), 0];
   for (const expectedShard of order) {
@@ -320,6 +325,7 @@ for (const allocations of deploymentAllocations) {
       plan: prepared.plan, controllerArtifact, fundingInput: funding(), changeAddress, feeSompi: 300000n,
     });
     const tx = deploy.unsignedTransaction;
+    assert.equal(String(tx.outputs[0].value), expectedCell);
     const current = definition.shards[expectedShard];
     current.controllerId = tx.outputs[0].covenant.covenantId;
     current.genesisOutpoint = { transactionId: tx.id, index: 0 };
@@ -333,6 +339,7 @@ for (const allocations of deploymentAllocations) {
   definition.bootstrapId = deploy.unsignedTransaction.outputs[0].covenant.covenantId;
   definition.bootstrapOutpoint = {transactionId: deploy.unsignedTransaction.id, index: 0};
   const prepared = prepareSnapshotDeployment(kw, definition, artifacts);
+  assert.equal(String(deploy.unsignedTransaction.outputs[0].value), expectedCell);
   assert.equal(prepared.stage, 'snapshot-start');
   const args = {
     ...artifacts, plan: prepared.plan, changeAddress, feeSompi: 300000n,
@@ -343,6 +350,7 @@ for (const allocations of deploymentAllocations) {
       buildSnapshotControllerScriptForState(controllerArtifact, deployments.get(index).plan.controllerState), shard.controllerId)),
   };
   const started = buildSnapshotStartUnsignedTransaction(kw, args);
+  assert.ok(started.unsignedTransaction.outputs.slice(0, count * 2).every(output => String(output.value) === expectedCell));
   const predictedMass = calculateSnapshotStartPredictedSignedMass(
     started.unsignedTransaction,
     count + 1,
@@ -409,6 +417,9 @@ for (const allocations of deploymentAllocations) {
   const verifyArgs = { definition, artifacts, stage: 'snapshot-start', walletAddress: changeAddress,
     maximumFeeSompi: '300000', signingInputIndexes: [count + 1], transactionJson: JSON.stringify(started.unsignedTransaction) };
   verifySnapshotDeploymentTransaction(kw, verifyArgs);
+  assert.throws(() => verifySnapshotDeploymentTransaction(kw, {
+    ...verifyArgs, definition: { ...definition, cellSompi: expectedCell === '50000000' ? '200000000' : '50000000' },
+  }), undefined, 'changing committed principal must not verify');
   assert.throws(() => verifySnapshotDeploymentTransaction(kw, {...verifyArgs, signingInputIndexes: [0, count + 1]}), /funding input/);
   const mutated = structuredClone(started.unsignedTransaction);
   mutated.outputs[0].value = '49999999';
@@ -428,3 +439,10 @@ for (const allocations of deploymentAllocations) {
     bootstrapArtifact: {...bootstrapArtifact, script: [0]}}), /hash mismatch/);
 }
 console.log('1, 2, 8, and wide 5 shard deployment order, atomic start, mutation and signature tests passed');
+
+for (const cellSompi of ['', '0', '-1', '49999999', '050000000', '50000000.0', '1e8', '9223372036854775808', 50000000, null]) {
+  assert.throws(() => prepareSnapshotDeployment(kw, {
+    cellSompi, migrationId: hex(migration), shards: [],
+  }, artifacts), /cellSompi/, String(cellSompi));
+}
+console.log('explicit 0.5 KAS and default 2 KAS deployment principals verified without changing mass gates');

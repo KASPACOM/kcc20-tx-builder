@@ -46,3 +46,7 @@ establish network admission. A funded DEV rehearsal and independent review are
 required before enabling deployment in a host application.
 
 For the bundled offline test runtime, set `SNAPSHOT_TEST_WASM="$PWD/examples/vendor/kaspa"`. CI runs the transaction and claim tests with these pinned bytes. The public-release compiler gate currently reproduces the five core families; source reproduction of the two snapshot artifacts remains a separate release check.
+
+### Reconstructing an existing principal
+
+`SnapshotDeploymentDefinition.cellSompi` accepts the exact committed controller, reserve and bootstrap value as a canonical integer string. Omission retains the 2 KAS default. A caller reconstructing an approved 0.5 KAS definition must supply `"50000000"`; changing the amount changes the committed scripts and token identity. This option does not bypass source authentication or signed mass checks and does not make low-principal eight-shard transactions fit. Recipient minimums remain separate.

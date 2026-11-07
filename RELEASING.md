@@ -95,7 +95,7 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
-Version `0.8.3-fee.2` includes the reviewed ECDSA/exact-P2SH fee-account
+Version `0.8.3-fee.3` includes the reviewed ECDSA/exact-P2SH fee-account
 claims and rotations without changing fee artifacts. It preserves fee.1 snapshot
 artifacts and configurable KCOM support. Funded authority evidence is recorded
 in kaspa-covenants PR #737. Dedicated browser signing, platform-signer withdrawal

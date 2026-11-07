@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3-fee.3
+
+- Preserve an explicitly committed snapshot cell principal through deterministic deployment planning and verification. Existing backend 0.5 KAS commitments can be reconstructed; new callers retain the 2 KAS default from fee.1. Mass checks and contract artifacts are unchanged.
+- Retain the reviewed, funded ECDSA and exact-P2SH fee-account builders from fee.2.
+
 ## 0.8.3-fee.2 (integration prerelease)
 
 - Add explicit ECDSA and exact-P2SH fee-account claims and authority rotation, preserving account principal and the opposing entitlement.
