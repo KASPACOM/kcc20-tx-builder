@@ -2,7 +2,7 @@
   "schema": "kcc20-example-compatibility/v1",
   "packageVersion": "0.8.3-fee.0",
   "contractsRepository": "https://github.com/KASPACOM/kaspa-covenants",
-  "contractsCommit": "e32d2f000395b1ee69efeb306a8668c099985558",
+  "contractsCommit": "a8ef2881d38be72ce98e74979cd10a02a358e979",
   "compiler": {
     "repository": "https://github.com/kaspanet/silverscript",
     "tag": "v1.0.0",
@@ -66,20 +66,20 @@
       "compilerBuild": "verified-source"
     },
     "KCC20SnapshotBootstrap.placeholder.json": {
-      "fileSha256": "daddabe50454e1c6c187c0b027cc8887f79f0f0086a14f26c6a2a56054991ebb",
-      "scriptSha256": "a22b93b0d8cd04096d83d25bbb6c38f0c07ac025b70226677db484fa93fe09ef",
+      "fileSha256": "d6a730e3b03b8af389410ea2ddbe75fba461f767126d3cf5391bca60b2b81359",
+      "scriptSha256": "e55f100ded01598a5d2c15823f7df749e9c5614133d47c14a244b93592cb9969",
       "sourceSha256": "6e6e6a8a5d12b68d0bf5a67c4e9a727dbed4605c62896f869c73f1f3e66c0fa8",
-      "constructorArgsSha256": "ccfd363002a8efb2ad8d8c7a3e44be9ad54078c292d294098ec9262326d040ce",
+      "constructorArgsSha256": "b52af9e76f9ca1b5a4f6bac7134a05d596874ac0dee934e1814e20628b05280b",
       "abiSha256": "7cf08a871d29a3fddc988000c6dd0bb01140bcacdf931254c341248e0baa8a3b",
-      "compilerBuild": "verified-release"
+      "compilerBuild": "verified-source"
     },
     "KCC20SnapshotController.placeholder.json": {
-      "fileSha256": "a73727cfe03108097e1226566cff9dbbbf42a5dc8526aac3196817ffc642212f",
-      "scriptSha256": "8a73c57e309860ff799a71ca9352afa84f71638061cfa427cc5e8d36d1b8b025",
-      "sourceSha256": "1d8697fd967af3278e9fceae5a98ef442eaf29037822c963baf4c9d252288edd",
+      "fileSha256": "f8da807b6015eee31f5ec8e8bfd909f10a7e47d91ff5ef2c1237a1121af5dc25",
+      "scriptSha256": "d209a7f9a9ca9857e46ee474ee8ad355f8b8087c1eb09133e1cf2d6b4cb9474f",
+      "sourceSha256": "2c5c8923e4e2710812194fb16c421cb0cd493221885350ed2cd1e4b6ead39d5c",
       "constructorArgsSha256": "1d6b2ac27fa5fea7e6c419543d4968f5b623b3139e880984d2fa5a116a453635",
-      "abiSha256": "f4e503b480fd8c63194fcbe987e3818998bf4c387c360cb0371bebf542c60050",
-      "compilerBuild": "verified-release"
+      "abiSha256": "8875301ab720a63ad1041c49b203b1be026807ef3fbde7142399cfcfbec68af6",
+      "compilerBuild": "verified-source"
     },
     "KCC20WrapperFeeArgentV2.placeholder.json": {
       "fileSha256": "eec339c8b255fc59790fbff699acbbf6c1f06baecb855fbbd590c9428d5611be",
@@ -98,7 +98,7 @@
       "compilerBuild": "verified-release"
     }
   },
-  "contractsSourceStatus": "reviewed source and generated inputs pinned to contractsCommit",
+  "contractsSourceStatus": "uncommitted local review; rerun artifact sync after the contracts commit exists",
   "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
   "argent": {
     "contractsCommit": "f879b6332057e07844d499c178f81219986a59f3",

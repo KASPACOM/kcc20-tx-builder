@@ -19,8 +19,11 @@ import {
   buildSnapshotStartUnsignedTransaction,
   buildSnapshotBootstrapScriptForState,
   buildSnapshotControllerScriptForState,
+  assertSnapshotStartPredictedSignedMass,
+  calculateSnapshotStartPredictedSignedMass,
   deriveSnapshotTokenId,
   parseSnapshotKcc20DeploymentPayload,
+  SNAPSHOT_START_MASS_LIMITS,
 } from "../dist/snapshot-signerless-transactions.js";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -340,7 +343,28 @@ for (const allocations of deploymentAllocations) {
       buildSnapshotControllerScriptForState(controllerArtifact, deployments.get(index).plan.controllerState), shard.controllerId)),
   };
   const started = buildSnapshotStartUnsignedTransaction(kw, args);
+  const predictedMass = calculateSnapshotStartPredictedSignedMass(
+    started.unsignedTransaction,
+    count + 1,
+  );
+  assert.ok(predictedMass.computeMass <= SNAPSHOT_START_MASS_LIMITS.compute);
+  assert.ok(predictedMass.storageMass <= SNAPSHOT_START_MASS_LIMITS.storage);
+  assert.ok(predictedMass.transientMass <= SNAPSHOT_START_MASS_LIMITS.transient);
   if (allocations.length === 5) {
+    assert.ok(predictedMass.computeMass < 400_000n);
+    assert.ok(predictedMass.storageMass < 300_000n);
+    assert.ok(predictedMass.transientMass < 700_000n);
+    assert.ok(
+      started.unsignedTransaction.inputs
+        .slice(1, count + 1)
+        .every((input) => input.signatureScript.length / 2 < 20_000),
+    );
+    const oversizedStart = structuredClone(started.unsignedTransaction);
+    oversizedStart.payload += "00".repeat(100_000);
+    assert.throws(
+      () => assertSnapshotStartPredictedSignedMass(oversizedStart, count + 1),
+      /transient .*\/1000000/,
+    );
     const payloadBytes = Buffer.from(started.unsignedTransaction.payload, 'hex');
     const parsed = parseSnapshotKcc20DeploymentPayload(payloadBytes);
     assert.equal(parsed.maxSupply, 28_700_000_000_000_000_000n);
