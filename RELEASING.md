@@ -95,6 +95,13 @@ consumer deployment. Record any unverified operation families explicitly.
 
 ## Fee integration prerelease
 
+Version `0.8.3-fee.1` pins the compact four-argument snapshot-controller
+start ABI and regenerated artifacts to merged `kaspa-covenants` commit
+`f9239cfe09bce02be33811f0ba8f586e28ec06e7`. It is a distinct `next`-tag
+candidate from the previously released seven-argument `0.8.3-fee.0` artifact
+set. Exact-candidate funded TN10 deploy, transfer, wrap, trade and snapshot
+evidence remains required before stable promotion or market enablement.
+
 Version `0.8.3-fee.0` carries the reviewed wide-snapshot and exact Nacho
 deployment-payload fixes together with native fee-wrapper V2 activation. It is
 a `next`-tag integration candidate only. Synthetic and signed-consensus tests

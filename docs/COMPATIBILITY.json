@@ -1,8 +1,8 @@
 {
   "schema": "kcc20-example-compatibility/v1",
-  "packageVersion": "0.8.3-fee.0",
+  "packageVersion": "0.8.3-fee.1",
   "contractsRepository": "https://github.com/KASPACOM/kaspa-covenants",
-  "contractsCommit": "a8ef2881d38be72ce98e74979cd10a02a358e979",
+  "contractsCommit": "f9239cfe09bce02be33811f0ba8f586e28ec06e7",
   "compiler": {
     "repository": "https://github.com/kaspanet/silverscript",
     "tag": "v1.0.0",
@@ -98,7 +98,7 @@
       "compilerBuild": "verified-release"
     }
   },
-  "contractsSourceStatus": "uncommitted local review; rerun artifact sync after the contracts commit exists",
+  "contractsSourceStatus": "reviewed source and generated inputs pinned to contractsCommit",
   "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
   "argent": {
     "contractsCommit": "f879b6332057e07844d499c178f81219986a59f3",
