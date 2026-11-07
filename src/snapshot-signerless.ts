@@ -383,9 +383,6 @@ export function buildSnapshotStartSignatureScripts(
     builder.addI64(BigInt(bootstrapInputIndex));
     builder.addI64(BigInt(index));
     builder.addI64(BigInt(controllers.length + index));
-    addKcc20State(builder, reserves[index]);
-    builder.addData(kcc20Template.prefix);
-    builder.addData(kcc20Template.suffix);
     builder.addData(dispatchTagFor(controllerArtifact, "start"));
     return {
       inputIndex: controllerInputStart + index,

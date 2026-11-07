@@ -35,6 +35,7 @@ import {
   buildSnapshotControllerScriptForState as buildSignerlessControllerScript,
   buildSnapshotKcc20DeploymentPayload,
   buildSnapshotStartUnsignedTransaction,
+  assertSnapshotStartPredictedSignedMass,
   deriveSnapshotTokenId,
 } from "./snapshot-signerless-transactions.js";
 
@@ -491,6 +492,10 @@ export function createKcc20SnapshotPsktBuilder(
         network,
         "signerless snapshot start",
       );
+      const signedMass = assertSnapshotStartPredictedSignedMass(
+        adjusted,
+        1 + prepared.shards.length,
+      );
       return outputEnvelope(
         adjusted,
         [{ index: 1 + prepared.shards.length }],
@@ -504,6 +509,11 @@ export function createKcc20SnapshotPsktBuilder(
           bootstrapState: prepared.bootstrapPlan.bootstrapState,
           bootstrapConsumed: true,
           shards: prepared.shards.map((shard) => shard.shardIndex),
+          signedMass: {
+            compute: signedMass.computeMass.toString(),
+            storage: signedMass.storageMass.toString(),
+            transient: signedMass.transientMass.toString(),
+          },
           maximumFeeSompi: feeOf(adjusted).toString(),
           intentInputs: [
             {

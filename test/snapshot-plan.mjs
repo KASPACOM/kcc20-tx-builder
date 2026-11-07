@@ -16,9 +16,9 @@ const pins = {
   "KCC20.placeholder.json":
     "a45d06e8351421dac1ef73f3595c6f34068e4fa1e13d3f8fa1c88be518c6e56f",
   "KCC20SnapshotBootstrap.placeholder.json":
-    "daddabe50454e1c6c187c0b027cc8887f79f0f0086a14f26c6a2a56054991ebb",
+    "d6a730e3b03b8af389410ea2ddbe75fba461f767126d3cf5391bca60b2b81359",
   "KCC20SnapshotController.placeholder.json":
-    "a73727cfe03108097e1226566cff9dbbbf42a5dc8526aac3196817ffc642212f",
+    "f8da807b6015eee31f5ec8e8bfd909f10a7e47d91ff5ef2c1237a1121af5dc25",
 };
 for (const [name, hash] of Object.entries(pins))
   assert.equal(

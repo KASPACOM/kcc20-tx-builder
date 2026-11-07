@@ -7,6 +7,10 @@ import {
 import { deriveSnapshotTokenId } from "./snapshot-signerless-transactions.js";
 
 export const SNAPSHOT_DEPLOYMENT_PROTOCOL = "signerless-start-v2" as const;
+// A covenant UTXO occupies two Toccata storage units. Two KAS keeps all
+// sixteen covenant outputs at the supported eight-shard maximum safely below
+// the 500k persistent-storage mass limit; 0.5 KAS does not.
+export const SNAPSHOT_DEPLOYMENT_CELL_SOMPI = 200_000_000n;
 export interface SnapshotDeploymentShard {
   shardIndex: number;
   globalIndexStart: number;
@@ -63,6 +67,8 @@ export function prepareSnapshotDeployment(kw: any, definition: SnapshotDeploymen
     manifestCommitment: definition.manifestCommitment, context: definition.context,
     holderExtensionCommitment: metadata.holderExtensionCommitment,
     claimNotBeforeDaaScore: definition.claimNotBeforeDaaScore, shardCount: shards.length,
+    controllerCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
+    reserveCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
   };
   const placeholder = "01".repeat(32);
   const controllerPlans = shards.map(shard => buildControllerGenesisPlan({
@@ -92,10 +98,11 @@ export function prepareSnapshotDeployment(kw: any, definition: SnapshotDeploymen
   }));
   const tokenId = deriveSnapshotTokenId(kw, {
     controllerGenesisOutpoint: shards[0].genesisOutpoint, reserves, kcc20Artifact: artifacts.kcc20Artifact,
-    reserveCellKas: "50000000",
+    reserveCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
   });
   const bootstrapPlan = buildBootstrapGenesisPlan({
     ...common, expectedTokenId: tokenId, totalSupply: definition.totalSupply, shards: committedShards,
+    bootstrapCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
   } as any);
   return {
     stage: definition.bootstrapId ? "snapshot-start" as const : "bootstrap-deploy" as const,

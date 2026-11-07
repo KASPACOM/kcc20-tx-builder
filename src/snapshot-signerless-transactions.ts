@@ -24,6 +24,128 @@ const WIDE_SUPPLY_ARGUMENT_TYPE = "u64[2]";
 const MAX_COMPUTE_BUDGET = 65_535;
 const DEFAULT_COVENANT_COMPUTE_BUDGET = 1_000;
 const START_CONTROLLER_COMPUTE_BUDGET = 100;
+const PREDICTED_P2PK_SIGNATURE_SCRIPT_BYTES = 66n;
+const TOCCATA_MASS_PER_TX_BYTE = 1n;
+const TOCCATA_MASS_PER_SCRIPT_PUBLIC_KEY_BYTE = 10n;
+const TOCCATA_MASS_PER_COMPUTE_BUDGET_UNIT = 100n;
+const TOCCATA_TRANSIENT_MASS_PER_BYTE = 4n;
+const TOCCATA_STORAGE_MASS_PARAMETER = 1_000_000_000_000n;
+const TOCCATA_UTXO_FIXED_STORAGE_BYTES = 63n;
+const TOCCATA_UTXO_STORAGE_UNIT_BYTES = 100n;
+
+export const SNAPSHOT_START_MASS_LIMITS = Object.freeze({
+  compute: 500_000n,
+  storage: 500_000n,
+  transient: 1_000_000n,
+});
+
+/**
+ * Predict the signed TN10 mass triplet while the public funding signature is
+ * still absent. Covenant inputs already contain their final static witnesses;
+ * the only remaining size is one canonical Schnorr P2PK signature script.
+ */
+export function calculateSnapshotStartPredictedSignedMass(
+  transaction,
+  fundingInputIndex,
+) {
+  const json = safeTransactionJson(transaction, "snapshot start mass");
+  if (
+    Number(json.version) !== 1 ||
+    !Array.isArray(json.inputs) ||
+    !Array.isArray(json.outputs) ||
+    !Number.isInteger(fundingInputIndex) ||
+    fundingInputIndex < 0 ||
+    fundingInputIndex >= json.inputs.length
+  ) {
+    throw new Error("snapshot start mass transaction shape is invalid");
+  }
+
+  let estimatedSerializedSize = 2n + 8n + 8n + 8n + 20n + 8n + 32n + 8n;
+  let computeBudgetUnits = 0n;
+  for (const [index, input] of json.inputs.entries()) {
+    let signatureScriptBytes = hexByteLength(
+      input?.signatureScript ?? "",
+      `snapshot start input ${index} signature script`,
+    );
+    if (index === fundingInputIndex && signatureScriptBytes === 0n) {
+      signatureScriptBytes = PREDICTED_P2PK_SIGNATURE_SCRIPT_BYTES;
+    }
+    const computeBudget = Number(input?.computeBudget);
+    if (
+      !Number.isInteger(computeBudget) ||
+      computeBudget < 0 ||
+      computeBudget > MAX_COMPUTE_BUDGET
+    ) {
+      throw new Error(
+        `snapshot start input ${index} compute budget is invalid`,
+      );
+    }
+    estimatedSerializedSize += 32n + 4n + 8n + signatureScriptBytes + 8n + 2n;
+    computeBudgetUnits += BigInt(computeBudget);
+  }
+
+  let totalScriptPublicKeySize = 0n;
+  for (const [index, output] of json.outputs.entries()) {
+    const serializedScriptBytes = hexByteLength(
+      output?.scriptPublicKey,
+      `snapshot start output ${index} script public key`,
+    );
+    if (serializedScriptBytes < 2n) {
+      throw new Error(
+        `snapshot start output ${index} script public key is invalid`,
+      );
+    }
+    const scriptBytes = serializedScriptBytes - 2n;
+    estimatedSerializedSize +=
+      8n + 2n + 8n + scriptBytes + (output?.covenant ? 34n : 0n);
+    totalScriptPublicKeySize += serializedScriptBytes;
+  }
+  estimatedSerializedSize += hexByteLength(
+    json.payload ?? "",
+    "snapshot start payload",
+  );
+
+  const computeMass =
+    estimatedSerializedSize * TOCCATA_MASS_PER_TX_BYTE +
+    totalScriptPublicKeySize * TOCCATA_MASS_PER_SCRIPT_PUBLIC_KEY_BYTE +
+    computeBudgetUnits * TOCCATA_MASS_PER_COMPUTE_BUDGET_UNIT;
+  const transientMass =
+    estimatedSerializedSize * TOCCATA_TRANSIENT_MASS_PER_BYTE;
+  const storageMass = snapshotStorageMass(json);
+  return { computeMass, storageMass, transientMass, estimatedSerializedSize };
+}
+
+export function assertSnapshotStartPredictedSignedMass(
+  transaction,
+  fundingInputIndex,
+) {
+  const mass = calculateSnapshotStartPredictedSignedMass(
+    transaction,
+    fundingInputIndex,
+  );
+  const exceeded = Object.entries({
+    compute: mass.computeMass,
+    storage: mass.storageMass,
+    transient: mass.transientMass,
+  }).filter(
+    ([dimension, value]) => value > SNAPSHOT_START_MASS_LIMITS[dimension],
+  );
+  if (exceeded.length === 0) return mass;
+  const error = new Error(
+    `snapshot start predicted signed mass exceeds TN10 limits: ${exceeded
+      .map(
+        ([dimension, value]) =>
+          `${dimension} ${value}/${SNAPSHOT_START_MASS_LIMITS[dimension]}`,
+      )
+      .join(", ")}`,
+  );
+  error.code = "SNAPSHOT_START_MASS_EXCEEDED";
+  error.details = {
+    mass,
+    limits: SNAPSHOT_START_MASS_LIMITS,
+  };
+  throw error;
+}
 
 export function buildSnapshotKcc20DeploymentPayload({
   creator,
@@ -188,10 +310,7 @@ export function parseSnapshotKcc20DeploymentPayload(payload) {
   ) {
     throw new Error("snapshot fixed deployment must premint its full supply");
   }
-  const mintLaneCount = deploymentI64Argument(
-    argumentsByName,
-    "mintLaneCount",
-  );
+  const mintLaneCount = deploymentI64Argument(argumentsByName, "mintLaneCount");
   const premintRecipient = deploymentHexArgument(
     argumentsByName,
     "premintRecipient",
@@ -201,10 +320,7 @@ export function parseSnapshotKcc20DeploymentPayload(payload) {
     "premintOwnerScheme",
   );
   const mintPolicy = deploymentI64Argument(argumentsByName, "mintPolicy");
-  const displayScale = deploymentI64Argument(
-    argumentsByName,
-    "displayScale",
-  );
+  const displayScale = deploymentI64Argument(argumentsByName, "displayScale");
   const mintPriceSompi = deploymentI64Argument(
     argumentsByName,
     "mintPriceSompi",
@@ -1231,6 +1347,116 @@ function unsignedEnvelope(kw, transaction, intent, signInputs) {
     readyForSigning: false,
     signInputs,
     intent: JSON.parse(JSON.stringify(intent)),
+  };
+}
+
+function safeTransactionJson(transaction, label) {
+  const serialized =
+    typeof transaction?.serializeToSafeJSON === "function"
+      ? transaction.serializeToSafeJSON()
+      : transaction;
+  if (typeof serialized === "string") return JSON.parse(serialized);
+  if (serialized && typeof serialized === "object") return serialized;
+  throw new Error(`${label} serialization is invalid`);
+}
+
+function hexByteLength(value, label) {
+  if (
+    typeof value !== "string" ||
+    value.length % 2 !== 0 ||
+    !/^[0-9a-f]*$/i.test(value)
+  ) {
+    throw new Error(`${label} must be even-length hexadecimal`);
+  }
+  return BigInt(value.length / 2);
+}
+
+function snapshotStorageMass(json) {
+  if (!json.inputs.length) {
+    throw new Error("snapshot start storage mass requires inputs");
+  }
+  const inputs = json.inputs.map((input, index) =>
+    snapshotUtxoCell(
+      input?.utxo,
+      Boolean(input?.utxo?.covenantId),
+      `snapshot start input ${index}`,
+    ),
+  );
+  const outputs = json.outputs.map((output, index) =>
+    snapshotUtxoCell(
+      output,
+      Boolean(output?.covenant),
+      `snapshot start output ${index}`,
+    ),
+  );
+  let outputPlurality = 0n;
+  let harmonicOutputs = 0n;
+  for (const output of outputs) {
+    outputPlurality += output.plurality;
+    harmonicOutputs +=
+      (TOCCATA_STORAGE_MASS_PARAMETER * output.plurality * output.plurality) /
+      output.amount;
+  }
+  const inputPlurality = inputs.reduce(
+    (sum, input) => sum + input.plurality,
+    0n,
+  );
+  const relaxed =
+    outputPlurality === 1n ||
+    (inputs.length <= 2 &&
+      (inputPlurality === 1n ||
+        (outputPlurality === 2n && inputPlurality === 2n)));
+  if (relaxed) {
+    const harmonicInputs = inputs.reduce(
+      (sum, input) =>
+        sum +
+        (TOCCATA_STORAGE_MASS_PARAMETER * input.plurality * input.plurality) /
+          input.amount,
+      0n,
+    );
+    return harmonicOutputs > harmonicInputs
+      ? harmonicOutputs - harmonicInputs
+      : 0n;
+  }
+  const totalInputAmount = inputs.reduce(
+    (sum, input) => sum + input.amount,
+    0n,
+  );
+  const meanInputAmount = totalInputAmount / inputPlurality;
+  if (meanInputAmount === 0n) {
+    throw new Error("snapshot start storage mass is incomputable");
+  }
+  const arithmeticInputs =
+    inputPlurality * (TOCCATA_STORAGE_MASS_PARAMETER / meanInputAmount);
+  return harmonicOutputs > arithmeticInputs
+    ? harmonicOutputs - arithmeticInputs
+    : 0n;
+}
+
+function snapshotUtxoCell(entity, hasCovenantId, label) {
+  let amount;
+  try {
+    amount = BigInt(entity?.amount ?? entity?.value);
+  } catch {
+    throw new Error(`${label} amount is invalid`);
+  }
+  if (amount <= 0n) throw new Error(`${label} amount must be positive`);
+  const serializedScriptBytes = hexByteLength(
+    entity?.scriptPublicKey,
+    `${label} script public key`,
+  );
+  if (serializedScriptBytes < 2n) {
+    throw new Error(`${label} script public key is invalid`);
+  }
+  const storageBytes =
+    TOCCATA_UTXO_FIXED_STORAGE_BYTES +
+    (serializedScriptBytes - 2n) +
+    (hasCovenantId ? 32n : 0n);
+  return {
+    amount,
+    plurality:
+      (storageBytes + TOCCATA_UTXO_STORAGE_UNIT_BYTES - 1n) /
+      TOCCATA_UTXO_STORAGE_UNIT_BYTES,
   };
 }
 
