@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3-fee.2 (integration prerelease)
+
+- Add explicit ECDSA and exact-P2SH fee-account claims and authority rotation, preserving account principal and the opposing entitlement.
+- Retain the compact snapshot artifacts from fee.1 and the configurable KCOM builders.
+- Keep the `next` integration tag; browser wallet support, historical parity and market enablement remain separate gates.
+
 ## 0.8.3-fee.1 (integration prerelease)
 
 - Pin the packaged four-argument snapshot-controller start ABI and regenerated artifacts to merged `kaspa-covenants` commit `f9239cfe09bce02be33811f0ba8f586e28ec06e7`.
