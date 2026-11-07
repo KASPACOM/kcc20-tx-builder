@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3-fee.1 (integration prerelease)
+
+- Pin the packaged four-argument snapshot-controller start ABI and regenerated artifacts to merged `kaspa-covenants` commit `f9239cfe09bce02be33811f0ba8f586e28ec06e7`.
+- Give the compact snapshot artifacts a distinct package version from the previously released seven-argument `0.8.3-fee.0` artifact set.
+- Publish only under the `next` tag. Exact-candidate funded TN10 deploy, transfer, wrap, trade and snapshot evidence remains required before stable publication or market enablement.
+
 ## 0.8.3-fee.0 (integration prerelease)
 
 - Package the reviewed wide-snapshot supply and exact Nacho deployment-payload fixes in the next fee-integration candidate.
