@@ -102,6 +102,7 @@
     "test:kcom-configurable": "npm run build && node test/kcom-configurable-vesting.mjs && node test/kcom-configurable-initialize.mjs && node test/kcom-configurable-activation.mjs && node test/kcom-claim-open.mjs --configurable-fast && node test/kcom-claim-select.mjs --configurable-fast && node test/kcom-claim-collect.mjs --configurable-fast && node test/kcom-claim-settle.mjs --configurable-fast"
   },
   "devDependencies": {
+    "@noble/curves": "1.9.7",
     "typescript": "^5.9.3"
   },
   "dependencies": {

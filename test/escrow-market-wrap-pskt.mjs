@@ -1,3 +1,4 @@
+import { signFeeAuthorityBuild, feeSigningHash } from "./helpers/fee-authority-signing.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
@@ -1003,7 +1004,8 @@ test("fee-market buy honors a covenant-owned ask's committed payout", async () =
   assert.equal(BigInt(json.outputs[built.metadata.sellerOutputIndex].value), 550000000n);
 });
 
-function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
+function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0, enabled = false, signedAuthority = false) {
+  const authorityScript = signedAuthority ? Buffer.from(`20${owner}ac`, "hex") : Uint8Array.of(0x51);
   const escrow = artifacts.receipt;
   const parts = templateParts(escrow);
   const common = { token: tokenId, market: marketId,
@@ -1024,7 +1026,7 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
       : accountOwnerScheme === 2
         ? hex(blake3(Buffer.from(key.toKeypair().publicKey, "hex")))
         : accountOwnerScheme === 3
-          ? String(kw.payToScriptHashScript(Uint8Array.of(0x51)).script).slice(4, 68)
+          ? String(kw.payToScriptHashScript(authorityScript).script).slice(4, 68)
           : owner,
     owner_scheme: accountOwnerScheme,
     // Exact-P2SH account authorization also requires this action-signing key.
@@ -1063,8 +1065,18 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
       params: { party, marketId, contractCanonicalTokenId: tokenId,
         policyId: "03".repeat(32), protocolAccountId: "04".repeat(32),
         creatorAccountId: "05".repeat(32), receipts, account } } };
+  if (enabled && accountOwnerScheme === 2) request.request.owner.publicKey = key.toKeypair().publicKey;
+  const authorityEntry = { outpoint: { transactionId: "2d".repeat(32), index: 0 },
+    amount: 70000000n, scriptPublicKey: kw.payToScriptHashScript(authorityScript),
+    blockDaaScore: 0n, isCoinbase: false };
+  if (enabled && accountOwnerScheme === 3) request.request.params.authority = {
+    txidHex: authorityEntry.outpoint.transactionId, vout: 0,
+    address: kw.addressFromScriptPublicKey(authorityEntry.scriptPublicKey, "testnet-10").toString(),
+    redeemScriptHex: hex(authorityScript), arguments: signedAuthority ? [{ type: "signature" }] : [], computeBudget: 30,
+  };
   const rpcCalls = { connect: 0, read: 0, disconnect: 0 };
   const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+    walletSigningCapabilities: { schnorr: true, ecdsa: enabled },
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({
@@ -1073,19 +1085,18 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0) {
       getUtxosByAddresses: async ({ addresses }) => {
         rpcCalls.read++;
         return { entries: addresses.includes(wallet) ? [fundingEntry]
-          : [...receiptEntries, accountEntry] };
+          : [...receiptEntries, accountEntry, ...(enabled && accountOwnerScheme === 3 ? [authorityEntry] : [])] };
       },
     }) });
   return { engine, request, receiptEntry: receiptEntries[0], receiptEntries,
-    accountEntry, fundingEntry, receipt: receipts[0], receipts, account, rpcCalls };
+    accountEntry, authorityEntry, fundingEntry, receipt: receipts[0], receipts, account, rpcCalls };
 }
 
-// Contract authority support is broader than the current fee-account builder.
-// Keep unsupported spending explicit until its own signed path is implemented.
+// Missing signing capability or authority evidence must fail before RPC.
 for (const scheme of [2, 3]) {
   for (const party of ["protocol", "creator"]) {
     for (const operation of ["claim", "rotate-account"]) {
-      test(`fee ${party} ${operation} rejects unsupported authority ${scheme} before RPC`, async () => {
+      test(`fee ${party} ${operation} rejects incomplete authority ${scheme} before RPC`, async () => {
         const f = claimFixture(party, 1, scheme);
         if (operation === "rotate-account") {
           f.request.request.builderKey = "kcc20fee.rotate-account";
@@ -1097,7 +1108,7 @@ for (const scheme of [2, 3]) {
         }
         const before = structuredClone(f.request);
         await assert.rejects(f.engine.build(f.request),
-          /fee account is not controlled by the signing wallet/);
+          /fee account|ECDSA|authority/);
         assert.deepEqual(f.rpcCalls, { connect: 0, read: 0, disconnect: 0 });
         assert.deepEqual(f.request, before);
       });
@@ -1410,5 +1421,163 @@ for (const amount of [5n, 10n]) {
     const f = unwrapFixture(amount, 100, "native", 2);
     const built = await f.engine.build(f.request);
     assert.equal(built.metadata.policyId, f.request.request.params.policyId);
+  });
+}
+
+for (const scheme of [2, 3]) for (const party of ["protocol", "creator"]) {
+  for (const operation of ["claim", "rotate-account"]) {
+    test(`fee ${party} ${operation} builds authority ${scheme}`, async () => {
+      const f = claimFixture(party, 1, scheme, true);
+      if (operation === "rotate-account") {
+        f.request.request.builderKey = "kcc20fee.rotate-account";
+        f.request.request.params = { ...f.request.request.params,
+          accountId: f.account.covenantIdHex, newOwner: owner, newOwnerScheme: 0 };
+      }
+      const built = await f.engine.build(f.request);
+      const json = JSON.parse(built.psktTransactionJson);
+      const hint = built.scripts[0];
+      const sig = hint.signatureScript.args.find(a => a.type === "signature");
+      assert.equal(hint.signatureAlgorithm, scheme === 2 ? "ecdsa" : "schnorr");
+      assert.equal(sig.prefixHex, scheme === 2 ? key.toKeypair().publicKey
+        : (operation === "claim" ? "02" : "01"));
+      assert.equal(json.outputs[operation === "claim" ? 1 : 0].value, "500000000");
+      if (scheme === 3) {
+        assert.equal(json.outputs[built.metadata.authorityOutputIndex].value, "70000000");
+        assert.equal(json.inputs[built.metadata.authorityInputIndex].signatureScript, "0151");
+      }
+    });
+  }
+}
+
+const authorityEvidence = [];
+function recordAuthority(f, built, tx, name, extra = {}) {
+  const json = JSON.parse(tx.serializeToSafeJSON());
+  authorityEvidence.push({ name, profileId: "fee-account-authority", count: json.inputs.length - 1,
+    covenantIds: json.inputs.map(i => i.transactionId === f.account.txidHex && i.index === f.account.vout ? f.account.covenantIdHex
+      : f.receipts.some(r => r.txidHex === i.transactionId && r.vout === i.index) ? marketId : null),
+    signedTransaction: json, built: { metadata: { covenantId: marketId } },
+    signingHashes: json.inputs.map((_, i) => ({ schnorr: hex(feeSigningHash(kw, tx, i)), ecdsa: hex(feeSigningHash(kw, tx, i, true)) })),
+    ...extra });
+  // Reused parent txids do not make funding/authority outputs covenant receipts.
+  assert.equal(authorityEvidence.at(-1).covenantIds[built.signInputs[0].index], null);
+  if (built.metadata.authorityInputIndex >= 0)
+    assert.equal(authorityEvidence.at(-1).covenantIds[built.metadata.authorityInputIndex], null);
+  if (process.env.RECIPIENT_EVIDENCE) {
+    mkdirSync(process.env.RECIPIENT_EVIDENCE, { recursive: true });
+    writeFileSync(process.env.RECIPIENT_EVIDENCE + "/authority-transactions.json", JSON.stringify(authorityEvidence, null, 2));
+  }
+}
+for (const scheme of [2, 3]) for (const party of ["protocol", "creator"]) {
+  for (const count of [1, 2, 3, 4, 5]) {
+    test(`signed fee authority ${scheme} ${party} claim ${count}`, async () => {
+      const f = claimFixture(party, count, scheme, true, true);
+      const built = await f.engine.build(f.request);
+      const tx = signFeeAuthorityBuild(kw, built, key);
+      const json = JSON.parse(tx.serializeToSafeJSON());
+      const mass = f.engine.protocol.calculateToccataV1NonContextualMass(tx, "authority claim");
+      const storage = f.engine.protocol.calculateToccataStorageMass(tx, "authority claim");
+      assert(mass.computeMass <= 450000n && mass.transientMass <= 900000n && storage <= 450000n);
+      assert.equal(BigInt(json.outputs[0].value), BigInt(count) * 50000000n);
+      assert.equal(BigInt(json.outputs[2].value), BigInt(count) * 50000000n);
+      assert.equal(BigInt(json.outputs[1].value), f.accountEntry.amount);
+      const total = f.accountEntry.amount + f.fundingEntry.amount + BigInt(count) * 100000000n + (scheme === 3 ? f.authorityEntry.amount : 0n);
+      assert(total - json.outputs.reduce((s, o) => s + BigInt(o.value), 0n) >= mass.transactionMass * 100n);
+      const name = `authority-${scheme}-${party}-${count}`;
+      recordAuthority(f, built, tx, name);
+      if (count === 1) {
+        const diverted = signFeeAuthorityBuild(kw, built, key, tx => { tx.outputs[2].scriptPublicKey = kw.payToAddressScript(wallet); });
+        recordAuthority(f, built, diverted, name + "-diverted-other-share", { expectFailure: true, expectedFailureInputs: [0] });
+        const bad = signFeeAuthorityBuild(kw, built, key, () => {}, (w, hint) => {
+          if (hint.inputIndex !== count) return w;
+          const b = Buffer.from(w); b[scheme === 2 ? 33 : 1] ^= 1; return b;
+        });
+        recordAuthority(f, built, bad, name + "-invalid-account-signature", { expectFailure: true, expectedFailureInputs: [count] });
+        if (scheme === 3) {
+          const wrongIndex = signFeeAuthorityBuild(kw, built, key, () => {}, (w, hint) => {
+            if (hint.inputIndex !== count) return w;
+            const b = Buffer.from(w); b[0] = built.signInputs[0].index; return b;
+          });
+          recordAuthority(f, built, wrongIndex, name + "-wrong-authority-index", { expectFailure: true, expectedFailureInputs: [count] });
+          const diverted = signFeeAuthorityBuild(kw, built, key);
+          diverted.outputs[built.metadata.authorityOutputIndex].value = f.authorityEntry.amount - 1n;
+          recordAuthority(f, built, diverted, name + "-changed-authority-principal", { expectFailure: true,
+            expectedFailureInputs: [count, built.metadata.authorityInputIndex, built.signInputs[0].index] });
+          const wrongSourceJson = JSON.parse(tx.serializeToSafeJSON());
+          wrongSourceJson.inputs[built.metadata.authorityInputIndex].utxo.scriptPublicKey =
+            "0000" + String(kw.payToScriptHashScript(Uint8Array.of(0x51)).script);
+          const wrongSource = kw.Transaction.deserializeFromSafeJSON(JSON.stringify(wrongSourceJson));
+          recordAuthority(f, built, wrongSource, name + "-changed-authority-source", { expectFailure: true,
+            expectedFailureInputs: [count, built.metadata.authorityInputIndex] });
+        }
+      }
+    });
+  }
+  test(`signed fee authority ${scheme} ${party} rotates back`, async () => {
+    const f = claimFixture(party, 1, scheme, true, true);
+    f.request.request.builderKey = "kcc20fee.rotate-account";
+    f.request.request.params = { ...f.request.request.params, accountId: f.account.covenantIdHex, newOwnerScheme: 0, newOwner: owner };
+    const built = await f.engine.build(f.request), tx = signFeeAuthorityBuild(kw, built, key);
+    const j = JSON.parse(tx.serializeToSafeJSON());
+    assert.equal(BigInt(j.outputs[0].value), f.accountEntry.amount);
+    const mass = f.engine.protocol.calculateToccataV1NonContextualMass(tx, "authority rotation");
+    assert(mass.computeMass <= 450000n && mass.transientMass <= 900000n);
+    assert(f.engine.protocol.calculateToccataStorageMass(tx, "authority rotation") <= 450000n);
+    recordAuthority(f, built, tx, `authority-${scheme}-${party}-rotate`);
+    const bad = signFeeAuthorityBuild(kw, built, key, () => {}, (w, hint) => {
+      if (hint.inputIndex !== 0) return w;
+      const b = Buffer.from(w); b[b.length - 3] ^= 1; return b;
+    });
+    recordAuthority(f, built, bad, `authority-${scheme}-${party}-unauthorized-rotate`, { expectFailure: true, expectedFailureInputs: [0] });
+  });
+}
+for (const [name, mutate, early] of [
+  ["wrong authority script", f => { f.request.request.params.authority.redeemScriptHex = "52"; }, true],
+  ["wrong action key", f => { f.account.state.guard_template = "ff".repeat(32); }, true],
+  ["missing authority", f => { f.authorityEntry.outpoint.transactionId = "ff".repeat(32); }, false],
+  ["wrong live program", f => { f.authorityEntry.scriptPublicKey = kw.payToAddressScript(wallet); }, false],
+  ["lineage authority", f => { f.authorityEntry.covenantId = marketId; }, false],
+  ["oversized budget", f => { f.request.request.params.authority.computeBudget = 65535; }, true],
+  ["duplicate signature slots", f => { f.request.request.params.authority.arguments = [{type:"signature"},{type:"signature"}]; }, true],
+]) test(`P2SH rejects ${name}`, async () => {
+  const f = claimFixture("creator", 1, 3, true); mutate(f);
+  await assert.rejects(f.engine.build(f.request));
+  if (early) assert.equal(f.rpcCalls.connect, 0);
+});
+for (const invalid of ["04" + owner, "02" + "ff".repeat(32), "03"]) test(`ECDSA rejects invalid account key ${invalid.slice(0, 8)}`, async () => {
+  const f = claimFixture("creator", 1, 2, true); f.request.request.owner.publicKey = invalid;
+  await assert.rejects(f.engine.build(f.request), /ECDSA/); assert.equal(f.rpcCalls.connect, 0);
+});
+
+for (const scheme of [2, 3]) for (const first of ["protocol", "creator"]) {
+  test(`authority ${scheme} sequential ${first} then opposing claim`, async () => {
+    const a = claimFixture(first, 1, scheme, true, true);
+    const builtA = await a.engine.build(a.request), txA = signFeeAuthorityBuild(kw, builtA, key);
+    const j = JSON.parse(txA.serializeToSafeJSON());
+    const second = first === "protocol" ? "creator" : "protocol";
+    const b = claimFixture(second, 1, scheme, true, true);
+    b.accountEntry.outpoint.transactionId = "7b".repeat(32);
+    b.account.txidHex = b.accountEntry.outpoint.transactionId;
+    b.receipt.state[first + "_amount"] = "0";
+    b.receipt.state.action_hash = "00".repeat(32);
+    const remainder = buildKcc20FeeEscrowScript(artifacts.receipt, b.receipt.state);
+    assert.equal(j.outputs[2].scriptPublicKey, "0000" + String(kw.payToScriptHashScript(remainder.redeemScript).script));
+    b.receiptEntry.outpoint = { transactionId: txA.id, index: 2 };
+    b.receiptEntry.amount = 50000000n;
+    b.receiptEntry.scriptPublicKey = kw.payToScriptHashScript(remainder.redeemScript);
+    Object.assign(b.receipt, { txidHex: txA.id, vout: 2, amountSompiExact: "50000000",
+      scriptHashHex: remainder.scriptHash,
+      address: kw.addressFromScriptPublicKey(b.receiptEntry.scriptPublicKey, "testnet-10").toString() });
+    b.fundingEntry.outpoint = { transactionId: txA.id, index: j.outputs.length - 1 };
+    b.fundingEntry.amount = BigInt(j.outputs.at(-1).value);
+    if (scheme === 3) {
+      b.authorityEntry.outpoint = { transactionId: txA.id, index: builtA.metadata.authorityOutputIndex };
+      Object.assign(b.request.request.params.authority, { txidHex: txA.id, vout: builtA.metadata.authorityOutputIndex });
+    }
+    const builtB = await b.engine.build(b.request), txB = signFeeAuthorityBuild(kw, builtB, key);
+    assert.equal(builtB.metadata.remainderOutputIndex, -1);
+    assert.equal(builtB.metadata.remainderSompi, "0");
+    assert.equal(builtB.metadata.claimSompi, "50000000");
+    recordAuthority(a, builtA, txA, `authority-${scheme}-${first}-first`);
+    recordAuthority(b, builtB, txB, `authority-${scheme}-${second}-second`);
   });
 }

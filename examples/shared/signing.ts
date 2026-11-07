@@ -5,15 +5,18 @@ function bytes(hex: string): Uint8Array {
   return Uint8Array.from(hex.match(/../g) ?? [], (x) => parseInt(x, 16));
 }
 // The wallet signs covenant inputs too; their signatures then need ABI arguments.
-export function signingInputs(result: Built) {
+export function signingInputs(result: Built, capabilities = { schnorr: true, ecdsa: false }) {
   const inputs = new Map(
     result.signInputs.map((input) => [input.index, input]),
   );
   for (const script of result.scripts ?? []) {
+    const algorithm = script.signatureAlgorithm ?? "schnorr";
+    if (!capabilities[algorithm]) throw new Error(`Wallet does not support ${algorithm} signatures`);
     if (!inputs.has(script.inputIndex)) {
       inputs.set(script.inputIndex, {
         index: script.inputIndex,
         sighashType: script.signType ?? 1,
+        ...(script.signatureAlgorithm ? { signatureAlgorithm: script.signatureAlgorithm } : {}),
       });
     }
   }
@@ -23,12 +26,13 @@ export function attachScripts(
   wasm: Runtime,
   signedJson: string,
   result: Built,
+  capabilities = { schnorr: true, ecdsa: false },
 ): string {
   const tx = wasm.Transaction.deserializeFromSafeJSON(signedJson);
   const unsigned = wasm.Transaction.deserializeFromSafeJSON(
     result.psktTransactionJson,
   );
-  const requested = signingInputs(result);
+  const requested = signingInputs(result, capabilities);
   for (const input of requested) {
     if (
       !Number.isInteger(input.index) ||
@@ -53,7 +57,7 @@ export function attachScripts(
     if (!encoded)
       throw new Error(`Wallet omitted signature for input ${index}`);
     const raw = typeof encoded === "string" ? bytes(encoded) : encoded;
-    // A wallet returns a P2PK script: PUSH65, Schnorr signature, sighash byte.
+    // Both algorithms return PUSH65, a compact 64-byte signature and sighash byte.
     if (raw.length !== 66 || raw[0] !== 65 || raw[65] !== sighashType) {
       throw new Error(
         `Invalid signature encoding or sighash for input ${index}`,
@@ -72,7 +76,7 @@ export function attachScripts(
     if (signature.length === 66 && signature[0] === 65)
       signature = signature.slice(1);
     if (signature.length !== 65)
-      throw new Error("Expected Schnorr signature and sighash byte");
+      throw new Error("Expected compact signature and sighash byte");
     const template = hint.signatureScript;
     let prefix: string | Uint8Array = input.signatureScript;
     if (template && template.mode !== "wrap-signature") {
