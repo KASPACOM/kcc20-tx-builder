@@ -31,6 +31,8 @@ export interface SnapshotDeploymentDefinition {
   totalSupply: string;
   claimNotBeforeDaaScore: string;
   shards: SnapshotDeploymentShard[];
+  /** Exact committed controller, reserve and bootstrap principal; defaults to 2 KAS. */
+  cellSompi?: string;
   bootstrapId?: string;
   bootstrapOutpoint?: { transactionId: string; index: number };
 }
@@ -45,6 +47,15 @@ export function prepareSnapshotDeployment(kw: any, definition: SnapshotDeploymen
   assertKcc20ArtifactScriptHash("KCC20.placeholder.json", artifacts.kcc20Artifact);
   assertKcc20ArtifactScriptHash("KCC20SnapshotBootstrap.placeholder.json", artifacts.bootstrapArtifact);
   assertKcc20ArtifactScriptHash("KCC20SnapshotController.placeholder.json", artifacts.controllerArtifact);
+  const rawCell = definition.cellSompi === undefined
+    ? SNAPSHOT_DEPLOYMENT_CELL_SOMPI.toString() : definition.cellSompi;
+  if (typeof rawCell !== "string" || !/^[1-9][0-9]*$/.test(rawCell)) {
+    throw new Error("snapshot cellSompi must be a canonical positive integer");
+  }
+  const cellSompi = BigInt(rawCell);
+  if (cellSompi < 50_000_000n || cellSompi > 9_223_372_036_854_775_807n) {
+    throw new Error("snapshot cellSompi must be at least 0.5 KAS and fit signed 64 bits");
+  }
   const shards = [...definition.shards].sort((a, b) => a.shardIndex - b.shardIndex);
   if (!shards.length || shards.length > 8 || shards.some((s, i) => s.shardIndex !== i)) {
     throw new Error("snapshot requires 1..8 contiguous shards");
@@ -67,8 +78,8 @@ export function prepareSnapshotDeployment(kw: any, definition: SnapshotDeploymen
     manifestCommitment: definition.manifestCommitment, context: definition.context,
     holderExtensionCommitment: metadata.holderExtensionCommitment,
     claimNotBeforeDaaScore: definition.claimNotBeforeDaaScore, shardCount: shards.length,
-    controllerCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
-    reserveCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
+    controllerCellKas: cellSompi,
+    reserveCellKas: cellSompi,
   };
   const placeholder = "01".repeat(32);
   const controllerPlans = shards.map(shard => buildControllerGenesisPlan({
@@ -98,11 +109,11 @@ export function prepareSnapshotDeployment(kw: any, definition: SnapshotDeploymen
   }));
   const tokenId = deriveSnapshotTokenId(kw, {
     controllerGenesisOutpoint: shards[0].genesisOutpoint, reserves, kcc20Artifact: artifacts.kcc20Artifact,
-    reserveCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
+    reserveCellKas: cellSompi,
   });
   const bootstrapPlan = buildBootstrapGenesisPlan({
     ...common, expectedTokenId: tokenId, totalSupply: definition.totalSupply, shards: committedShards,
-    bootstrapCellKas: SNAPSHOT_DEPLOYMENT_CELL_SOMPI,
+    bootstrapCellKas: cellSompi,
   } as any);
   return {
     stage: definition.bootstrapId ? "snapshot-start" as const : "bootstrap-deploy" as const,
