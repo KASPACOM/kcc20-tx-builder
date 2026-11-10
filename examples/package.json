@@ -8,10 +8,11 @@
     "build": "tsc --noEmit && vite build frontend",
     "test": "tsx --test test/build.test.ts test/recipes.test.ts test/sources.test.ts",
     "test:browser": "tsx test/browser.ts",
-    "recipe": "tsx backend/recipe.ts"
+    "recipe": "tsx backend/recipe.ts",
+    "fee-quote": "tsx backend/fee-quote.ts"
   },
   "dependencies": {
-    "@kaspacom/kcc20-tx-builder": "0.2.5"
+    "@kaspacom/kcc20-tx-builder": "0.8.3-fee.3"
   },
   "devDependencies": {
     "@types/node": "22.18.8",

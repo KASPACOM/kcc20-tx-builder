@@ -7,7 +7,7 @@ frontend and the Node backend.
 ## Install
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.6.0 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.8.3-fee.3 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
@@ -15,8 +15,11 @@ npm install --save-exact @kaspacom/kcc20-tx-builder@0.6.0 \
 The package provides ESM and CommonJS entry points and requires Node.js 20 or
 newer for Node consumers.
 Browser consumers must provide their already-loaded browser Kaspa WASM runtime;
-Node consumers provide their Node Kaspa WASM runtime. Kaspa WASM is deliberately
-not bundled or initialized by this package.
+Node consumers provide their Node Kaspa WASM runtime. The core builder does not
+initialize WASM; the runnable examples include a pinned demo runtime.
+
+Start with [Public integration: start here](docs/PUBLIC_INTEGRATION.md).
+Use the TX builder locally; public backend planning remains an optional path.
 
 ## Documentation
 
@@ -29,8 +32,8 @@ not bundled or initialized by this package.
 
 Public npm installation does not require a GitHub token. The explicit scoped
 registry flag overrides project settings that route `@kaspacom` to GitHub Packages.
-This branch prepares `0.6.0` with expanded documentation and signerless snapshot
-builders. Pin the same exact version across wallet and server adapters. See
+`0.8.3-fee.3` is the fee-protocol prerelease on `next`; `latest` is a separate
+release channel. Pin the same exact version across wallet and server adapters. See
 [the changelog](CHANGELOG.md) for the release contents.
 
 ## Runtime boundary

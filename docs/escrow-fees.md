@@ -1,8 +1,10 @@
-# Experimental fee escrow primitives
+# Versioned fee-market primitives
 
-These exports support the new DEV fee-market contracts. Existing trading
-transactions still use the legacy fee version. New fee-market creation remains
-disabled, and this change does not publish a package.
+These exports are available in the public `0.8.3-fee.3` prerelease.
+Start with [public integration setup](PUBLIC_INTEGRATION.md). Choose operations
+from the authenticated market version; legacy orderbook helpers are separate.
+Environment capabilities determine whether new market creation is enabled.
+Installing the package does not change those capabilities.
 
 ## Fee account setup
 
@@ -29,7 +31,8 @@ The account outpoint cannot also serve as the funding input.
 
 These operations prepare wallet-signable transactions. They do not broadcast
 or establish funded TN10 execution. Account creation and binding are only the
-first setup steps; trading, claims and rotation still need signed builders.
+first setup steps. The package also registers versioned trading, claim and
+rotation builders under `kcc20fee.*`; this section describes account setup only.
 
 `calculateKcc20EscrowFees` implements the fixed 1% protocol fee and optional
 0–5% creator fee. Each nonzero share has a 0.5 KAS minimum, applied per fill.
