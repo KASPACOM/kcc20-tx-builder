@@ -52,8 +52,10 @@ an unsigned transaction. It cannot sign or broadcast without `--submit`.
 
 A Node signer module exports `default` with `capabilities: { schnorr, ecdsa }`
 and `async sign(unsignedTransactionJson, signInputs)`, returning transaction JSON
-with raw input signatures. Funding inputs and covenant inputs must both be
-signed. Keep keys in your host wallet; do not put them in request JSON. The signer
+with raw input signatures for the supplied `signInputs` only. The adapter includes
+funding inputs and covenant inputs that require a signature. It assembles
+argument-only covenant witnesses locally without asking the wallet to sign them.
+Keep keys in your host wallet; do not put them in request JSON. The signer
 module is trusted local code. The runner verifies unchanged transaction intent,
 assembles covenant witnesses, checks signed mass and rechecks live inputs.
 

@@ -21,15 +21,15 @@ not filled by adding endpoints. Keep npm `latest` unchanged.
 | PUB-23 | Wallet-provider balances/transfer guide | In progress | Follow-up / 0.8.3-fee.3 | Current public OpenAPI confirms decimals and all balance query fields; PUBLIC_WALLET_PROVIDER.md | Pending transfer journey |
 | PUB-06 | IDs, policies, fees, refunds and lifecycle diagram | In progress | Follow-up / 0.8.3-fee.3 | Source-backed documentation | Pending lifecycle reconciliation |
 | PUB-07 | Exact runtime/artifact pins and clean install | In progress | Follow-up / 0.8.3-fee.3 | Existing compatibility manifest and example lockfile | Not applicable |
-| PUB-08 | Shared browser/Node build, sign and broadcast adapters | In progress | Follow-up / 0.8.3-fee.3 | 53 example tests pass; signed mass, zero-signature witnesses, source rechecks and finalized transaction IDs | Native deploy and self-transfer accepted; full lifecycle pending |
-| PUB-09 | Deploy token and creator settings | In progress | Follow-up / 0.8.3-fee.3 engine | Published deploy helper and local runner | PUBDOC1 deploy accepted; creator configuration pending |
-| PUB-10 | Fee accounts, consent, genesis and binding | In progress | Follow-up / 0.8.3-fee.3 engine | Signed bind fixtures at 0/1/5 percent | 0-percent market genesis, activation and account binding accepted; creator consent journey pending |
-| PUB-11 | Mint, transfer and native consolidation | In progress | Follow-up / 0.8.3-fee.3 engine | Native transfer runner | Self-transfer accepted, indexed total preserved; distinct recipient and mint pending |
+| PUB-08 | Shared browser/Node build, sign and broadcast adapters | In progress | Follow-up / 0.8.3-fee.3 | 57 example tests pass; signed mass, zero-signature witnesses, source rechecks and finalized transaction IDs | Native deploy and self-transfer accepted; full lifecycle pending |
+| PUB-09 | Deploy token and creator settings | In progress | Follow-up / 0.8.3-fee.3 engine | Published deploy helper and local runner | PUBDOC1 and PUBDOC2 accepted; 1-percent creator configuration bound |
+| PUB-10 | Fee accounts, consent, genesis and binding | In progress | Follow-up / 0.8.3-fee.3 engine | Signed bind fixtures at 0/1/5 percent | 0-percent and 1-percent market setup accepted, including creator consent and both account bindings |
+| PUB-11 | Mint, transfer and native consolidation | In progress | Follow-up / 0.8.3-fee.3 engine | Native transfer runner | Self-transfer, distinct-recipient transfer and paid public mint accepted; consolidation pending |
 | PUB-12 | Wrap, unwrap and wrapped consolidation | In progress | Follow-up / 0.8.3-fee.3 engine | Exact-source normalization regression passes | Wrap and buyer unwrap accepted; consolidation pending |
-| PUB-13 | Asks/bids, partial/final fills and cancellations | In progress | Follow-up / 0.8.3-fee.3 engine | Runner build/tests pass | Ask and full distinct-wallet buy accepted; remaining shapes pending |
+| PUB-13 | Asks/bids, partial/final fills and cancellations | In progress | Follow-up / 0.8.3-fee.3 engine | Runner build/tests pass | Asks, partial/final distinct-wallet buys and cancellation accepted; bids pending |
 | PUB-14 | Two-ask buy and 3-/10-bid seller sweeps | Not started | Pending | Pending | Pending |
-| PUB-15 | FeeTicket creation, transfer, waiver, burn/refund | Not started | Pending | Pending | Pending |
-| PUB-16 | Protocol/creator claims, 1–5 receipts, both orders | In progress | Follow-up / 0.8.3-fee.3 engine | Runner tests pass | One protocol receipt claimed, account principal preserved; creator/batches pending |
+| PUB-15 | FeeTicket creation, transfer, waiver, burn/refund | In progress | Follow-up / 0.8.3-fee.3 | Published recipe and signed runner | Public mint, ticket creation and transfer accepted/indexed; trade waiver/refund pending |
+| PUB-16 | Protocol/creator claims, 1–5 receipts, both orders | In progress | Follow-up / 0.8.3-fee.3 engine | Runner tests pass | Protocol and creator single-receipt claims accepted in both orders; opposing entitlement and principals preserved; batches pending |
 | PUB-17 | Authority rotation and supported recipient adapter | Not started | Pending | Pending | Pending |
 | PUB-18 | Resumption, stale inputs, wallet/RPC/indexing failures | Not started | Pending | Pending | Pending |
 | PUB-19 | Creator 0/1/5%, fee floors and signed mass matrix | Not started | Pending | Pending | Pending |
@@ -71,8 +71,7 @@ the signed ID and retains any differing broadcast ID. Final review of this
 last correction remains pending.
 
 The backend-assisted transfer returned HTTP 400, `KCC20 token not found`, for
-this new token despite its indexed holder. Metadata/discovery investigation
-remains open. This is not a verified backend transfer journey.
+this new token despite its indexed holder. The later investigation below identified the missing reveal stage. This is not a verified backend transfer journey.
 
 ## Discovery and cache investigation, 2026-11-11
 
@@ -110,7 +109,7 @@ exact integers, rejects unsafe numeric values and has a regression test.
 cache/directory/metadata tests also pass, including metadata-write invalidation.
 
 Still pending: 5-percent and above-floor public journeys, FeeTickets, sweeps,
-cancellations, multiple-receipt claims, account rotation, recipient adapter,
+multiple-receipt claims, account rotation, recipient adapter,
 backend transfer timeout diagnosis and release-package verification. No new npm
 release, backend deployment or frontend merge occurred in this run.
 
@@ -149,3 +148,15 @@ construction remains a separate unresolved route.
 The reviewer found stale documentation requiring signatures for argument-only
 inputs; wording now agrees with signingInputs. Final review must cover the latest
 source adapter and CLI additions before release.
+
+## Public utility mint and FeeTicket continuation, 2026-11-11
+
+[Ticket evidence](evidence/public-ticket-lifecycle-20261111.json) records accepted
+public mint, ticket creation and transfer using the configured KCOMV3 utility
+token and current platform root. Minting 1209 tokens satisfied the existing paid
+mint floor. Ticket creation consumed 20 tokens and left 1189 in the dedicated
+wallet. The transferred ticket is indexed under the recipient wallet with its
+full 1-KAS principal. Trade waiver, refund and misuse rejection remain pending.
+
+The current example suite passes 57 tests. Final packed-example validation and
+independent review of commit 903aa43 are running. No release or merge is claimed.
