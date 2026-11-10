@@ -60,3 +60,5 @@ Do not describe the backend-assisted path as verified end to end.
 - Backend [PR #689](https://github.com/KASPACOM/kcc20-backend/pull/689) merged as `90b5dd9626143dfe6aa7ae61e4fb69eec66ef9c9`. [CI](https://github.com/KASPACOM/kcc20-backend/actions/runs/42920180200) passed, including the corrected production audit with zero vulnerabilities. DEV image workflow `42921820052` started; deployment verification remains open.
 - Final funded return is indexed and decoded. Wallet A has `100000` base units in one holder; wallet B has no nonzero holding of the proof token.
 - Global freshness remains stale. Backend-assisted transfer building timed out. Real extension-wallet interaction and optional public mint were not exercised.
+
+- Backend transfer timeout follow-up: [PR #690](https://github.com/KASPACOM/kcc20-backend/pull/690), commit `bc5d9dd70a40125095a3f1e42a9f773d4d0c9435`. Independent source review approved; hosted CI and deployed transfer verification remain pending. The PR contains its repeatable read-only transport proof.
