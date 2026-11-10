@@ -163,7 +163,7 @@ acceptance and indexed settlement. Never auto-sign a replacement transaction.
 Public minting uses the existing token policy, not a universal wallet capability.
 Read the token's `mintPolicy`, including `publicMintActive`, before offering mint.
 The existing `POST /kcc20/build/tokens/{covenantId}/mint` route is documented in
-[the backend guide](https://github.com/KASPACOM/kcc20-backend/blob/develop/docs/PUBLIC_TESTNET_API.md).
+[public Swagger](https://dev-api-kcc20.kaspa.com/public-docs).
 This wallet run did not exercise funded public minting; keep it separate from the
 verified send and wrap/unwrap examples. FeeTicket administration and fee-waived
 trading are outside this wallet integration. Do not label ticket consumption as
