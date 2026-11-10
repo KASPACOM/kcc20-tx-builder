@@ -24,7 +24,7 @@ Status and evidence describe this integration, not older internal proofs.
 | W16 | Browser and Node examples | Exists | Shared build/sign flow implemented | 49 tests and browser build pass | Node adapter funded; real extension/browser signing not tested |
 | W17 | Independent review | Complete | All five review findings fixed; independent review approved | Base units, input recheck, durable pre-submit persistence tested | N/A |
 | W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.4 public; release workflow passed | Exact registry version installed without credentials; 49 examples/build/browser pass | Funded operations used 0.8.3-fee.3; engine/artifacts unchanged in fee.4 |
-| W19 | Deployed docs verification | Partial | Builder guide public and byte-verified | Backend docs linked in PR #689 | Backend deployed; served documentation comparison pending |
+| W19 | Deployed docs verification | Exists | Builder guide public and byte-verified | Backend docs linked in PR #689 | Served public-testnet-api.md byte-matches #689 and includes wallet guide/checklist links |
 
 ## Evidence rules
 
@@ -48,9 +48,10 @@ capabilities disabled. Builder hosted CI and publication passed. Backend hosted 
 build, database proof, OpenAPI and production dependency audit passed at aaffb54b.
 Backend #689 merged; frontend remains unmerged.
 
-Backend-assisted transfer build did not return within 25 seconds during the final
-probe. Local builder construction and funded submission passed independently.
-Do not describe the backend-assisted path as verified end to end.
+Before #689 rollout, backend-assisted transfer building timed out after 25 seconds.
+Post-rollout unsigned builds now pass on the public route and both replicas (evidence below).
+Local builder construction and funded submission passed independently; the new
+backend-generated unsigned request has not been submitted end to end.
 
 ## Delivery evidence, November 10
 
@@ -59,7 +60,7 @@ Do not describe the backend-assisted path as verified end to end.
 - Public tarball examples: `npm ci`, install exact `@kaspacom/kcc20-tx-builder@0.8.3-fee.4`, `npm run build`, `npm test`, `npm run test:browser`, all passed without repository/npm credentials.
 - Backend [PR #689](https://github.com/KASPACOM/kcc20-backend/pull/689) merged as `90b5dd9626143dfe6aa7ae61e4fb69eec66ef9c9`. [CI](https://github.com/KASPACOM/kcc20-backend/actions/runs/42920180200) passed, including the corrected production audit with zero vulnerabilities. DEV image workflow `42921820052` passed. Both replicas run the merge revision and `/health` returns HTTP 200.
 - Final funded return is indexed and decoded. Wallet A has `100000` base units in one holder; wallet B has no nonzero holding of the proof token.
-- Global freshness remains stale. Backend-assisted transfer building timed out. Real extension-wallet interaction and optional public mint were not exercised.
+- Global freshness remains stale. Backend-assisted transfer building recovered after rollout, as recorded below. Real extension-wallet interaction and optional public mint were not exercised.
 
 - Backend transfer timeout follow-up: [PR #690](https://github.com/KASPACOM/kcc20-backend/pull/690), commit `bc5d9dd70a40125095a3f1e42a9f773d4d0c9435`. Independent source review approved and the PR merged as `44460ea2`. Full CI subsequently failed an older shutdown lifecycle assertion; the test-only follow-up [#692](https://github.com/KASPACOM/kcc20-backend/pull/692) passes both RPC suites locally (215 tests), is independently approved, and is running full CI. The timeout fix is not yet verified deployed. The PR contains its repeatable read-only transport proof.
 
