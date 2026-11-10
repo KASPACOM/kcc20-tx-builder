@@ -88,3 +88,13 @@ Run `npm run fee-quote` for a local fee calculation. The generic order/wrap
 recipes above target the older helper family, not `kcc20fee.*` markets. See the
 [public integration guide](../docs/PUBLIC_INTEGRATION.md) before choosing a
 market version; a complete live fee-market trading CLI remains a follow-up.
+
+
+## New fee-market lifecycle
+
+The [lifecycle cookbook](../docs/PUBLIC_LIFECYCLE.md) documents the new
+`fee-request`, `deploy-request` and `lifecycle` commands. Construction is local;
+broadcast requires an explicit signer and spend cap. See the
+[checklist](../docs/PUBLIC_INTEGRATION_CHECKLIST.md) for per-flow proof status and
+the [wallet-provider guide](../docs/PUBLIC_WALLET_PROVIDER.md) for balance/transfer
+integrations. These commands do not use the legacy order recipes above.

@@ -1,0 +1,250 @@
+{
+  "network": "testnet-10",
+  "packageVersion": "0.8.3-fee.3",
+  "examples": "unpublished working tree",
+  "creatorFeeBps": 100,
+  "feeCases": "1 KAS fills; both 0.5 KAS floors apply",
+  "marketId": "1a0c32de7f34830cd684bbcc4b10ea6266c010576d3d870df492bfcbbdca08da",
+  "transactions": [
+    {
+      "operation": "kcc20fee.create-ask",
+      "transactionId": "fecb97f1f9ee1e53562458c1bd10d88637978205230e73e4b0e6cfd2c1df08b3",
+      "mass": {
+        "estimatedSerializedSize": "123037",
+        "computeBudgetUnits": "330",
+        "computeMass": "157137",
+        "transientMass": "492148",
+        "normalizedTransientMass": "246074",
+        "transactionMass": "246074",
+        "storageMass": "141807"
+      },
+      "case": "creator-ask"
+    },
+    {
+      "operation": "kcc20fee.bind-account",
+      "transactionId": "54100e65659c7da6689378557fedcf8a8d867251e2b616dbd7c846dbd2ff4370",
+      "mass": {
+        "estimatedSerializedSize": "25624",
+        "computeBudgetUnits": "530",
+        "computeMass": "79354",
+        "transientMass": "102496",
+        "normalizedTransientMass": "51248",
+        "transactionMass": "79354",
+        "storageMass": "62424"
+      },
+      "case": "creator-bind-creator"
+    },
+    {
+      "operation": "kcc20fee.bind-account",
+      "transactionId": "1a7f4f0a556990bc616177c7dcf1547863b77d7b6c2b79c50d18706deaf5f948",
+      "mass": {
+        "estimatedSerializedSize": "25624",
+        "computeBudgetUnits": "530",
+        "computeMass": "79354",
+        "transientMass": "102496",
+        "normalizedTransientMass": "51248",
+        "transactionMass": "79354",
+        "storageMass": "33611"
+      },
+      "case": "creator-bind-protocol"
+    },
+    {
+      "operation": "kcc20fee.bind-market",
+      "transactionId": "78b33e6901254d7feea3ad30dc04166018b90681fd3865af7fa53935741dccda",
+      "mass": {
+        "estimatedSerializedSize": "40135",
+        "computeBudgetUnits": "2130",
+        "computeMass": "254605",
+        "transientMass": "160540",
+        "normalizedTransientMass": "80270",
+        "transactionMass": "254605",
+        "storageMass": "81913"
+      },
+      "case": "creator-bind"
+    },
+    {
+      "operation": "kcc20fee.buy-ask",
+      "transactionId": "b7a56ea2637fd77752a9a52f35e91bad5d3d801ac9724ee604b04d292185831e",
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      },
+      "case": "creator-buy-final"
+    },
+    {
+      "operation": "kcc20fee.buy-ask",
+      "transactionId": "6b9c22d3ce27fdf4d77ea63894e1f66c6a874c44fc2b8ae168318cacd1417cf8",
+      "mass": {
+        "estimatedSerializedSize": "147909",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302739",
+        "transientMass": "591636",
+        "normalizedTransientMass": "295818",
+        "transactionMass": "302739",
+        "storageMass": "198189"
+      },
+      "case": "creator-buy-partial"
+    },
+    {
+      "operation": "kcc20fee.claim",
+      "transactionId": "8252c056cf8dd79f77d7bceebd2b8859e6c9a778d80707fad8a4fa201e06140e",
+      "mass": {
+        "estimatedSerializedSize": "51499",
+        "computeBudgetUnits": "330",
+        "computeMass": "85959",
+        "transientMass": "205996",
+        "normalizedTransientMass": "102998",
+        "transactionMass": "102998",
+        "storageMass": "132855"
+      },
+      "case": "creator-claim-first"
+    },
+    {
+      "operation": "kcc20fee.claim",
+      "transactionId": "c88b1643e036cfe6473a56d36b09e07dd72addad6c4fb1cb3241c3e2661844aa",
+      "mass": {
+        "estimatedSerializedSize": "51412",
+        "computeBudgetUnits": "330",
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "normalizedTransientMass": "102824",
+        "transactionMass": "102824",
+        "storageMass": "46449"
+      },
+      "case": "creator-claim-second"
+    },
+    {
+      "operation": "kcc20fee.create-account",
+      "transactionId": "798884138cadca84a4bcedfd14c06466f2a89f5bf39c8d361733187d84ecf4d5",
+      "mass": {
+        "estimatedSerializedSize": "353",
+        "computeBudgetUnits": "30",
+        "computeMass": "4083",
+        "transientMass": "1412",
+        "normalizedTransientMass": "706",
+        "transactionMass": "4083",
+        "storageMass": "80424"
+      },
+      "case": "creator-creator-account"
+    },
+    {
+      "operation": "kcc20.deploy-token",
+      "transactionId": "84bbfe80a2516325a66a60ff8409afda5f9120e9060a0dd94243f355f03386ba",
+      "mass": {
+        "estimatedSerializedSize": "1398",
+        "computeBudgetUnits": "30",
+        "computeMass": "5128",
+        "transientMass": "5592",
+        "normalizedTransientMass": "2796",
+        "transactionMass": "5128",
+        "storageMass": "40771"
+      },
+      "case": "creator-deploy"
+    },
+    {
+      "operation": "kcc20fee.deploy-market-genesis",
+      "transactionId": "05bfbc1e230f05a280831c0d66d83c7dde303f79fb470d15850eec4af2b1768c",
+      "mass": {
+        "estimatedSerializedSize": "353",
+        "computeBudgetUnits": "30",
+        "computeMass": "4083",
+        "transientMass": "1412",
+        "normalizedTransientMass": "706",
+        "transactionMass": "4083",
+        "storageMass": "40948"
+      },
+      "case": "creator-market"
+    },
+    {
+      "operation": "kcc20fee.create-account",
+      "transactionId": "02797b66e88a44cdf719815e0da529a71f982bd815da512569f17fc4eb3c1a75",
+      "mass": {
+        "estimatedSerializedSize": "353",
+        "computeBudgetUnits": "30",
+        "computeMass": "4083",
+        "transientMass": "1412",
+        "normalizedTransientMass": "706",
+        "transactionMass": "4083",
+        "storageMass": "89212"
+      },
+      "case": "creator-protocol-account"
+    },
+    {
+      "operation": "kcc20fee.claim",
+      "transactionId": "8c9845ec95c690463986465479b5553118b8746f48cce7464b813c7bf9ec326f",
+      "mass": {
+        "estimatedSerializedSize": "51499",
+        "computeBudgetUnits": "330",
+        "computeMass": "85959",
+        "transientMass": "205996",
+        "normalizedTransientMass": "102998",
+        "transactionMass": "102998",
+        "storageMass": "124362"
+      },
+      "case": "creator-protocol-first"
+    },
+    {
+      "operation": "kcc20fee.claim",
+      "transactionId": "68f2f0789158d2c73767cea227d9699e444f1360edebd761f4c45b7f3a690b3b",
+      "mass": {
+        "estimatedSerializedSize": "51412",
+        "computeBudgetUnits": "330",
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "normalizedTransientMass": "102824",
+        "transactionMass": "102824",
+        "storageMass": "26584"
+      },
+      "case": "creator-protocol-second"
+    },
+    {
+      "operation": "kcc20.reveal-token",
+      "transactionId": "023f8a18744ed29b26b9b61f02b83263d855a326e3395dfc0b90e8500b91aa35",
+      "mass": {
+        "estimatedSerializedSize": "26365",
+        "computeBudgetUnits": "230",
+        "computeMass": "50095",
+        "transientMass": "105460",
+        "normalizedTransientMass": "52730",
+        "transactionMass": "52730",
+        "storageMass": "24654"
+      },
+      "case": "creator-reveal"
+    },
+    {
+      "operation": "kcc20fee.wrap",
+      "transactionId": "2c700007decafe5c50e3f02f0d529d9c5f035ca3898b4623dd3df29016f4b936",
+      "mass": {
+        "estimatedSerializedSize": "94762",
+        "computeBudgetUnits": "430",
+        "computeMass": "139602",
+        "transientMass": "379048",
+        "normalizedTransientMass": "189524",
+        "transactionMass": "189524",
+        "storageMass": "201262"
+      },
+      "case": "creator-wrap"
+    }
+  ],
+  "protocolAccruedSompi": "100000000",
+  "creatorAccruedSompi": "100000000",
+  "protocolClaimedSompi": "100000000",
+  "creatorClaimedSompi": "100000000",
+  "protocolOutstandingSompi": "0",
+  "creatorOutstandingSompi": "0",
+  "accountPrincipalEachSompi": "50000000",
+  "claimOrders": [
+    "creator then protocol",
+    "protocol then creator"
+  ],
+  "limitations": [
+    "No atomic verification watermark",
+    "No coupon or above-floor percentage test in this market",
+    "No 2\u20135 receipt batch yet"
+  ]
+}

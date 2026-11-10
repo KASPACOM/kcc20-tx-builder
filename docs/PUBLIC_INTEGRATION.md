@@ -6,6 +6,13 @@ market data, consolidation guidance and transaction planning.
 
 This guide targets DEV testnet-10. It does not enable mainnet or create markets.
 
+Track delivery and live proof in the [checklist](PUBLIC_INTEGRATION_CHECKLIST.md).
+See the [operation matrix](PUBLIC_OPERATION_MATRIX.md) before selecting a backend build route.
+
+Wallet providers that only need balances and transfers can start with the
+[wallet-provider guide](PUBLIC_WALLET_PROVIDER.md). Full fee-market examples are
+described in the [lifecycle cookbook](PUBLIC_LIFECYCLE.md).
+
 ## Choose a path
 
 | Responsibility | TX builder first (recommended) | Backend-assisted |
