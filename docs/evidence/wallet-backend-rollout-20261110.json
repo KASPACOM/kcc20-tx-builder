@@ -1,0 +1,31 @@
+{
+  "dateUtc": "2026-11-10",
+  "backendRevision": "90b5dd9626143dfe6aa7ae61e4fb69eec66ef9c9",
+  "replicasUpdatedAndReady": 2,
+  "healthHttp": 200,
+  "publicTransferBuild": {
+    "http": 201,
+    "elapsedMs": 1335,
+    "status": "wallet-operation-ready",
+    "signingStatus": "ready-to-sign",
+    "requestId": "kcc20-transfer-token-03d3981f-c3f2-4a26-bad5-041692908297",
+    "inputDisplayAmount": "1",
+    "outputBaseUnits": "100"
+  },
+  "originTransferBuilds": [
+    {
+      "pod": "kcc20-backend-6fc5c8bff-6tqkp",
+      "http": 201,
+      "elapsedMs": 799,
+      "signingStatus": "ready-to-sign"
+    },
+    {
+      "pod": "kcc20-backend-6fc5c8bff-sjjh8",
+      "http": 201,
+      "elapsedMs": 752,
+      "signingStatus": "ready-to-sign"
+    }
+  ],
+  "broadcast": false,
+  "note": "Fresh processes after #689 rollout restore requests. RPC timeout prevention is a separate pending PR #690. No historical freshness claim."
+}
