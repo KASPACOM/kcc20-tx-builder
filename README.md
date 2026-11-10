@@ -23,6 +23,8 @@ Use the TX builder locally; public backend planning remains an optional path.
 
 ## Documentation
 
+- [Wallet integration](docs/WALLET_INTEGRATION.md): quantity display, native sends and existing public routes.
+
 - [Integration guide](docs/INTEGRATION.md): amount calculations, engine setup,
   artifacts, source providers, signing boundaries, and error handling.
 - [API guide](docs/API.md): public entry points and operation families.

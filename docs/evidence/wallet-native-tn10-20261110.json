@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-10",
+  "packageVersion": "0.8.3-fee.3",
+  "network": "testnet-10",
+  "tokenId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0",
+  "walletA": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2",
+  "walletB": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+  "deploy": {
+    "txid": "5ab89d58640dfc51a732fced84f4f5bf92a5bfe2db59b06dbbfece1a560f9564",
+    "sdkMass": "40025"
+  },
+  "transfers": [
+    {
+      "operation": "recipient-funding",
+      "txid": "07ad0afed4ddf9872bfa5c93197267cbbe17449debf42d522cd656d4742dd011"
+    },
+    {
+      "operation": "partial-send-A-to-B",
+      "txid": "75fa7686936b4dc026e58e14d3facccaa9e64072591eedcd8ee9d6889d36f8c7",
+      "status": "output-observed-on-node",
+      "mass": "156317",
+      "feeSompi": "5358400"
+    },
+    {
+      "operation": "full-send-B-to-A",
+      "txid": "abd7a3abca2a0bec3f7e064455b4469c7dd946d543b21737bd2e47666e026130",
+      "status": "output-observed-on-node",
+      "mass": "49136",
+      "feeSompi": "5319800"
+    }
+  ],
+  "tokenBaseUnits": "100000",
+  "decimals": 2,
+  "finalWalletA": {
+    "amount": "100000",
+    "utxoCount": 2,
+    "transferable": true,
+    "wrappable": false
+  },
+  "returnIndexed": true,
+  "returnDecoded": true,
+  "limitations": [
+    "SDK mass recorded; separate compute/transient/storage proof still pending",
+    "Wrap/unwrap, orders, fragmented consolidation and published revision proof remain pending",
+    "Global freshness reports stale even though these transaction outputs and readbacks are current"
+  ],
+  "probeFailures": [
+    {
+      "case": "public backend transfer build",
+      "result": "Timed out at 45 seconds; no response bytes; no broadcast"
+    },
+    {
+      "case": "recipient funding first attempt",
+      "result": "Node rejected funding fee below relay minimum; retry with sufficient fee accepted"
+    }
+  ]
+}
