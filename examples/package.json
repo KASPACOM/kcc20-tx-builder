@@ -9,7 +9,14 @@
     "test": "tsx --test test/build.test.ts test/recipes.test.ts test/sources.test.ts",
     "test:browser": "tsx test/browser.ts",
     "recipe": "tsx backend/recipe.ts",
-    "fee-quote": "tsx backend/fee-quote.ts"
+    "fee-quote": "tsx backend/fee-quote.ts",
+    "lifecycle": "tsx backend/lifecycle.ts",
+    "fee-request": "tsx backend/fee-request.ts",
+    "deploy-request": "tsx backend/deploy-request.ts",
+    "reveal-request": "tsx backend/reveal-request.ts",
+    "market-genesis-request": "tsx backend/market-genesis-request.ts",
+    "creator-consent": "tsx backend/creator-consent.ts",
+    "transfer-request": "tsx backend/transfer-request.ts"
   },
   "dependencies": {
     "@kaspacom/kcc20-tx-builder": "0.8.3-fee.3"

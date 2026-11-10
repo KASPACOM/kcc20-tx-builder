@@ -23,11 +23,11 @@ function bytes(value: unknown, field: string): Uint8Array {
     throw new Error(`Invalid ${field}`);
   return Uint8Array.from(value.match(/../g)!, (x) => parseInt(x, 16));
 }
-// Endpoint response: { network: 'testnet-10', utxos: Kcc20IndexedCovenantUtxo[] }.
+// Custom endpoint response: { network: 'testnet-10', utxos: Kcc20IndexedCovenantUtxo[] }.
 // It supplies decoded state; RPC independently confirms the current output.
 export async function liveTransferOperation(
   wasm: Runtime,
-  rpc: Sources,
+  rpc: Sources & { getServerInfo?: () => Promise<unknown> },
   loadArtifact: (key: string) => Promise<unknown>,
   config: LiveTransferConfig,
   fetcher: typeof fetch = fetch,
@@ -63,13 +63,22 @@ export async function liveTransferOperation(
     })(),
     "Decoded state query",
   );
+  const publicSnapshot = document.network === undefined && document.covenantId === config.covenantId;
   if (
-    document.network !== network ||
+    (!publicSnapshot && document.network !== network) ||
     !Array.isArray(document.utxos) ||
     document.utxos.length > 1000
   )
     throw new Error("Invalid or wrong-network state response");
-  const rows = normalizeKcc20IndexedUtxos(document.utxos);
+  if (publicSnapshot) {
+    if (!rpc.getServerInfo) throw new Error("Public snapshot requires independent node identity");
+    const info = await withTimeout(rpc.getServerInfo(), "Node identity") as { networkId?: string; isSynced?: boolean };
+    if (info.networkId !== network || info.isSynced !== true) throw new Error("Expected a synced TN10 node");
+  }
+  const sourceRows = publicSnapshot ? document.utxos.map((row: Record<string, unknown>) => ({
+    ...row, covenantId: row.covenantId ?? row.covenantIdHex ?? document.covenantId,
+  })) : document.utxos;
+  const rows = normalizeKcc20IndexedUtxos(sourceRows);
   if (rows.length !== document.utxos.length)
     throw new Error("State response contains malformed or duplicate outputs");
   const amount = parseKcc20DisplayAmountToBaseUnits(
@@ -115,16 +124,20 @@ export async function liveTransferOperation(
     .toString();
   if (holder.address !== expectedAddress)
     throw new Error("Decoded state does not match the holder address");
+  type LiveEntry = {
+    amount: bigint | string;
+    covenantId?: unknown;
+    scriptPublicKey: Parameters<Runtime["addressFromScriptPublicKey"]>[0];
+  };
   const response = (await withTimeout(
     rpc.getUtxosByAddresses({ addresses: [holder.address] }),
     "Holder UTXO query",
   )) as {
-    entries?: {
+    entries?: (Partial<LiveEntry> & {
       outpoint: { transactionId: string; index: number };
-      amount: bigint | string;
-      covenantId?: string;
-      scriptPublicKey: Parameters<Runtime["addressFromScriptPublicKey"]>[0];
-    }[];
+      entry?: LiveEntry;
+      utxoEntry?: LiveEntry;
+    })[];
   };
   const current = response.entries?.find(
     (row) =>
@@ -132,13 +145,14 @@ export async function liveTransferOperation(
       row.outpoint.index === holder.vout,
   );
   if (!current) throw new Error("Holder is spent or missing from RPC");
-  if (String(current.covenantId) !== config.covenantId)
+  const live = current.entry ?? current.utxoEntry ?? current;
+  if (String(live.covenantId ?? current.covenantId) !== config.covenantId)
     throw new Error("Holder native covenant ID differs from RPC");
-  if (BigInt(current.amount) !== BigInt(holder.amountSompi))
+  if (live.amount === undefined || BigInt(live.amount) !== BigInt(holder.amountSompi))
     throw new Error("Holder KAS amount differs from RPC");
   if (
-    wasm
-      .addressFromScriptPublicKey(current.scriptPublicKey, network)
+    !live.scriptPublicKey || wasm
+      .addressFromScriptPublicKey(live.scriptPublicKey, network)
       ?.toString() !== expectedAddress
   )
     throw new Error("Holder script differs from RPC");

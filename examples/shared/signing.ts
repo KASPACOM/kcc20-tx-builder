@@ -1,15 +1,20 @@
-import type { Built, Runtime } from "./build.ts";
+import type { Built, Runtime, ScriptHint } from "./build.ts";
 function bytes(hex: string): Uint8Array {
   if (!/^(?:[a-f0-9]{2})*$/i.test(hex))
     throw new Error("Invalid hexadecimal script");
   return Uint8Array.from(hex.match(/../g) ?? [], (x) => parseInt(x, 16));
 }
-// The wallet signs covenant inputs too; their signatures then need ABI arguments.
+function needsSignature(hint: ScriptHint): boolean {
+  return hint.signatureScript?.mode !== "ordered-args" ||
+    (hint.signatureScript.args ?? []).some(arg => arg.type === "signature");
+}
+// Some covenants are authorized by another input and need only ABI arguments.
 export function signingInputs(result: Built, capabilities = { schnorr: true, ecdsa: false }) {
   const inputs = new Map(
     result.signInputs.map((input) => [input.index, input]),
   );
   for (const script of result.scripts ?? []) {
+    if (!needsSignature(script)) continue;
     const algorithm = script.signatureAlgorithm ?? "schnorr";
     if (!capabilities[algorithm]) throw new Error(`Wallet does not support ${algorithm} signatures`);
     if (!inputs.has(script.inputIndex)) {
@@ -68,17 +73,17 @@ export function attachScripts(
     const input = tx.inputs[hint.inputIndex];
     if (!input)
       throw new Error("Covenant input missing from signed transaction");
-    if (!input.signatureScript) throw new Error("Missing wallet signature");
-    let signature =
-      typeof input.signatureScript === "string"
-        ? bytes(input.signatureScript)
-        : input.signatureScript;
-    if (signature.length === 66 && signature[0] === 65)
-      signature = signature.slice(1);
-    if (signature.length !== 65)
-      throw new Error("Expected compact signature and sighash byte");
+    const requiresSignature = needsSignature(hint);
+    let signature: Uint8Array = new Uint8Array();
+    if (requiresSignature) {
+      if (!input.signatureScript) throw new Error("Missing wallet signature");
+      signature = typeof input.signatureScript === "string"
+        ? bytes(input.signatureScript) : input.signatureScript;
+      if (signature.length === 66 && signature[0] === 65) signature = signature.slice(1);
+      if (signature.length !== 65) throw new Error("Expected compact signature and sighash byte");
+    }
     const template = hint.signatureScript;
-    let prefix: string | Uint8Array = input.signatureScript;
+    let prefix: string | Uint8Array = input.signatureScript ?? "";
     if (template && template.mode !== "wrap-signature") {
       if (!["ordered-args", "signature-first-args"].includes(template.mode))
         throw new Error("Unsupported script template");
@@ -102,13 +107,14 @@ export function attachScripts(
           signatures++;
         } else throw new Error("Unsupported script argument");
       }
-      if (template.mode === "ordered-args" && signatures !== 1)
-        throw new Error("Expected one signature slot");
+      if (template.mode === "ordered-args" && signatures !== (requiresSignature ? 1 : 0))
+        throw new Error("Unexpected signature slot count");
       prefix = builder.drain();
     }
     input.signatureScript = wasm.ScriptBuilder.fromScript(
       hint.scriptHex,
     ).encodePayToScriptHashSignatureScript(prefix);
   }
+  tx.finalize();
   return tx.serializeToSafeJSON();
 }

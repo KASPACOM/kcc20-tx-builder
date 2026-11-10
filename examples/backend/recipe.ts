@@ -35,5 +35,5 @@ if (path === "--offline" || path === "--arguments") {
   ) => unknown;
   const operation = fn(...args) as Operation;
   engineInput(operation); // Reject accidental non-TN10 configuration before RPC access.
-  console.log(JSON.stringify(operation, null, 2));
+  console.log(JSON.stringify(process.argv[4] === "--engine-input" ? engineInput(operation) : operation, null, 2));
 }
