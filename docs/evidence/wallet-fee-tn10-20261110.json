@@ -1,0 +1,186 @@
+{
+  "network": "testnet-10",
+  "package": "0.8.3-fee.3",
+  "tokenId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0",
+  "marketId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb",
+  "steps": [
+    {
+      "name": "create-test-fee-account",
+      "txid": "d0ab13e86a26004b354a009dec5dcfaa7dbb1fd6ad2b4a267df91d0bd4f3c084",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "4083",
+        "transient": "1412",
+        "storage": "40015"
+      },
+      "feeSompi": "4001500"
+    },
+    {
+      "name": "deploy-test-market",
+      "txid": "142c7c6cbdec839d2815cf3e3fad2e07f2e39aeeb1e41e3cc89a8b5696b8fa06",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "4083",
+        "transient": "1412",
+        "storage": "40017"
+      },
+      "feeSompi": "10000000"
+    },
+    {
+      "name": "bind-test-market",
+      "txid": "cb858e57a40300c543518c657f594c0cd1958332885f72f7bc6309db1b683dfc",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "218327",
+        "transient": "56908",
+        "storage": "76943"
+      },
+      "feeSompi": "21832700"
+    },
+    {
+      "name": "bind-test-fee-account",
+      "txid": "1dc2a19578dfd78739675ee90bb204c9f7facfd90fc9e6038007bc830dab9d40",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "79354",
+        "transient": "102496",
+        "storage": "36773"
+      },
+      "feeSompi": "7935400"
+    },
+    {
+      "name": "wrap-1000-base-units",
+      "txid": "0181485d73ab8e66aeb1b713355454bb5f5ac37d1a85bcaf01ba810436817a3d",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "139602",
+        "transient": "379048",
+        "storage": "270473"
+      },
+      "feeSompi": "27047300"
+    },
+    {
+      "name": "place-ask-1000-base-units",
+      "txid": "3db6edac328978c9ed835230e81b1aff024554de3d7547915543aee443194e79",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "156680",
+        "transient": "491800",
+        "storage": "76505"
+      },
+      "feeSompi": "24590000"
+    },
+    {
+      "name": "cancel-ask",
+      "txid": "2dfedf7394f769074a81d569ad0b57abb52565d249a472474e703c82f504a547",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "156640",
+        "transient": "491640",
+        "storage": "76465"
+      },
+      "feeSompi": "24582000"
+    },
+    {
+      "name": "partial-unwrap-400",
+      "txid": "9e74d92c8fc033da5fb818dd4eb6dc3f7c812407c33bdac6579f4fe7c660d705",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "170310",
+        "transient": "381880",
+        "storage": "259881"
+      },
+      "feeSompi": "25988100"
+    },
+    {
+      "name": "full-unwrap-600",
+      "txid": "5e08bb3194359c5534a43f87b73334bacf9de736f9a17d418b2f5dc47246ac43",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "169698",
+        "transient": "380952",
+        "storage": "119206"
+      },
+      "feeSompi": "19047600"
+    },
+    {
+      "name": "wrap-discovery-recheck",
+      "txid": "f833d9efe0bfd316eb0a8a932974d38c6822e73237d523eb3537c343fda00aaf",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "139602",
+        "transient": "379048",
+        "storage": "269320"
+      },
+      "feeSompi": "26932000"
+    },
+    {
+      "name": "unwrap-discovery-recheck",
+      "txid": "94d961e0d3c3530e2cf1e849c83fe493bc91c1fd3e442cd43e8fbce420955267",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "169698",
+        "transient": "380952",
+        "storage": "118763"
+      },
+      "feeSompi": "19047600"
+    },
+    {
+      "name": "consolidate-native-holders",
+      "txid": "ccae400d8720a1a63a44a56221cc5842f09bfc9f3eeed30c12c0c36235cf4d36",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "312756",
+        "transient": "514664",
+        "storage": "32991"
+      },
+      "feeSompi": "31314000"
+    },
+    {
+      "name": "full-consolidated-send-A-to-B",
+      "txid": "074b454e35255fb97202faa0dafe91cf847659cdac40563b0981507286169346",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "50215",
+        "transient": "105940",
+        "storage": "76207"
+      },
+      "feeSompi": "5320200"
+    },
+    {
+      "name": "full-consolidated-return-B-to-A",
+      "txid": "2b2a3bb5e6a45b66559be57a860e9b1d32f899953e484ee32d0c10616c6112cc",
+      "status": "node-output-observed",
+      "mass": {
+        "compute": "50215",
+        "transient": "105940",
+        "storage": "48500"
+      },
+      "feeSompi": "5320200"
+    }
+  ],
+  "accounting": {
+    "initialNativeBaseUnits": "100000",
+    "askStageNative": "99000",
+    "openAskBaseUnits": "1000",
+    "cancelledWrappedBaseUnits": "1000",
+    "afterUnwrapNative": "100000",
+    "decimals": 2
+  },
+  "discoveryBug": "Live wallet-provider mislabels fee-market holdings as native under market ID. Local corrected service groups recorded live source data as 99000 native plus 1000 wrapped. Correction not deployed.",
+  "limits": "Controlled Schnorr native-token profile only. Node output observation is not finality; global freshness remains stale.",
+  "fragmentation": {
+    "holdersBefore": 5,
+    "totalBaseUnits": "100000",
+    "fullSendBeforeConsolidation": "rejected before signing",
+    "consolidation": "node-output-observed",
+    "fullSendAndReturn": "node-output-observed"
+  },
+  "finalReadback": {
+    "transactionId": "2b2a3bb5e6a45b66559be57a860e9b1d32f899953e484ee32d0c10616c6112cc",
+    "indexed": true,
+    "decoded": true,
+    "nativeBaseUnits": "100000",
+    "nativeUtxoCount": 1
+  }
+}
