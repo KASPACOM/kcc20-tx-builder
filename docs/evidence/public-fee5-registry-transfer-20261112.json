@@ -1,0 +1,33 @@
+{
+  "network": "testnet-10",
+  "packageVersion": "0.8.3-fee.5",
+  "scope": "Published package with source-checkout public lifecycle examples after stack merge resolution",
+  "transactionId": "0f7e2ff645edbe27b698bbfdfd2e1e452785b4bb43a1e72159451a78d440b467",
+  "accepted": true,
+  "indexed": true,
+  "decoded": true,
+  "mass": {
+    "estimatedSerializedSize": "26673",
+    "computeBudgetUnits": "230",
+    "computeMass": "50773",
+    "transientMass": "106692",
+    "normalizedTransientMass": "53346",
+    "transactionMass": "53346",
+    "storageMass": "147044"
+  },
+  "tokenId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+  "amountBaseUnits": "1",
+  "resume": "accepted without resubmission",
+  "spentInputRebuild": {
+    "rejectedBeforeSigning": true,
+    "error": "active holder UTXO fd9beadae8e39f3d623f7193565cf71955d4cb99a1be3e6658f83711994e495c:1 not found"
+  },
+  "publicOpenApi": {
+    "httpStatus": 200,
+    "pathCount": 62
+  },
+  "limitations": [
+    "This does not prove the lifecycle runner is present in the fee.5 registry archive.",
+    "Does not prove reorg recovery or authenticated backend submission."
+  ]
+}
