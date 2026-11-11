@@ -71,6 +71,59 @@ export function kaChatRootText(network: "testnet-10" | "mainnet", canonicalToken
   return `KaspaCom token discussion\n${kaChatDiscussionKey(network, canonicalTokenId)}`;
 }
 
+/** Decode only the supported public protocol and authenticate its exact signed fields. */
+export function decodeKaChatPayload(payload: Uint8Array, verifier: KaChatMessageVerifier): {
+  action: KaChatAction; publicKey: string; signature: string;
+} {
+  if (payload.length > 4096) throw new Error("Invalid KaChat payload");
+  const parts = new TextDecoder("utf-8", { fatal: true }).decode(payload).split(":");
+  const [prefix, version, kind, publicKey, signature, ...values] = parts;
+  if (prefix !== "kchat" || version !== "1") throw new Error("Unsupported KaChat payload");
+  const text = (value: string) => {
+    const bytes = Uint8Array.from(atob(value), c => c.charCodeAt(0));
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    if (!decoded.startsWith(KACHAT_MARKER)) throw new Error("Invalid comment marker");
+    return decoded.slice(KACHAT_MARKER.length);
+  };
+  let action: KaChatAction;
+  if (kind === "post" && values.length === 2 && values[1] === "[]")
+    action = { kind, text: text(values[0]) };
+  else if (kind === "reply" && values.length === 3 && values[2] === "[]")
+    action = { kind, postId: values[0], text: text(values[1]) };
+  else if (kind === "vote" && values.length === 3 && (values[1] === "upvote" || values[1] === "unvote"))
+    action = { kind, postId: values[0], vote: values[1], authorPublicKey: values[2] };
+  else throw new Error("Unsupported KaChat action");
+  const expected = buildKaChatPayload(action, publicKey, signature, verifier);
+  if (bytesToHex(expected) !== bytesToHex(payload)) throw new Error("Noncanonical KaChat payload");
+  return { action, publicKey: kaChatPublicKey(publicKey), signature };
+}
+
+/** Wallets may add witnesses only. Never broadcast a modified self-payment. */
+export function validateKaChatSignedTransaction(unsigned: any, signed: any,
+  measure: (tx: any) => { computeMass: bigint; transientMass: bigint; storageMass: bigint },
+) {
+  const immutable = (tx: any) => JSON.stringify({
+    version: tx.version, lockTime: tx.lockTime, subnetworkId: tx.subnetworkId, gas: tx.gas, payload: tx.payload,
+    inputs: Array.from(tx.inputs, (i: any) => ({
+      outpoint: `${i.previousOutpoint.transactionId}:${i.previousOutpoint.index}`, sequence: i.sequence,
+      sigOpCount: i.sigOpCount, computeBudget: i.computeBudget,
+      amount: i.utxo?.amount, utxoScript: i.utxo?.scriptPublicKey?.script,
+      utxoVersion: i.utxo?.scriptPublicKey?.version, covenantId: i.utxo?.covenantId,
+    })),
+    outputs: Array.from(tx.outputs, (o: any) => ({ value: o.value,
+      script: o.scriptPublicKey.script, version: o.scriptPublicKey.version, covenant: o.covenant })),
+  }, (_, v) => typeof v === "bigint" ? v.toString() : v);
+  if (immutable(unsigned) !== immutable(signed) || signed.inputs.length !== 1 ||
+    !/^41[0-9a-f]{128}01$/i.test(signed.inputs[0].signatureScript))
+    throw new Error("Wallet changed the comment transaction or omitted its signature");
+  // Never trust amounts/UTXO scripts returned by a wallet when measuring storage mass.
+  if (!signed.inputs[0].utxo || !unsigned.inputs[0].utxo) throw new Error("Missing comment funding evidence");
+  const mass = measure(signed);
+  if (mass.computeMass > 450_000n || mass.transientMass > 900_000n || mass.storageMass > 450_000n)
+    throw new Error("Signed comment exceeds mass budget");
+  return mass;
+}
+
 /** Parameters for the host's standard P2PK transaction generator. Never spend token inputs. */
 export function kaChatSelfSendRequest(input: {
   network: "testnet-10" | "mainnet";
