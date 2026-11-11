@@ -6,7 +6,7 @@
     "backend": "tsx backend/cli.ts",
     "frontend": "vite frontend --host 127.0.0.1",
     "build": "tsc --noEmit && vite build frontend",
-    "test": "tsx --test test/build.test.ts test/recipes.test.ts test/sources.test.ts",
+    "test": "tsx --test test/build.test.ts test/recipes.test.ts test/sources.test.ts test/wallet.test.ts",
     "test:browser": "tsx test/browser.ts",
     "recipe": "tsx backend/recipe.ts",
     "fee-quote": "tsx backend/fee-quote.ts",
@@ -16,10 +16,13 @@
     "reveal-request": "tsx backend/reveal-request.ts",
     "market-genesis-request": "tsx backend/market-genesis-request.ts",
     "creator-consent": "tsx backend/creator-consent.ts",
-    "transfer-request": "tsx backend/transfer-request.ts"
+    "transfer-request": "tsx backend/transfer-request.ts",
+    "wallet": "tsx backend/wallet.ts",
+    "wallet:send": "tsx backend/send.ts",
+    "wallet:wrap": "tsx backend/wrap.ts"
   },
   "dependencies": {
-    "@kaspacom/kcc20-tx-builder": "0.8.3-fee.3"
+    "@kaspacom/kcc20-tx-builder": "0.8.3-fee.5"
   },
   "devDependencies": {
     "@types/node": "22.18.8",

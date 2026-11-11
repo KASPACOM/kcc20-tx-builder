@@ -1,6 +1,6 @@
 # Building the fee-market lifecycle
 
-This cookbook uses `0.8.3-fee.3` on DEV TN10. Follow the
+This cookbook uses `0.8.3-fee.5` on DEV TN10. Follow the
 [installation guide](PUBLIC_INTEGRATION.md), [operation matrix](PUBLIC_OPERATION_MATRIX.md)
 and [verification checklist](PUBLIC_INTEGRATION_CHECKLIST.md). The runner and
 recipe generator are under development until their checklist gates are verified.
