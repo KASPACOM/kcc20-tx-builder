@@ -1,0 +1,59 @@
+{
+  "network": "testnet-10",
+  "engineVersion": "0.8.3-fee.3",
+  "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+  "transactions": [
+    {
+      "operation": "sweep-final-claim-protocol",
+      "transactionId": "4736f95575126d9c2982a7740bb0dacfac160a257319d04f55e9e1abb315cfe3",
+      "mass": {
+        "estimatedSerializedSize": "76680",
+        "computeBudgetUnits": "380",
+        "computeMass": "116140",
+        "transientMass": "306720",
+        "normalizedTransientMass": "153360",
+        "transactionMass": "153360",
+        "storageMass": "65274"
+      },
+      "accepted": true,
+      "claimSompi": "551000000",
+      "remainderSompi": "755000000"
+    },
+    {
+      "operation": "sweep-final-claim-creator",
+      "transactionId": "e0f435eb5827929cc8a104c651ec56efc176d984b9753ee9d09243e946d21ec3",
+      "mass": {
+        "estimatedSerializedSize": "51412",
+        "computeBudgetUnits": "330",
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "normalizedTransientMass": "102824",
+        "transactionMass": "102824",
+        "storageMass": "63678"
+      },
+      "accepted": true,
+      "claimSompi": "755000000",
+      "remainderSompi": "0"
+    }
+  ],
+  "accounting": {
+    "wrappedAmount": "1000",
+    "nativeTotalIncludingReserve": "100000",
+    "outstandingFeeReceipts": 0,
+    "accounts": [
+      {
+        "party": "creator",
+        "principal": "50000000",
+        "owner": "f11009accefc624c3ff577160de8295027c904e584dd6400d840b6f9ab9f90a2",
+        "scheme": 0
+      },
+      {
+        "party": "protocol",
+        "principal": "50000000",
+        "owner": "17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2",
+        "scheme": 0
+      }
+    ]
+  },
+  "scope": "Sequential indexed snapshots after canonical acceptance; no atomic-watermark or reorg proof"
+}

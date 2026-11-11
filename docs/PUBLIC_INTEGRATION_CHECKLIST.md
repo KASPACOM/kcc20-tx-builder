@@ -24,15 +24,15 @@ not filled by adding endpoints. Keep npm `latest` unchanged.
 | PUB-08 | Shared browser/Node build, sign and broadcast adapters | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 | 57 example tests pass; signed mass, zero-signature witnesses, source rechecks and finalized transaction IDs | Native deploy and self-transfer accepted; full lifecycle pending |
 | PUB-09 | Deploy token and creator settings | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Published deploy helper and local runner | PUBDOC1 and PUBDOC2 accepted; 1-percent creator configuration bound |
 | PUB-10 | Fee accounts, consent, genesis and binding | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Signed bind fixtures at 0/1/5 percent | 0-percent and 1-percent market setup accepted, including creator consent and both account bindings |
-| PUB-11 | Mint, transfer and native consolidation | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Native transfer runner | Self-transfer, distinct-recipient transfer and paid public mint accepted; consolidation pending |
+| PUB-11 | Mint, transfer and native consolidation | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Native transfer runner | Self-transfer, distinct-recipient transfer, paid public mint and native consolidation accepted |
 | PUB-12 | Wrap, unwrap and wrapped consolidation | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Exact-source normalization regression passes | Wrap, buyer unwrap and two-holder consolidation accepted |
-| PUB-13 | Asks/bids, partial/final fills and cancellations | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Runner build/tests pass | Asks, partial/final distinct-wallet buys and cancellation accepted; bids pending |
-| PUB-14 | Two-ask buy and 3-/10-bid seller sweeps | In progress | #65 / 0.8.3-fee.3 | Packed tests pass | Two-ask ticket buy accepted; seller sweeps pending |
+| PUB-13 | Asks/bids, partial/final fills and cancellations | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Runner build/tests pass | Asks, partial/final buys, bids and both cancellations accepted |
+| PUB-14 | Two-ask buy and 3-/10-bid seller sweeps | In progress | #65 / 0.8.3-fee.3 | Packed tests pass | Two-ask ticket buy, three-bid sale and ten-bid sales with/without a ticket accepted; small-payout limitation retained |
 | PUB-15 | FeeTicket creation, transfer, waiver, burn/refund | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 | Published recipe and signed runner | Public mint, ticket creation/transfer, two-ask waiver and full refund accepted/indexed; misuse rejection pending |
-| PUB-16 | Protocol/creator claims, 1–5 receipts, both orders | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Runner tests pass | Protocol and creator single-receipt claims accepted in both orders; opposing entitlement and principals preserved; batches pending |
-| PUB-17 | Authority rotation and supported recipient adapter | In progress | #65 / 0.8.3-fee.3 | Rotation runner | Creator account rotated to another test wallet and back; adapter pending |
+| PUB-16 | Protocol/creator claims, 1–5 receipts, both orders | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 engine | Runner tests pass | 1–5 selected receipts accepted; creator-first and protocol-first journeys covered; exact per-count/party coverage below |
+| PUB-17 | Authority rotation and supported recipient adapter | In progress | #65 / 0.8.3-fee.3 | Rotation runner | Wallet rotation, pinned recipient-covenant two-receipt claim and rotation back accepted |
 | PUB-18 | Resumption, stale inputs, wallet/RPC/indexing failures | In progress | #65 / 0.8.3-fee.3 | 57 example tests include signer/RPC/source failures and mismatch-ID resume | Accepted-ID resumption works; spent-ask rebuild rejects before signing; broader matrix pending |
-| PUB-19 | Creator 0/1/5%, fee floors and signed mass matrix | In progress | #65 / 0.8.3-fee.3 | Signed fixtures and recorded masses | 0/1/5-percent markets, fee floors and grouped waiver accepted; above-floor percentages pending |
+| PUB-19 | Creator 0/1/5%, fee floors and signed mass matrix | In progress | #65 / 0.8.3-fee.3 | Signed fixtures and recorded masses | 0/1/5-percent markets, fee floors, grouped waiver and above-floor 51-KAS trade accepted |
 | PUB-20 | Independent final example/security-boundary review | In progress | Follow-up | Reviewer found resume mismatch-ID omission; fixed with regression test. Final static review APPROVE for 0c55e7c; no tests run by reviewer | Not applicable |
 | PUB-21 | Immutable prerelease and fresh registry smoke checks | Not started | Pending | No new version published | Pending published-version proof |
 | PUB-22 | Served docs/OpenAPI/link parity and CI checks | Not started | Pending | Pending | Not applicable |
@@ -194,3 +194,68 @@ Backend transfer build returned HTTP 201 in 901 ms after the independently
 delivered RPC recovery fix (#690). DEV pods reported image 90b5dd9626143dfe6aa7ae61e4fb69eec66ef9c9.
 That request was built only; signing, submission and settlement remain pending.
 No backend fix was duplicated in these documentation/example PRs.
+
+## Seller sweeps and delegated claims, 2026-11-11
+
+[Funded evidence](evidence/public-sweeps-recipient-20261111.json) records 22
+additional canonically accepted transactions. A three-bid sale persisted one
+receipt with 1.5 KAS owed to each party. A ten-bid ticket sale waived protocol
+fees, retained 5 KAS for the creator and returned the seller/ticket principals.
+
+The creator delegated its account to the pinned recipient covenant and claimed
+both receipts together (6.5 KAS). The replacement retained the protocol's full
+1.5 KAS, which the protocol wallet then claimed. The delegated account rotated
+back to the creator wallet through the recipient adapter.
+
+Retained failure: the same ten 1.2-KAS bids without a ticket leave 0.2 KAS per
+seller payout. The published builder rejects that shape before signing at
+341213 compute / 519292 transient / 579019 storage mass. No limit, fee or
+output was changed to hide this failure. The ticket form was accepted at
+406996 / 540984 / 211318. Unticketed low-proceeds ten-bid support remains open.
+
+Some snapshots lagged accepted continuations. Subsequent construction used saved
+transaction outpoints and node revalidation; later REST confirmed all 22 IDs.
+Funding consolidation also produced two node-rejected low-network-fee probes;
+separate journaled rebuilds with adequate fees were accepted. No rejected
+transaction is counted as completed.
+
+Independent review approved the coherent updated stack at #63 2ceb5a1, #64
+7a27e6e and #65 31b4735. New exact-head hosted CI was queued when checked.
+Frontend remains unmerged.
+
+## Completed additional funded cases, 2026-11-11
+
+- [Claim batches](evidence/public-claim-batches-20261111.json): three and five
+  receipts claimed by the creator first; four claimed by the protocol first.
+  Each opposing entitlement was then claimed independently. Together with the
+  two-receipt wallet and recipient cases, funded runs cover counts 1–5. This is
+  not every count × party × authority permutation.
+- [Percentage fees](evidence/public-percentage-fees-20261111.json): a 51-KAS
+  fill accrued 0.51 KAS protocol and 2.55 KAS creator fees, verified in the
+  indexed receipt. Both percentages exceed their respective fee floors.
+- [Other journeys](evidence/public-remaining-flows-20261111.json): ten
+  unticketed bids at 2 KAS per fill passed, plus native consolidation, bid
+  cancellation and a backend-built transfer signed and broadcast by the wallet.
+  Transfer settlement reports indexed and decoded. Authenticated backend
+  submission itself was not exercised.
+- [Final accounting](evidence/public-final-accounting-20261111.json): zero
+  outstanding fee receipts in the test market, 1000 wrapped units and 100000
+  native units including reserve. Both fee accounts retain 0.5 KAS and their
+  original wallet authorities. These are sequential observations, not a
+  reorg/atomic-watermark proof.
+
+The successful unticketed ten-bid sale measured 341213 compute, 519292 transient
+and 229156 storage mass. The earlier small-payout failure remains valid and is
+not silently converted into a passing result.
+
+Funding needs headroom for the fully signed network fee. A 2.7-KAS funding UTXO
+failed the 1-KAS ask buy before signing; an explicitly selected 3.2-KAS input
+passed. A funding-consolidation race in the test harness was node-rejected; the
+rebuild waited for settlement and used fresh inputs. These host-test failures
+were not deployed changes or successful transactions.
+
+Release gates still open: immutable example prerelease and registry replay,
+served backend guide deployment, final hosted CI, remaining negative/source
+failure coverage and complete API agreement for standalone markets. Wallet
+authorities beyond the tested Schnorr and pinned recipient paths retain their
+separate proof scope. No frontend merge or mainnet action.
