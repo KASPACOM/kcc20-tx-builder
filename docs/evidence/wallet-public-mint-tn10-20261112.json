@@ -1,0 +1,1312 @@
+{
+  "verifiedAt": "2026-11-11T22:45:39.910Z",
+  "network": "testnet-10",
+  "packageVersion": "0.8.3-fee.4",
+  "tokenId": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+  "decimals": 2,
+  "maxSupplyBaseUnits": "200",
+  "wallets": [
+    {
+      "walletAddress": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2",
+      "kcc20Owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+    },
+    {
+      "walletAddress": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+      "kcc20Owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da"
+    }
+  ],
+  "steps": [
+    {
+      "name": "deploy-paused-public-token",
+      "txid": "9ed7e36741c4f445ecf046c649a8ca20f77292251bbef9202719fbe9baff58e4",
+      "status": "indexed-unrevealed",
+      "mass": {
+        "compute": "5124",
+        "transient": "5576",
+        "storage": "40026"
+      },
+      "feeSompi": "518800",
+      "inputSompi": "2015813600",
+      "outputSompi": "2015294800",
+      "outputs": [
+        {
+          "index": 0,
+          "value": "100000000",
+          "address": "kaspatest:pzdqyqdvuu4mdf38740fd4qxu8rtaup3h90nw4hh2drarjtfs3d92039wm7fm"
+        },
+        {
+          "index": 1,
+          "value": "1915294800",
+          "address": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2"
+        }
+      ],
+      "settlement": {
+        "indexed": true,
+        "decoded": false,
+        "actionCount": 1,
+        "actions": [
+          {
+            "txidHex": "9ed7e36741c4f445ecf046c649a8ca20f77292251bbef9202719fbe9baff58e4",
+            "action": "deploy",
+            "entrypoint": null,
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pzdqyqdvuu4mdf38740fd4qxu8rtaup3h90nw4hh2drarjtfs3d92039wm7fm",
+            "blockTimeMs": 1794436692683,
+            "decodedArgs": null,
+            "inputs": null,
+            "outputs": {
+              "address": "kaspatest:pzdqyqdvuu4mdf38740fd4qxu8rtaup3h90nw4hh2drarjtfs3d92039wm7fm",
+              "amountSompi": 100000000,
+              "scriptPubKeyHex": "aa209a0201ace72bb6a627f55e96d406e1c6bef031b95f3756f75347d1c969845a5587",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extension": {
+                  "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                  "displayScale": "100",
+                  "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                  "kind": 1,
+                  "maxSupply": "200",
+                  "mintLaneCount": 1,
+                  "mintPolicy": 2,
+                  "mintPriceSompi": "100000000",
+                  "name": "Wallet public mint proof",
+                  "protocolFeeBps": "200",
+                  "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                  "publicMintActive": false,
+                  "remainingSupply": "200",
+                  "ticker": "WMINT",
+                  "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                },
+                "extensionCommitment": "09d3e787f74ce3807f2a7f9ff13caf5197fd41e9c4cedfb7bec88f67fa205823",
+                "isMintAuthority": true,
+                "mintLane": 1,
+                "mintLaneCount": 1,
+                "mintPolicy": 2,
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1",
+                "publicMintActive": false,
+                "remainingSupply": "200"
+              },
+              "vout": 0
+            }
+          }
+        ],
+        "scanner": {
+          "cursorBlueScore": 609364219,
+          "cursorUpdatedAtMs": 1794437137568,
+          "dbCursorLagBlocks": 8,
+          "latestActionTimeMs": 1794437137777,
+          "latestBlockBlueScore": 609364252,
+          "latestBlockIndexedAtMs": 1794437138000,
+          "latestBlockTimeMs": 1794437137777
+        }
+      },
+      "mintPath": null,
+      "tokenAmount": "0",
+      "remainingSupply": null
+    },
+    {
+      "name": "enable-public-mint",
+      "txid": "cb2a068991f8582d884dddbcc78f363bed0faa03c5542b89b2ade1db3b9182f3",
+      "status": "accepted-and-indexed",
+      "mass": {
+        "compute": "49808",
+        "transient": "104312",
+        "storage": "36243"
+      },
+      "feeSompi": "5215600",
+      "inputSompi": "2114573100",
+      "outputSompi": "2109357500",
+      "outputs": [
+        {
+          "index": 0,
+          "value": "100000000",
+          "address": "kaspatest:prsf32gpeyflsen4h9tsp7yllkmxcf6vax7ytjpmnufz0l2yg5d967wwevn6l"
+        },
+        {
+          "index": 1,
+          "value": "2009357500",
+          "address": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2"
+        }
+      ],
+      "settlement": {
+        "indexed": true,
+        "decoded": true,
+        "actionCount": 2,
+        "actions": [
+          {
+            "txidHex": "cb2a068991f8582d884dddbcc78f363bed0faa03c5542b89b2ade1db3b9182f3",
+            "action": "spend",
+            "entrypoint": "set_public_mint_active",
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pzdqyqdvuu4mdf38740fd4qxu8rtaup3h90nw4hh2drarjtfs3d92039wm7fm",
+            "blockTimeMs": 1794436803427,
+            "decodedArgs": {
+              "active": true,
+              "decimals": null,
+              "extension": {
+                "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "displayScale": "100",
+                "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                "kind": 1,
+                "maxSupply": "200",
+                "mintLaneCount": 1,
+                "mintPolicy": 2,
+                "mintPriceSompi": "100000000",
+                "name": "Wallet public mint proof",
+                "protocolFeeBps": "200",
+                "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                "publicMintActive": false,
+                "remainingSupply": "200",
+                "ticker": "WMINT",
+                "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+              },
+              "extensionCommitment": "09d3e787f74ce3807f2a7f9ff13caf5197fd41e9c4cedfb7bec88f67fa205823",
+              "inputIndex": "0",
+              "minterOutputIndex": "0",
+              "nextExtensionCommitment": "77f41a960b7d85cfa14fb2ffd3a52e8ac61f5b5daddca5dbad36770266eb3a9f",
+              "outputStates": [
+                {
+                  "outputIndex": "0",
+                  "state": {
+                    "amount": "0",
+                    "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "borrowScheme": 0,
+                    "extension": {
+                      "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                      "displayScale": "100",
+                      "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                      "kind": 1,
+                      "maxSupply": "200",
+                      "mintLaneCount": 1,
+                      "mintPolicy": 2,
+                      "mintPriceSompi": "100000000",
+                      "name": "Wallet public mint proof",
+                      "protocolFeeBps": "200",
+                      "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                      "publicMintActive": true,
+                      "remainingSupply": "200",
+                      "ticker": "WMINT",
+                      "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                    },
+                    "extensionCommitment": "77f41a960b7d85cfa14fb2ffd3a52e8ac61f5b5daddca5dbad36770266eb3a9f",
+                    "isMintAuthority": true,
+                    "mintPolicy": 2,
+                    "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                    "ownerScheme": 0,
+                    "publicMintActive": true,
+                    "remainingSupply": "200"
+                  }
+                }
+              ],
+              "profileId": "kaspacom-kcc20-last-call-v1",
+              "standard": "KCC20",
+              "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extensionCommitment": "09d3e787f74ce3807f2a7f9ff13caf5197fd41e9c4cedfb7bec88f67fa205823",
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1"
+              },
+              "templateHash": "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29"
+            },
+            "inputs": {
+              "address": "kaspatest:pzdqyqdvuu4mdf38740fd4qxu8rtaup3h90nw4hh2drarjtfs3d92039wm7fm",
+              "previousOutpoint": {
+                "hash": "9ed7e36741c4f445ecf046c649a8ca20f77292251bbef9202719fbe9baff58e4",
+                "index": 0
+              }
+            },
+            "outputs": null
+          },
+          {
+            "txidHex": "cb2a068991f8582d884dddbcc78f363bed0faa03c5542b89b2ade1db3b9182f3",
+            "action": "continuation",
+            "entrypoint": null,
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:prsf32gpeyflsen4h9tsp7yllkmxcf6vax7ytjpmnufz0l2yg5d967wwevn6l",
+            "blockTimeMs": 1794436803427,
+            "decodedArgs": null,
+            "inputs": null,
+            "outputs": {
+              "address": "kaspatest:prsf32gpeyflsen4h9tsp7yllkmxcf6vax7ytjpmnufz0l2yg5d967wwevn6l",
+              "amountSompi": 100000000,
+              "scriptPubKeyHex": "aa20e098a901c913f86675b95700f89ffdb66c274ce9bc45c83b9f1227fd44451a5d87",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "extension": {
+                  "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                  "displayScale": "100",
+                  "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                  "kind": 1,
+                  "maxSupply": "200",
+                  "mintLaneCount": 1,
+                  "mintPolicy": 2,
+                  "mintPriceSompi": "100000000",
+                  "name": "Wallet public mint proof",
+                  "protocolFeeBps": "200",
+                  "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                  "publicMintActive": true,
+                  "remainingSupply": "200",
+                  "ticker": "WMINT",
+                  "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                },
+                "extensionCommitment": "77f41a960b7d85cfa14fb2ffd3a52e8ac61f5b5daddca5dbad36770266eb3a9f",
+                "isMintAuthority": true,
+                "mintPolicy": 2,
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "publicMintActive": true,
+                "remainingSupply": "200"
+              },
+              "vout": 0
+            }
+          }
+        ],
+        "scanner": {
+          "cursorBlueScore": 609364219,
+          "cursorUpdatedAtMs": 1794437137568,
+          "dbCursorLagBlocks": 8,
+          "latestActionTimeMs": 1794437137777,
+          "latestBlockBlueScore": 609364252,
+          "latestBlockIndexedAtMs": 1794437138000,
+          "latestBlockTimeMs": 1794437137777
+        }
+      },
+      "mintPath": null,
+      "tokenAmount": null,
+      "remainingSupply": "200"
+    },
+    {
+      "name": "public-mint-one-token",
+      "txid": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256",
+      "status": "accepted-and-indexed",
+      "mass": {
+        "compute": "68847",
+        "transient": "108108",
+        "storage": "146248"
+      },
+      "feeSompi": "14624800",
+      "inputSompi": "500000000",
+      "outputSompi": "485375200",
+      "outputs": [
+        {
+          "index": 0,
+          "value": "50000000",
+          "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk"
+        },
+        {
+          "index": 1,
+          "value": "100000000",
+          "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut"
+        },
+        {
+          "index": 2,
+          "value": "50000000",
+          "address": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2"
+        },
+        {
+          "index": 3,
+          "value": "50000000",
+          "address": "kaspatest:qr8zzq8xsxtu3e54h4up6plzh4w70mth7k5hv6yggxg9xx7uvvkqzt3rrs0zx"
+        },
+        {
+          "index": 4,
+          "value": "235375200",
+          "address": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7"
+        }
+      ],
+      "settlement": {
+        "indexed": true,
+        "decoded": true,
+        "actionCount": 3,
+        "actions": [
+          {
+            "txidHex": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256",
+            "action": "spend",
+            "entrypoint": "mint_public",
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:prsf32gpeyflsen4h9tsp7yllkmxcf6vax7ytjpmnufz0l2yg5d967wwevn6l",
+            "blockTimeMs": 1794436807766,
+            "decodedArgs": {
+              "decimals": null,
+              "extension": {
+                "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "displayScale": "100",
+                "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                "kind": 1,
+                "maxSupply": "200",
+                "mintLaneCount": 1,
+                "mintPolicy": 2,
+                "mintPriceSompi": "100000000",
+                "name": "Wallet public mint proof",
+                "protocolFeeBps": "200",
+                "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                "publicMintActive": true,
+                "remainingSupply": "200",
+                "ticker": "WMINT",
+                "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+              },
+              "extensionCommitment": "77f41a960b7d85cfa14fb2ffd3a52e8ac61f5b5daddca5dbad36770266eb3a9f",
+              "feeOutputIndex": "3",
+              "inputIndex": "0",
+              "minterOutputIndex": "1",
+              "outputStates": [
+                {
+                  "outputIndex": "0",
+                  "state": {
+                    "amount": "100",
+                    "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "borrowScheme": 0,
+                    "extensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                    "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+                    "ownerScheme": 0
+                  }
+                },
+                {
+                  "outputIndex": "1",
+                  "state": {
+                    "amount": "0",
+                    "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "borrowScheme": 0,
+                    "extension": {
+                      "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                      "displayScale": "100",
+                      "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                      "kind": 1,
+                      "maxSupply": "200",
+                      "mintLaneCount": 1,
+                      "mintPolicy": 2,
+                      "mintPriceSompi": "100000000",
+                      "name": "Wallet public mint proof",
+                      "protocolFeeBps": "200",
+                      "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                      "publicMintActive": true,
+                      "remainingSupply": "100",
+                      "ticker": "WMINT",
+                      "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                    },
+                    "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+                    "isMintAuthority": true,
+                    "mintPolicy": 2,
+                    "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                    "ownerScheme": 0,
+                    "publicMintActive": true,
+                    "remainingSupply": "100"
+                  }
+                }
+              ],
+              "profileId": "kaspacom-kcc20-last-call-v1",
+              "standard": "KCC20",
+              "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extensionCommitment": "77f41a960b7d85cfa14fb2ffd3a52e8ac61f5b5daddca5dbad36770266eb3a9f",
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1"
+              },
+              "templateHash": "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29",
+              "tokenAmount": "100",
+              "tokenOutputIndex": "0",
+              "treasuryOutputIndex": "2"
+            },
+            "inputs": {
+              "address": "kaspatest:prsf32gpeyflsen4h9tsp7yllkmxcf6vax7ytjpmnufz0l2yg5d967wwevn6l",
+              "previousOutpoint": {
+                "hash": "cb2a068991f8582d884dddbcc78f363bed0faa03c5542b89b2ade1db3b9182f3",
+                "index": 0
+              }
+            },
+            "outputs": null
+          },
+          {
+            "txidHex": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256",
+            "action": "continuation",
+            "entrypoint": null,
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk",
+            "blockTimeMs": 1794436807766,
+            "decodedArgs": null,
+            "inputs": null,
+            "outputs": {
+              "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk",
+              "amountSompi": 50000000,
+              "scriptPubKeyHex": "aa2092f49ba37ebadff89c6d016ebe101c47e02fbbd029d8b0a31abf0e46da6920bc87",
+              "state": {
+                "amount": "100",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "extensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+                "ownerScheme": 0
+              },
+              "vout": 0
+            }
+          },
+          {
+            "txidHex": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256",
+            "action": "continuation",
+            "entrypoint": null,
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+            "blockTimeMs": 1794436807766,
+            "decodedArgs": null,
+            "inputs": null,
+            "outputs": {
+              "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+              "amountSompi": 100000000,
+              "scriptPubKeyHex": "aa206a164af0ff07b00e0c829fe056b5317868c9d744a71d593b6bcbe8521108a77c87",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "extension": {
+                  "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                  "displayScale": "100",
+                  "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                  "kind": 1,
+                  "maxSupply": "200",
+                  "mintLaneCount": 1,
+                  "mintPolicy": 2,
+                  "mintPriceSompi": "100000000",
+                  "name": "Wallet public mint proof",
+                  "protocolFeeBps": "200",
+                  "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                  "publicMintActive": true,
+                  "remainingSupply": "100",
+                  "ticker": "WMINT",
+                  "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                },
+                "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+                "isMintAuthority": true,
+                "mintPolicy": 2,
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "publicMintActive": true,
+                "remainingSupply": "100"
+              },
+              "vout": 1
+            }
+          }
+        ],
+        "scanner": {
+          "cursorBlueScore": 609364219,
+          "cursorUpdatedAtMs": 1794437137568,
+          "dbCursorLagBlocks": 8,
+          "latestActionTimeMs": 1794437137777,
+          "latestBlockBlueScore": 609364252,
+          "latestBlockIndexedAtMs": 1794437138000,
+          "latestBlockTimeMs": 1794437137777
+        }
+      },
+      "mintPath": "public",
+      "tokenAmount": "100",
+      "remainingSupply": "100"
+    },
+    {
+      "name": "pause-after-first-mint",
+      "txid": "b6ad6e8854c4d2f8df27be210a01c238dd5fa099e601781849ebb2bb05431bce",
+      "status": "accepted-and-indexed",
+      "mass": {
+        "compute": "49807",
+        "transient": "104308",
+        "storage": "36232"
+      },
+      "feeSompi": "5215400",
+      "inputSompi": "2109357500",
+      "outputSompi": "2104142100",
+      "outputs": [
+        {
+          "index": 0,
+          "value": "100000000",
+          "address": "kaspatest:pr5qfys8thce2t7e8rhjemf3nvlhdcw263txkd62x499hy234dqhcy08yz66d"
+        },
+        {
+          "index": 1,
+          "value": "2004142100",
+          "address": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2"
+        }
+      ],
+      "settlement": {
+        "indexed": true,
+        "decoded": true,
+        "actionCount": 2,
+        "actions": [
+          {
+            "txidHex": "b6ad6e8854c4d2f8df27be210a01c238dd5fa099e601781849ebb2bb05431bce",
+            "action": "spend",
+            "entrypoint": "set_public_mint_active",
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+            "blockTimeMs": 1794436819225,
+            "decodedArgs": {
+              "active": false,
+              "decimals": null,
+              "extension": {
+                "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "displayScale": "100",
+                "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                "kind": 1,
+                "maxSupply": "200",
+                "mintLaneCount": 1,
+                "mintPolicy": 2,
+                "mintPriceSompi": "100000000",
+                "name": "Wallet public mint proof",
+                "protocolFeeBps": "200",
+                "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                "publicMintActive": true,
+                "remainingSupply": "100",
+                "ticker": "WMINT",
+                "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+              },
+              "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+              "inputIndex": "0",
+              "minterOutputIndex": "0",
+              "nextExtensionCommitment": "4312acaa3c0f5b83485ec727168bc006a1f7327b42db0c3bac5b4016aee21e26",
+              "outputStates": [
+                {
+                  "outputIndex": "0",
+                  "state": {
+                    "amount": "0",
+                    "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "borrowScheme": 0,
+                    "extension": {
+                      "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                      "displayScale": "100",
+                      "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                      "kind": 1,
+                      "maxSupply": "200",
+                      "mintLaneCount": 1,
+                      "mintPolicy": 2,
+                      "mintPriceSompi": "100000000",
+                      "name": "Wallet public mint proof",
+                      "protocolFeeBps": "200",
+                      "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                      "publicMintActive": false,
+                      "remainingSupply": "100",
+                      "ticker": "WMINT",
+                      "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                    },
+                    "extensionCommitment": "4312acaa3c0f5b83485ec727168bc006a1f7327b42db0c3bac5b4016aee21e26",
+                    "isMintAuthority": true,
+                    "mintPolicy": 2,
+                    "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                    "ownerScheme": 0,
+                    "publicMintActive": false,
+                    "remainingSupply": "100"
+                  }
+                }
+              ],
+              "profileId": "kaspacom-kcc20-last-call-v1",
+              "standard": "KCC20",
+              "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1"
+              },
+              "templateHash": "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29"
+            },
+            "inputs": {
+              "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+              "previousOutpoint": {
+                "hash": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256",
+                "index": 1
+              }
+            },
+            "outputs": null
+          },
+          {
+            "txidHex": "b6ad6e8854c4d2f8df27be210a01c238dd5fa099e601781849ebb2bb05431bce",
+            "action": "continuation",
+            "entrypoint": null,
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pr5qfys8thce2t7e8rhjemf3nvlhdcw263txkd62x499hy234dqhcy08yz66d",
+            "blockTimeMs": 1794436819225,
+            "decodedArgs": null,
+            "inputs": null,
+            "outputs": {
+              "address": "kaspatest:pr5qfys8thce2t7e8rhjemf3nvlhdcw263txkd62x499hy234dqhcy08yz66d",
+              "amountSompi": 100000000,
+              "scriptPubKeyHex": "aa20e80492075df1952fd938ef2ced319b3f76e1cad4566b374a354a5b9151ab417c87",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "extension": {
+                  "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                  "displayScale": "100",
+                  "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                  "kind": 1,
+                  "maxSupply": "200",
+                  "mintLaneCount": 1,
+                  "mintPolicy": 2,
+                  "mintPriceSompi": "100000000",
+                  "name": "Wallet public mint proof",
+                  "protocolFeeBps": "200",
+                  "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                  "publicMintActive": false,
+                  "remainingSupply": "100",
+                  "ticker": "WMINT",
+                  "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                },
+                "extensionCommitment": "4312acaa3c0f5b83485ec727168bc006a1f7327b42db0c3bac5b4016aee21e26",
+                "isMintAuthority": true,
+                "mintPolicy": 2,
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "publicMintActive": false,
+                "remainingSupply": "100"
+              },
+              "vout": 0
+            }
+          }
+        ],
+        "scanner": {
+          "cursorBlueScore": 609364219,
+          "cursorUpdatedAtMs": 1794437137568,
+          "dbCursorLagBlocks": 8,
+          "latestActionTimeMs": 1794437137777,
+          "latestBlockBlueScore": 609364252,
+          "latestBlockIndexedAtMs": 1794437138000,
+          "latestBlockTimeMs": 1794437137777
+        }
+      },
+      "mintPath": null,
+      "tokenAmount": null,
+      "remainingSupply": "100"
+    },
+    {
+      "name": "re-enable-public-mint",
+      "txid": "ded2b17c81c10fb5dd7f42861b4c0e61887d069575d5387a20020923013bb10f",
+      "status": "accepted-and-indexed",
+      "mass": {
+        "compute": "49807",
+        "transient": "104308",
+        "storage": "36233"
+      },
+      "feeSompi": "5215400",
+      "inputSompi": "2108326976",
+      "outputSompi": "2103111576",
+      "outputs": [
+        {
+          "index": 0,
+          "value": "100000000",
+          "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut"
+        },
+        {
+          "index": 1,
+          "value": "2003111576",
+          "address": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2"
+        }
+      ],
+      "settlement": {
+        "indexed": true,
+        "decoded": true,
+        "actionCount": 2,
+        "actions": [
+          {
+            "txidHex": "ded2b17c81c10fb5dd7f42861b4c0e61887d069575d5387a20020923013bb10f",
+            "action": "spend",
+            "entrypoint": "set_public_mint_active",
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pr5qfys8thce2t7e8rhjemf3nvlhdcw263txkd62x499hy234dqhcy08yz66d",
+            "blockTimeMs": 1794436821915,
+            "decodedArgs": {
+              "active": true,
+              "decimals": null,
+              "extension": {
+                "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "displayScale": "100",
+                "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                "kind": 1,
+                "maxSupply": "200",
+                "mintLaneCount": 1,
+                "mintPolicy": 2,
+                "mintPriceSompi": "100000000",
+                "name": "Wallet public mint proof",
+                "protocolFeeBps": "200",
+                "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                "publicMintActive": false,
+                "remainingSupply": "100",
+                "ticker": "WMINT",
+                "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+              },
+              "extensionCommitment": "4312acaa3c0f5b83485ec727168bc006a1f7327b42db0c3bac5b4016aee21e26",
+              "inputIndex": "0",
+              "minterOutputIndex": "0",
+              "nextExtensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+              "outputStates": [
+                {
+                  "outputIndex": "0",
+                  "state": {
+                    "amount": "0",
+                    "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "borrowScheme": 0,
+                    "extension": {
+                      "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                      "displayScale": "100",
+                      "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                      "kind": 1,
+                      "maxSupply": "200",
+                      "mintLaneCount": 1,
+                      "mintPolicy": 2,
+                      "mintPriceSompi": "100000000",
+                      "name": "Wallet public mint proof",
+                      "protocolFeeBps": "200",
+                      "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                      "publicMintActive": true,
+                      "remainingSupply": "100",
+                      "ticker": "WMINT",
+                      "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                    },
+                    "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+                    "isMintAuthority": true,
+                    "mintPolicy": 2,
+                    "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                    "ownerScheme": 0,
+                    "publicMintActive": true,
+                    "remainingSupply": "100"
+                  }
+                }
+              ],
+              "profileId": "kaspacom-kcc20-last-call-v1",
+              "standard": "KCC20",
+              "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extensionCommitment": "4312acaa3c0f5b83485ec727168bc006a1f7327b42db0c3bac5b4016aee21e26",
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1"
+              },
+              "templateHash": "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29"
+            },
+            "inputs": {
+              "address": "kaspatest:pr5qfys8thce2t7e8rhjemf3nvlhdcw263txkd62x499hy234dqhcy08yz66d",
+              "previousOutpoint": {
+                "hash": "b6ad6e8854c4d2f8df27be210a01c238dd5fa099e601781849ebb2bb05431bce",
+                "index": 0
+              }
+            },
+            "outputs": null
+          },
+          {
+            "txidHex": "ded2b17c81c10fb5dd7f42861b4c0e61887d069575d5387a20020923013bb10f",
+            "action": "continuation",
+            "entrypoint": null,
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+            "blockTimeMs": 1794436821915,
+            "decodedArgs": null,
+            "inputs": null,
+            "outputs": {
+              "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+              "amountSompi": 100000000,
+              "scriptPubKeyHex": "aa206a164af0ff07b00e0c829fe056b5317868c9d744a71d593b6bcbe8521108a77c87",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "extension": {
+                  "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                  "displayScale": "100",
+                  "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                  "kind": 1,
+                  "maxSupply": "200",
+                  "mintLaneCount": 1,
+                  "mintPolicy": 2,
+                  "mintPriceSompi": "100000000",
+                  "name": "Wallet public mint proof",
+                  "protocolFeeBps": "200",
+                  "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                  "publicMintActive": true,
+                  "remainingSupply": "100",
+                  "ticker": "WMINT",
+                  "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+                },
+                "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+                "isMintAuthority": true,
+                "mintPolicy": 2,
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "publicMintActive": true,
+                "remainingSupply": "100"
+              },
+              "vout": 0
+            }
+          }
+        ],
+        "scanner": {
+          "cursorBlueScore": 609364219,
+          "cursorUpdatedAtMs": 1794437137568,
+          "dbCursorLagBlocks": 8,
+          "latestActionTimeMs": 1794437137777,
+          "latestBlockBlueScore": 609364252,
+          "latestBlockIndexedAtMs": 1794437138000,
+          "latestBlockTimeMs": 1794437137777
+        }
+      },
+      "mintPath": null,
+      "tokenAmount": null,
+      "remainingSupply": "100"
+    },
+    {
+      "name": "public-mint-final-supply",
+      "txid": "aa07066d4c355e3b7e96f1b3ee04d31fc165ef45ff20ae35e29b844605c2c016",
+      "status": "accepted-and-indexed",
+      "mass": {
+        "compute": "68389",
+        "transient": "107756",
+        "storage": "98863"
+      },
+      "feeSompi": "9886300",
+      "inputSompi": "335375200",
+      "outputSompi": "325488900",
+      "outputs": [
+        {
+          "index": 0,
+          "value": "50000000",
+          "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk"
+        },
+        {
+          "index": 1,
+          "value": "50000000",
+          "address": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2"
+        },
+        {
+          "index": 2,
+          "value": "50000000",
+          "address": "kaspatest:qr8zzq8xsxtu3e54h4up6plzh4w70mth7k5hv6yggxg9xx7uvvkqzt3rrs0zx"
+        },
+        {
+          "index": 3,
+          "value": "175488900",
+          "address": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7"
+        }
+      ],
+      "settlement": {
+        "indexed": true,
+        "decoded": true,
+        "actionCount": 2,
+        "actions": [
+          {
+            "txidHex": "aa07066d4c355e3b7e96f1b3ee04d31fc165ef45ff20ae35e29b844605c2c016",
+            "action": "spend",
+            "entrypoint": "mint_public",
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+            "blockTimeMs": 1794436824094,
+            "decodedArgs": {
+              "decimals": null,
+              "extension": {
+                "creator": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "displayScale": "100",
+                "holderExtensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                "kind": 1,
+                "maxSupply": "200",
+                "mintLaneCount": 1,
+                "mintPolicy": 2,
+                "mintPriceSompi": "100000000",
+                "name": "Wallet public mint proof",
+                "protocolFeeBps": "200",
+                "protocolFeeRecipient": "ce2100e68197c8e695bd781d07e2bd5de7ed77f5a97668884190531bdc632c01",
+                "publicMintActive": true,
+                "remainingSupply": "100",
+                "ticker": "WMINT",
+                "treasury": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+              },
+              "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+              "feeOutputIndex": "2",
+              "inputIndex": "0",
+              "minterOutputIndex": "0",
+              "outputStates": [
+                {
+                  "outputIndex": "0",
+                  "state": {
+                    "amount": "100",
+                    "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "borrowScheme": 0,
+                    "extensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                    "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+                    "ownerScheme": 0
+                  }
+                }
+              ],
+              "profileId": "kaspacom-kcc20-last-call-v1",
+              "standard": "KCC20",
+              "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
+              "state": {
+                "amount": "0",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extensionCommitment": "baf0a381f21e9e258733a55edceb6149d6b52185a433171a7462fd48eaf437cf",
+                "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1"
+              },
+              "templateHash": "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29",
+              "tokenAmount": "100",
+              "tokenOutputIndex": "0",
+              "treasuryOutputIndex": "1"
+            },
+            "inputs": {
+              "address": "kaspatest:pp4pvjhslurmqrsvs207q444x9ux3jwhgjn36kfmd097s5s3pznhc0vasvuut",
+              "previousOutpoint": {
+                "hash": "ded2b17c81c10fb5dd7f42861b4c0e61887d069575d5387a20020923013bb10f",
+                "index": 0
+              }
+            },
+            "outputs": null
+          },
+          {
+            "txidHex": "aa07066d4c355e3b7e96f1b3ee04d31fc165ef45ff20ae35e29b844605c2c016",
+            "action": "continuation",
+            "entrypoint": null,
+            "covenantIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+            "classificationKind": "covenant",
+            "classificationStatus": "matched",
+            "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk",
+            "blockTimeMs": 1794436824094,
+            "decodedArgs": null,
+            "inputs": null,
+            "outputs": {
+              "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk",
+              "amountSompi": 50000000,
+              "scriptPubKeyHex": "aa2092f49ba37ebadff89c6d016ebe101c47e02fbbd029d8b0a31abf0e46da6920bc87",
+              "state": {
+                "amount": "100",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "extensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068",
+                "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+                "ownerScheme": 0
+              },
+              "vout": 0
+            }
+          }
+        ],
+        "scanner": {
+          "cursorBlueScore": 609364219,
+          "cursorUpdatedAtMs": 1794437137568,
+          "dbCursorLagBlocks": 8,
+          "latestActionTimeMs": 1794437138502,
+          "latestBlockBlueScore": 609364261,
+          "latestBlockIndexedAtMs": 1794437139000,
+          "latestBlockTimeMs": 1794437138502
+        }
+      },
+      "mintPath": "public",
+      "tokenAmount": "100",
+      "remainingSupply": "0"
+    }
+  ],
+  "checks": [
+    {
+      "case": "non-owner mint while paused",
+      "rejected": true,
+      "message": "Public mint is paused by the token creator"
+    },
+    {
+      "case": "non-owner mint after creator pause",
+      "rejected": true,
+      "message": "Public mint is paused by the token creator"
+    },
+    {
+      "case": "exhausted authority before signing",
+      "rejected": true,
+      "message": "No active KCC20 mint-authority UTXO has enough remaining supply"
+    }
+  ],
+  "finalHolders": [
+    {
+      "txidHex": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256",
+      "vout": 0,
+      "outpoint": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256:0",
+      "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk",
+      "amountSompi": "50000000",
+      "scriptHashHex": "92f49ba37ebadff89c6d016ebe101c47e02fbbd029d8b0a31abf0e46da6920bc",
+      "action": "active",
+      "state": {
+        "amount": "100",
+        "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+        "ownerIdentifier": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+        "ownerScheme": 0,
+        "identifierType": 0,
+        "isMinter": false,
+        "isMintAuthority": false,
+        "borrowScheme": 0,
+        "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+        "extensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068"
+      }
+    },
+    {
+      "txidHex": "aa07066d4c355e3b7e96f1b3ee04d31fc165ef45ff20ae35e29b844605c2c016",
+      "vout": 0,
+      "outpoint": "aa07066d4c355e3b7e96f1b3ee04d31fc165ef45ff20ae35e29b844605c2c016:0",
+      "address": "kaspatest:pzf0fxar06adl7yud5qka0ssr3r7qtam6q5a3v9rr2lsu3k6dystc0m92dpxk",
+      "amountSompi": "50000000",
+      "scriptHashHex": "92f49ba37ebadff89c6d016ebe101c47e02fbbd029d8b0a31abf0e46da6920bc",
+      "action": "active",
+      "state": {
+        "amount": "100",
+        "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+        "ownerIdentifier": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+        "ownerScheme": 0,
+        "identifierType": 0,
+        "isMinter": false,
+        "isMintAuthority": false,
+        "borrowScheme": 0,
+        "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+        "extensionCommitment": "29e9eea8bf0e8d4d3d12fcf8ec21e2caf799f74be6ac44734de48001e6b29068"
+      }
+    }
+  ],
+  "finalBalances": {
+    "ownerIdentifier": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+    "items": [
+      {
+        "canonicalCovenantId": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+        "token": {
+          "covenantId": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+          "name": "Wallet public mint proof",
+          "ticker": "WMINT",
+          "logoUrl": null,
+          "metadataSource": null,
+          "metadataVerificationStatus": null,
+          "decimals": 2,
+          "tokenDisplayScale": "100"
+        },
+        "nativeBalance": {
+          "amount": "200",
+          "utxoCount": 2,
+          "transferable": true,
+          "wrappable": false
+        },
+        "wrappedBalance": {
+          "wrappedMarketId": null,
+          "amount": "0",
+          "utxoCount": 0,
+          "transferable": false,
+          "tradeable": false,
+          "unwrapSupported": false
+        },
+        "capabilities": {
+          "v2": {
+            "displayable": true,
+            "transferable": true,
+            "wrappable": false
+          },
+          "wrappedV3": {
+            "displayable": false,
+            "transferable": false,
+            "tradeable": false,
+            "unwrapSupported": false
+          },
+          "builders": [
+            {
+              "key": "kcc20.transfer",
+              "status": "ready-to-build",
+              "operation": "transfer-token",
+              "contract": "KCC20",
+              "action": "transfer"
+            },
+            {
+              "key": "kcc20wrapper.wrap",
+              "status": "ready-to-build",
+              "operation": "wrap",
+              "contract": "KCC20Wrapper",
+              "action": "wrap"
+            },
+            {
+              "key": "kcc20wrapper.unwrap",
+              "status": "ready-to-build",
+              "operation": "unwrap",
+              "contract": "KCC20Wrapper",
+              "action": "unwrap"
+            },
+            {
+              "key": "kcc20orderbook.create-ask",
+              "status": "ready-to-build",
+              "operation": "create-sell-order",
+              "contract": "KCC20Orderbook",
+              "action": "createAsk"
+            },
+            {
+              "key": "kcc20orderbook.create-bid",
+              "status": "ready-to-build",
+              "operation": "create-buy-order",
+              "contract": "KCC20Orderbook",
+              "action": "createBid"
+            },
+            {
+              "key": "kcc20orderbook.fill-ask",
+              "status": "ready-to-build",
+              "operation": "fill-ask-order",
+              "contract": "KCC20Orderbook",
+              "action": "fillAsk"
+            },
+            {
+              "key": "kcc20orderbook.fill-bid",
+              "status": "ready-to-build",
+              "operation": "fill-bid-order",
+              "contract": "KCC20Orderbook",
+              "action": "fillBid"
+            },
+            {
+              "key": "kcc20orderbook.cancel-ask",
+              "status": "ready-to-build",
+              "operation": "cancel-ask-order",
+              "contract": "KCC20Orderbook",
+              "action": "cancelAsk"
+            },
+            {
+              "key": "kcc20orderbook.cancel-bid",
+              "status": "ready-to-build",
+              "operation": "cancel-bid-order",
+              "contract": "KCC20Orderbook",
+              "action": "cancelBid"
+            }
+          ]
+        },
+        "lastChangeMs": 1794436824094
+      }
+    ],
+    "total": 1,
+    "limit": 100,
+    "offset": 0,
+    "sortBy": "canonicalCovenantId",
+    "sortDirection": "asc",
+    "generatedAtMs": 1794437139780
+  },
+  "activity": [
+    {
+      "tokenIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+      "txidHex": "aa07066d4c355e3b7e96f1b3ee04d31fc165ef45ff20ae35e29b844605c2c016",
+      "orderId": null,
+      "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+      "ownerIdentifierType": 0,
+      "ownerAddress": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+      "displayOwner": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+      "maker": null,
+      "taker": null,
+      "kind": "mint",
+      "orderSide": null,
+      "takerSide": null,
+      "entrypoint": "mint_public",
+      "tokenAmount": "100",
+      "priceSompi": null,
+      "unitPriceSompi": null,
+      "blockTimeMs": 1794436824094
+    },
+    {
+      "tokenIdHex": "43bb297b8b4490bde1dd57e416353198c16ec5911d0ff92d3dcfb8f9674c4fda",
+      "txidHex": "2a9d760a980998208b18576c0a5c917d34552279f34d4f88f4790fc683225256",
+      "orderId": null,
+      "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da",
+      "ownerIdentifierType": 0,
+      "ownerAddress": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+      "displayOwner": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+      "maker": null,
+      "taker": null,
+      "kind": "mint",
+      "orderSide": null,
+      "takerSide": null,
+      "entrypoint": "mint_public",
+      "tokenAmount": "100",
+      "priceSompi": null,
+      "unitPriceSompi": null,
+      "blockTimeMs": 1794436807766
+    }
+  ],
+  "assertions": {
+    "distinctCreatorAndMinter": true,
+    "publicMintPathForBothMints": true,
+    "finalSupplyBaseUnits": "200",
+    "remainingAuthorityCount": 0,
+    "nodeHolderOutputsVerified": true,
+    "mintTreasuryAndProtocolPayoutSompiEachPerMint": "50000000",
+    "networkFeesSeparate": true
+  },
+  "limitations": [
+    "Wallet signatures produced by controlled Node wallets; browser extension interaction not exercised.",
+    "Global historical freshness is a separate operational gate."
+  ],
+  "backendExhaustedMintBeforeFix": {
+    "http": 400,
+    "body": {
+      "message": "Public mint is paused by the token creator",
+      "error": "Bad Request",
+      "statusCode": 400
+    }
+  },
+  "backendDiagnosticFix": "https://github.com/KASPACOM/kcc20-backend/pull/698",
+  "freshnessAtVerification": {
+    "ok": false,
+    "stale": false,
+    "suggestedPollMs": 15000,
+    "scanner": {
+      "cursorBlueScore": 609365529,
+      "cursorUpdatedAtMs": 1794437252308,
+      "dbCursorLagBlocks": 0,
+      "latestActionTimeMs": 1794437251490,
+      "latestBlockBlueScore": 609365570,
+      "latestBlockIndexedAtMs": 1794437252000,
+      "latestBlockTimeMs": 1794437251490
+    }
+  },
+  "verificationCommands": [
+    "tsx /tmp/wallet-public-mint-20261112.ts (journaled funded lifecycle; controlled local wallets)",
+    "tsx /tmp/verify-public-mint-20261112.ts (signed IDs, fee conservation, settlement, live node holders, balances, activity)",
+    "tsx /tmp/mint-exhausted-local.ts (published helper rejects exhausted authority before signing)",
+    "npm test",
+    "npm --prefix examples run build",
+    "npm --prefix examples test",
+    "npm --prefix examples run test:browser"
+  ]
+}

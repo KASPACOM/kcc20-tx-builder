@@ -16,11 +16,11 @@ Status and evidence describe this integration, not older internal proofs.
 | W08 | Fragmented inputs and consolidation | Exists | Existing helper reused | Full fragmented send rejects before signing | Prior five-holder proof plus fresh four-holder consolidation using fee.4; full 100000-unit backend sends accepted in both directions |
 | W09 | Fee-market wrap and partial/full unwrap | Exists | Example implemented | Existing 111 signed wrapper tests pass | Repeated with published fee.4: wrap 1000, unwrap 400 then 600 accepted/indexed; balances verified at each stage |
 | W10 | Direct wrapped send | Missing | Not advertised; unwrap then send | N/A | N/A |
-| W11 | Public mint | Exists | Conditional on token policy | Pending | Pending |
+| W11 | Public mint | Exists | Published helper and guide; policy-dependent | Non-owner paused mint rejects before signing | Two real non-owner mints accepted/indexed; pause/re-enable and final supply verified; 200 base units in wallet B |
 | W12 | General token burn | Missing | No public generic burn operation advertised | Source operation registry checked | N/A |
 | W13 | FeeTickets | Exists | Separate coupon reference; admin/trading deferred | N/A | N/A |
-| W14 | Activity | Exists | Optional existing route only | N/A | Existing activity route returned HTTP 200 for proof token; optional UI not built |
-| W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | Live freshness remains stale; no overall health claim |
+| W14 | Activity | Exists | Optional existing route only | N/A | Both public mint IDs appear as mint_public with 100 base units each; optional UI not built |
+| W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | Latest read: ok=false, stale=false; no overall health claim |
 | W16 | Browser and Node examples | Exists | Shared build/sign flow implemented | 49 tests and browser build pass | Node adapter funded; real extension/browser signing not tested |
 | W17 | Independent review | Complete | All five review findings fixed; independent review approved | Base units, input recheck, durable pre-submit persistence tested | N/A |
 | W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.4 public; release workflow passed | Exact registry version installed without credentials; 49 examples/build/browser pass | November 11 funded wrap/order/cancel/unwrap/consolidation uses public fee.4; deployed backend transfer engine remains pinned fee.3, signed with fee.4 examples |
@@ -34,7 +34,7 @@ Never record wallet secrets. Failed or skipped checks stay open. HTTP response
 creation time and recent local fetches do not prove chain/indexer freshness.
 
 PR #60 merged before this work. #686 is the prior backend documentation change;
-it remains open as checked on November 10. Work in progress in the
+it merged as `91eadbf3` on November 11. Work in progress in the
 previous public-integration checkout is preserved. This checklist supersedes
 that broader trading lifecycle for this wallet-focused task only.
 
@@ -73,7 +73,7 @@ transfer build returned HTTP 201 / ready-to-sign in 684 ms; both API replicas
 passed direct checks (1,373 ms / 1,004 ms). `/health` returned HTTP 200. Evidence
 is in the finalVerification section of the rollout JSON. No frontend was merged.
 The funded proof below now covers backend signing and broadcasting with controlled
-Node wallets. Browser interaction, optional mint and historical freshness remain open.
+Node wallets. At that checkpoint browser interaction, optional mint and historical freshness remained open; the funded mint results below close optional mint.
 
 ## Funded TN10 verification, November 11
 
@@ -94,3 +94,36 @@ we checked the saved transaction ID and resumed without rebroadcasting it.
 These tests cover the wallet integration flows listed above. They do not prove
 browser-extension UX, optional public mint, every owner authority scheme, or
 historical indexer completeness. `/trading/freshness` still reports stale.
+
+
+## Funded public mint, November 12 (Israel time)
+
+[Six transaction IDs, exact KAS accounting and API/node results](evidence/wallet-public-mint-tn10-20261112.json).
+The UTC verification timestamp is recorded in the evidence. A fresh WMINT token
+has two decimals, 200 base units maximum supply and no premint. A different wallet
+minted 100 units twice using the public path from published `0.8.3-fee.4`.
+The creator enabled minting, paused it after the first mint, then re-enabled it.
+Both paused attempts were rejected locally before signing.
+
+Each public mint paid 0.5 KAS to the token treasury and 0.5 KAS to the protocol
+wallet. Network fees are accounted for separately. Both holder outputs remain
+in the node UTXO set, wallet balance is 200 base units, and no mint authority
+remains. The existing activity route includes both transactions and quantities.
+The backend correctly rejected a further mint with HTTP 400, but its original
+pause wording was misleading after exhaustion; [backend #698](https://github.com/KASPACOM/kcc20-backend/pull/698) corrects that diagnostic and has passed independent review; deployment verification is pending.
+
+### Remaining boundaries
+
+- Browser examples build and pass recipe tests; an actual third-party extension's
+  approval/rejection UI still requires that wallet's integration test.
+- These controlled wallets prove Schnorr P2PK integration, not every authority scheme.
+- Global historical freshness remains an operational gate; recent accepted
+  transactions do not establish historical completeness.
+- Direct wrapped sending, generic burn, coupon administration and trading UI
+  remain outside this integration. No new API or frontend merge is required.
+
+Release candidate `0.8.3-fee.5` packages these docs and proof without changing
+contract artifacts or transaction construction. Examples pin tested `fee.4`.
+Local package tests, compatibility verification, 49 example tests, example build
+and 24 browser/Node recipe comparisons passed. Publication and exact-registry
+rerun remain pending until this PR merges.

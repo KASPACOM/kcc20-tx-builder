@@ -161,10 +161,50 @@ acceptance and indexed settlement. Never auto-sign a replacement transaction.
 ## Optional minting and coupons
 
 Public minting uses the existing token policy, not a universal wallet capability.
-Read the token's `mintPolicy`, including `publicMintActive`, before offering mint.
-The existing `POST /kcc20/build/tokens/{covenantId}/mint` route is documented in
-[public Swagger](https://dev-api-kcc20.kaspa.com/public-docs).
-This wallet run did not exercise funded public minting; keep it separate from the
-verified send and wrap/unwrap examples. FeeTicket administration and fee-waived
-trading are outside this wallet integration. Do not label ticket consumption as
-ordinary token burning.
+Read the current token policy and decoded mint-authority UTXOs. The authority must
+have enough remaining supply and allow public minting. A deployment's original
+availability flag is not proof that minting is still paused, active or available.
+An exhausted or unavailable authority must not produce a signing request.
+
+Use the same published builder and signing adapter as native sends:
+
+```ts
+import { buildKcc20MintTokenOperation } from '@kaspacom/kcc20-tx-builder/token-operation';
+import { createBuilder } from './shared/build.ts';
+import { signSend, broadcastSend } from './shared/wallet-send.ts';
+
+const operation = buildKcc20MintTokenOperation(
+  { walletAddress, kcc20Owner },
+  {
+    token: currentToken, // canonical ID, verified decimals and current mintPolicy
+    activeUtxos: currentMintAuthorityUtxos,
+    tokenAmount: '1', // display units, unlike the send adapter's base units
+    publicRequest: true,
+  },
+  { network: 'testnet-10' },
+);
+const built = await createBuilder(wasm, existingRpc, loadArtifact)(operation);
+// Review token quantity, treasury/protocol payments and network fee.
+const signed = await signSend(wasm, existingRpc, built, signWithYourWallet);
+await broadcastSend(wasm, existingRpc, signed, persistBeforeBroadcast);
+```
+
+The helper selects and authenticates the current mint authority. The browser host
+supplies its wallet signer and durable transaction journal as in the send flow.
+The authority owner can use a different authorized mint path; the funded public
+proof uses a separate minter wallet and verifies `mintPath: "public"`.
+
+The existing `POST /kcc20/build/tokens/{covenantId}/mint` is the backend-assisted
+alternative in [public Swagger](https://dev-api-kcc20.kaspa.com/public-docs).
+Mint fees follow the token's mint policy, separately from trading fees and escrow.
+Do not hard-code the trading rate into a mint quote. Refresh after confirmation;
+show source-unavailable or paused responses without repeatedly requesting signatures.
+
+[Funded public-mint evidence](evidence/wallet-public-mint-tn10-20261112.json)
+records two non-owner mints, pause/re-enable, final-supply consumption, direct
+protocol/treasury payouts, node holder outputs, wallet balances and activity.
+The deployment is indexed but initially unrevealed until its first spend; a
+broadcast response alone is insufficient to display a usable mint authority.
+
+FeeTicket administration and fee-waived trading are outside this wallet
+integration. Do not label ticket consumption as ordinary token burning.

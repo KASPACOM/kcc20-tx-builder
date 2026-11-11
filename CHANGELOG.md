@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.3-fee.5
+
+- Package wallet integration guidance and funded TN10 evidence for native sends, wrap/unwrap and public minting.
+- Pin runnable examples to the verified fee.4 builder; contract artifacts and transaction construction are unchanged.
+
+## 0.8.3-fee.4
+
+- Add shared wallet discovery, sending and wrapping examples with exact quantity formatting and pre-broadcast input checks.
+
 ## 0.8.3-fee.3
 
 - Preserve an explicitly committed snapshot cell principal through deterministic deployment planning and verification. Existing backend 0.5 KAS commitments can be reconstructed; new callers retain the 2 KAS default from fee.1. Mass checks and contract artifacts are unchanged.
