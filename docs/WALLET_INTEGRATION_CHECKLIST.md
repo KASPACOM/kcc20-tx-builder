@@ -6,7 +6,7 @@ Status and evidence describe this integration, not older internal proofs.
 
 | ID | Capability | Inventory | Implementation | Local test | Funded TN10 test |
 | --- | --- | --- | --- | --- | --- |
-| W01 | Public installation and runtime pins | Exists | Published 0.8.3-fee.4 | Credential-free public installation, 49 tests, build and 24 browser recipe comparisons pass | N/A |
+| W01 | Public installation and runtime pins | Exists | Published 0.8.3-fee.5 | Credential-free public installation, 49 tests, build and 24 browser recipe comparisons pass | N/A |
 | W02 | Directory, decimals, metadata fallback | Exists | Documented | Missing precision stays explicit; unknown holdings remain visible | Live directory and native proof balance agree on decimals 2 |
 | W03 | Native/wrapped balances and exact formatting | Exists | PR #689 deployed | Exact formatting and grouping pass | Funded November 11: deployed API groups 99000 native + 1000 wrapped under one canonical token; partial unwrap gives 99400 + 600 |
 | W04 | Search, pagination, filters, sorts | Exists | Existing query contract documented | Existing service filter/sort tests and URL tests pass | Combined search/native/quantity/pagination/sort query returned expected 100000-unit row |
@@ -23,7 +23,7 @@ Status and evidence describe this integration, not older internal proofs.
 | W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | Latest read: ok=false, stale=false; no overall health claim |
 | W16 | Browser and Node examples | Exists | Shared build/sign flow implemented | 49 tests and browser build pass | Node adapter funded; real extension/browser signing not tested |
 | W17 | Independent review | Complete | All five review findings fixed; independent review approved | Base units, input recheck, durable pre-submit persistence tested | N/A |
-| W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.4 public; release workflow passed | Exact registry version installed without credentials; 49 examples/build/browser pass | November 11 funded wrap/order/cancel/unwrap/consolidation uses public fee.4; deployed backend transfer engine remains pinned fee.3, signed with fee.4 examples |
+| W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.5 public; release workflow passed | Exact fee.5 registry version installed without credentials; 49 tests, build and 24 browser comparisons pass | November 11 funded wrap/order/cancel/unwrap/consolidation uses public fee.4; deployed backend transfer engine remains pinned fee.3, signed with fee.4 examples |
 | W19 | Deployed docs verification | Exists | Builder guide public and byte-verified | Backend docs linked in PR #689 | Served public-testnet-api.md byte-matches #689 and includes wallet guide/checklist links |
 
 ## Evidence rules
@@ -110,7 +110,7 @@ wallet. Network fees are accounted for separately. Both holder outputs remain
 in the node UTXO set, wallet balance is 200 base units, and no mint authority
 remains. The existing activity route includes both transactions and quantities.
 The backend correctly rejected a further mint with HTTP 400, but its original
-pause wording was misleading after exhaustion; [backend #698](https://github.com/KASPACOM/kcc20-backend/pull/698) corrects that diagnostic and has passed independent review; deployment verification is pending.
+pause wording was misleading after exhaustion; [backend #698](https://github.com/KASPACOM/kcc20-backend/pull/698) corrects that diagnostic, passed independent review and full CI, and merged as `24d9690c`; DEV rollout evidence is tracked on that PR separately from merge.
 
 ### Remaining boundaries
 
@@ -122,8 +122,16 @@ pause wording was misleading after exhaustion; [backend #698](https://github.com
 - Direct wrapped sending, generic burn, coupon administration and trading UI
   remain outside this integration. No new API or frontend merge is required.
 
-Release candidate `0.8.3-fee.5` packages these docs and proof without changing
-contract artifacts or transaction construction. Examples pin tested `fee.4`.
-Local package tests, compatibility verification, 49 example tests, example build
-and 24 browser/Node recipe comparisons passed. Publication and exact-registry
-rerun remain pending until this PR merges.
+## Published package verification
+
+Builder [#62](https://github.com/KASPACOM/kcc20-tx-builder/pull/62) merged as
+`416d801d59423d0849481e7e20db739e2cf80537` after independent review and hosted CI.
+[Publication](https://github.com/KASPACOM/kcc20-tx-builder/actions/runs/43115666114)
+verified matching registry integrity for `0.8.3-fee.5`. A clean public npm install
+without repository credentials passed the example build, all 49 tests and all
+24 browser/Node recipe comparisons using that exact version. Its packaged code
+and artifacts are byte-identical to funded-tested `fee.4`; only documentation,
+evidence and package/example version metadata changed.
+
+[Release verification evidence](evidence/wallet-integration-release-20261112.json).
+Frontend remains unmerged. No new indexer API was introduced.
