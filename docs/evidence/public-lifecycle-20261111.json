@@ -1,0 +1,153 @@
+{
+  "network": "testnet-10",
+  "exampleStatus": "unpublished working tree; not registry example verification",
+  "reproducibility": "Historical record only. The exact documentation checkout does not ship the lifecycle runner or adapters required to recreate these transactions.",
+  "tokenId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+  "marketId": "548ef15b4d3f00cc2de5c790d03901beb24155454a4d7e84e1ae20a35b7d5fa0",
+  "creatorFeeBps": 0,
+  "feeTicketRoot": "0000000000000000000000000000000000000000000000000000000000000000",
+  "protocolAccountAuthority": "dedicated test wallet; not platform protocol recipient",
+  "transactions": [
+    {
+      "operation": "kcc20fee.create-account",
+      "transactionId": "f2a802f0ef3fef0c57ef4e1d684c9e17237c7fa88b1fbdef121994524a6126c0",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "353",
+        "computeBudgetUnits": "30",
+        "computeMass": "4083",
+        "transientMass": "1412",
+        "normalizedTransientMass": "706",
+        "transactionMass": "4083",
+        "storageMass": "81394"
+      }
+    },
+    {
+      "operation": "kcc20fee.deploy-market-genesis",
+      "transactionId": "f5f3790ff7fd2487affc8a47bd1a00ba3a2e192558b21b5dd2a7a94462ef7e9d",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "353",
+        "computeBudgetUnits": "30",
+        "computeMass": "4083",
+        "transientMass": "1412",
+        "normalizedTransientMass": "706",
+        "transactionMass": "4083",
+        "storageMass": "44269"
+      }
+    },
+    {
+      "operation": "kcc20fee.bind-market",
+      "transactionId": "ac1832b9be0e2249a201ab2809268824c35ccc90674bc426e5567579a0fc2225",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "14227",
+        "computeBudgetUnits": "2030",
+        "computeMass": "218327",
+        "transientMass": "56908",
+        "normalizedTransientMass": "28454",
+        "transactionMass": "218327",
+        "storageMass": "62067"
+      }
+    },
+    {
+      "operation": "kcc20fee.bind-account",
+      "transactionId": "78035b9c2cec7bab320626be47e31f9030c6f161fc1fa5fb9a3ab81b6a9ae476",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "25624",
+        "computeBudgetUnits": "530",
+        "computeMass": "79354",
+        "transientMass": "102496",
+        "normalizedTransientMass": "51248",
+        "transactionMass": "79354",
+        "storageMass": "46298"
+      }
+    },
+    {
+      "operation": "kcc20fee.wrap",
+      "transactionId": "bfb9622d1626254dbec3bc20f56692b44e4da425630c383fb85713f92499f574",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "94762",
+        "computeBudgetUnits": "430",
+        "computeMass": "139602",
+        "transientMass": "379048",
+        "normalizedTransientMass": "189524",
+        "transactionMass": "189524",
+        "storageMass": "222990"
+      }
+    },
+    {
+      "operation": "kcc20fee.create-ask",
+      "transactionId": "2c5de84d37ed0ec671d29ce2e22cb632cafc842318f4cd5886013373e57adc2a",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "123036",
+        "computeBudgetUnits": "330",
+        "computeMass": "157136",
+        "transientMass": "492144",
+        "normalizedTransientMass": "246072",
+        "transactionMass": "246072",
+        "storageMass": "128803"
+      }
+    },
+    {
+      "operation": "kcc20fee.buy-ask",
+      "transactionId": "e37f847aca13f72666b557274f541297594e1e1459346f8fb2eaa0e9eabb7690",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "152771"
+      }
+    },
+    {
+      "operation": "kcc20fee.claim",
+      "transactionId": "cf8b11c037967ae680ff06fa57c95b0ac9cc67f793851130ee2bb61378f54bec",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "51412",
+        "computeBudgetUnits": "330",
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "normalizedTransientMass": "102824",
+        "transactionMass": "102824",
+        "storageMass": "7157"
+      }
+    },
+    {
+      "operation": "kcc20fee.unwrap",
+      "transactionId": "f334b2dbd0589111b32bc07bb67ef93bc145a9538c99066fbca066da39638040",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "95430",
+        "computeBudgetUnits": "730",
+        "computeMass": "170260",
+        "transientMass": "381720",
+        "normalizedTransientMass": "190860",
+        "transactionMass": "190860",
+        "storageMass": "143564"
+      }
+    }
+  ],
+  "reconciliation": {
+    "nativeTotalBaseUnits": "100000",
+    "reserveBaseUnits": "900",
+    "wrappedBaseUnits": "900",
+    "protocolAccruedSompi": "50000000",
+    "protocolClaimedSompi": "50000000",
+    "protocolOutstandingSompi": "0",
+    "protocolAccountPrincipalSompi": "50000000"
+  },
+  "limits": [
+    "Snapshots fetched sequentially, not an atomic watermark proof",
+    "No FeeTicket tested on this market",
+    "Creator fees, partial fills, sweeps, claim batches, cancellation, rotation and recipient adapters remain pending; no public lifecycle runner is shipped in this checkout",
+    "Backend-assisted transfer timed out after recognition"
+  ]
+}

@@ -88,3 +88,15 @@ Run `npm run fee-quote` for a local fee calculation. The generic order/wrap
 recipes above target the older helper family, not `kcc20fee.*` markets. See the
 [public integration guide](../docs/PUBLIC_INTEGRATION.md) before choosing a
 market version; a complete live fee-market trading CLI remains a follow-up.
+
+
+## Fee-market lifecycle
+
+`fee-quote` is the only fee-protocol example script shipped here. This checkout
+does not ship `fee-request`, `deploy-request`, `reveal-request`,
+`transfer-request` or `lifecycle`, and it does not include
+`frontend/lifecycle-wallet.ts`. Do not treat the fee-market lifecycle as a
+copy-and-run example. The [lifecycle status](../docs/PUBLIC_LIFECYCLE.md) records
+the unavailable runner/adapter boundary; the
+[checklist](../docs/PUBLIC_INTEGRATION_CHECKLIST.md) labels historical execution
+records as unreproducible from this checkout.
