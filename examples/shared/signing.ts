@@ -122,5 +122,6 @@ export function attachScripts(
       hint.scriptHex,
     ).encodePayToScriptHashSignatureScript(prefix);
   }
+  tx.finalize();
   return tx.serializeToSafeJSON();
 }

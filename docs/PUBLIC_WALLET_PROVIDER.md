@@ -64,8 +64,6 @@ are transferable just because native tokens are.
 For local construction use `buildKcc20TransferTokenOperation` and the
 [live source example](LIVE_TRANSFER.md), then sign and broadcast through the
 wallet/node. Revalidate live input scripts, values, lineage and ownership.
-This repository does not ship a `transfer-request` script; use the documented
-package API or backend request directly.
 
 For backend assistance:
 

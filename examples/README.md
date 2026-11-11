@@ -17,7 +17,7 @@ npm --prefix examples run frontend
 ```
 
 `test:examples` packs the current candidate and installs it into the examples
-before testing. The checked-in examples pin the published `0.8.3-fee.3`
+before testing. The checked-in examples pin the published `0.8.3-fee.5`
 prerelease; candidate testing intentionally replaces that dependency temporarily.
 
 Synthetic offline examples use the same digest-authenticated bundled profile as
@@ -27,7 +27,7 @@ After publication, users can copy `examples` from the package or repository,
 run `npm ci` inside it, then install the matching release explicitly:
 
 ```sh
-npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.3 \
+npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.5 \
   --registry=https://registry.npmjs.org/ --@kaspacom:registry=https://registry.npmjs.org/
 npm run backend -- offline
 npm run frontend
@@ -90,13 +90,11 @@ recipes above target the older helper family, not `kcc20fee.*` markets. See the
 market version; a complete live fee-market trading CLI remains a follow-up.
 
 
-## Fee-market lifecycle
+## New fee-market lifecycle
 
-`fee-quote` is the only fee-protocol example script shipped here. This checkout
-does not ship `fee-request`, `deploy-request`, `reveal-request`,
-`transfer-request` or `lifecycle`, and it does not include
-`frontend/lifecycle-wallet.ts`. Do not treat the fee-market lifecycle as a
-copy-and-run example. The [lifecycle status](../docs/PUBLIC_LIFECYCLE.md) records
-the unavailable runner/adapter boundary; the
-[checklist](../docs/PUBLIC_INTEGRATION_CHECKLIST.md) labels historical execution
-records as unreproducible from this checkout.
+The [lifecycle cookbook](../docs/PUBLIC_LIFECYCLE.md) documents the new
+`fee-request`, `deploy-request` and `lifecycle` commands. Construction is local;
+broadcast requires an explicit signer and spend cap. See the
+[checklist](../docs/PUBLIC_INTEGRATION_CHECKLIST.md) for per-flow proof status and
+the [wallet-provider guide](../docs/PUBLIC_WALLET_PROVIDER.md) for balance/transfer
+integrations. These commands do not use the legacy order recipes above.

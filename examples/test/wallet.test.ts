@@ -50,7 +50,7 @@ test('native send validates recipient, funds, spent source, full amount and sign
   const holder = f.addDeploy(deploy);
   f.rows.get(holder.address)![0].scriptPublicKey = wasm.Transaction.deserializeFromSafeJSON(deploy.psktTransactionJson).outputs[0].scriptPublicKey;
   const rpc = { ...f.sources, getBlockDagInfo: async () => ({ network: 'testnet-10' }) } as unknown as InstanceType<typeof wasm.RpcClient>;
-  const request = { wallet: f.wallet, covenantId: String(deploy.metadata.covenantId), 
+  const request = { wallet: f.wallet, covenantId: String(deploy.metadata.covenantId),
     recipient, quantityBaseUnits: '100000', holders: [holder] };
   const full = await buildSend(wasm, rpc, loadArtifact, request);
   assert.equal(String(full.metadata.tokenAmount), '100000');
