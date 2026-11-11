@@ -90,11 +90,13 @@ recipes above target the older helper family, not `kcc20fee.*` markets. See the
 market version; a complete live fee-market trading CLI remains a follow-up.
 
 
-## New fee-market lifecycle
+## Fee-market lifecycle
 
-The [lifecycle cookbook](../docs/PUBLIC_LIFECYCLE.md) documents the new
-`fee-request`, `deploy-request` and `lifecycle` commands. Construction is local;
-broadcast requires an explicit signer and spend cap. See the
-[checklist](../docs/PUBLIC_INTEGRATION_CHECKLIST.md) for per-flow proof status and
-the [wallet-provider guide](../docs/PUBLIC_WALLET_PROVIDER.md) for balance/transfer
-integrations. These commands do not use the legacy order recipes above.
+`fee-quote` is the only fee-protocol example script shipped here. This checkout
+does not ship `fee-request`, `deploy-request`, `reveal-request`,
+`transfer-request` or `lifecycle`, and it does not include
+`frontend/lifecycle-wallet.ts`. Do not treat the fee-market lifecycle as a
+copy-and-run example. The [lifecycle status](../docs/PUBLIC_LIFECYCLE.md) records
+the unavailable runner/adapter boundary; the
+[checklist](../docs/PUBLIC_INTEGRATION_CHECKLIST.md) labels historical execution
+records as unreproducible from this checkout.

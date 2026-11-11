@@ -49,10 +49,12 @@ Review/merge #60 before #686. Follow-up work must update this ledger in the same
 PR. Publish only after review and required local/funded gates pass; then repeat
 registry installation and verification against the published version.
 
-## Funded public-runner evidence, 2026-11-10
+## Funded historical execution record, 2026-11-10
 
 These runs use the published 0.8.3-fee.3 engine with unpublished example changes.
-They do not establish verification of a released example package.
+They do not establish verification of a released example package. The exact
+checkout for this document does not contain the lifecycle runner or adapters,
+so these records are not reproducible from its public examples.
 
 | Operation | Accepted transaction ID | Compute / transient / storage mass | Result |
 | --- | --- | --- | --- |
@@ -79,8 +81,8 @@ remains open. This is not a verified backend transfer journey.
 PUBDOC1 is now in the public directory with decimals 2 and display scale 100;
 its creator-evidence route returns verified/matched. `claimVerifiedAtMs` is
 1794347443732, exactly the first self-transfer's block time. The original
-backend request preceded this reveal. Added `reveal-request` and documented
-recognition as a distinct lifecycle gate. No verification checks were bypassed.
+backend request preceded that reveal. Recognition remains a distinct lifecycle
+gate. The current checkout does not ship a `reveal-request` command.
 
 Source cache inspection: canonical single-token lookup reads the indexer without
 Redis caching. Wallet directory seed uses 30 seconds; its content-addressed
@@ -95,13 +97,15 @@ this is a separate unresolved build/availability observation, not another
 
 ## Funded 0-percent market continuation, 2026-11-11
 
-[Public evidence](evidence/public-lifecycle-20261111.json) records accepted market
-creation, activation, account binding, wrap, ask creation, a distinct-wallet buy,
-protocol escrow claim and buyer unwrap through the public runner. The indexer/API
-show 100000 total native base units, 900 reserve units matching 900 remaining
-wrapped units, zero outstanding protocol fees and the unchanged 50000000-sompi
-account principal. The trade accrued and claimed 50000000 sompi. These sequential
-snapshots are not an atomic watermark or reorg proof.
+[Public evidence](evidence/public-lifecycle-20261111.json) is a historical record
+of accepted market creation, activation, account binding, wrap, ask creation, a
+distinct-wallet buy, protocol escrow claim and buyer unwrap from an unpublished
+working tree. It is not a public-runner proof: this checkout ships no such runner
+or adapters. The indexer/API snapshots show 100000 total native base units, 900
+reserve units matching 900 remaining wrapped units, zero outstanding protocol fees
+and the unchanged 50000000-sompi account principal. The trade accrued and claimed
+50000000 sompi. These sequential snapshots are not an atomic watermark or reorg
+proof.
 
 The wrap run found a source-shape mismatch: public snapshots expose amountSompi
 while the fee engine requires amountSompiExact. The recipe adapter now preserves
@@ -109,10 +113,11 @@ exact integers, rejects unsafe numeric values and has a regression test.
 54 example tests and example build pass after this fix. 51 targeted backend
 cache/directory/metadata tests also pass, including metadata-write invalidation.
 
-Still pending: 5-percent and above-floor public journeys, FeeTickets, sweeps,
-cancellations, multiple-receipt claims, account rotation, recipient adapter,
-backend transfer timeout diagnosis and release-package verification. No new npm
-release, backend deployment or frontend merge occurred in this run.
+Still pending: a shipped public lifecycle runner and adapters, 5-percent and
+above-floor public journeys, FeeTickets, sweeps, cancellations, multiple-receipt
+claims, account rotation, recipient adapter, backend transfer timeout diagnosis
+and release-package verification. No new npm release, backend deployment or
+frontend merge occurred in this run.
 
 Public read checks returned HTTP 200 for health, freshness, settlement status and
 filtered owner balances. Settlement reports indexed/decoded. Freshness returned
@@ -126,25 +131,27 @@ connection fix for the transfer timeout. It has not been deployed or verified by
 this public-example run; no competing runtime patch was made here.
 
 The independent reviewer requested both transaction IDs be checked on resume
-after a broadcast-ID mismatch. This is fixed with a regression test; 55 examples
-pass. Follow-up review could not start because its auth profile was temporarily
-unavailable. No release or approval is claimed.
+after a broadcast-ID mismatch. That regression result belongs to the unpublished
+working tree, not to a shipped lifecycle command. Follow-up review could not
+start because its auth profile was temporarily unavailable. No release or
+approval is claimed.
 
 ## Creator fees and direct public-source transfers
 
-[Creator lifecycle evidence](evidence/public-creator-lifecycle-20261111.json)
-records a fresh 1-percent market, authenticated creator consent, partial/final
-fills and independent single-receipt claims in both party orders. Each party
-accrued and claimed 1 KAS over two fills. Both outstanding balances are zero;
-both account principals remain 0.5 KAS. These fills exercise fee floors, not the
-above-floor percentage branch.
+[Creator lifecycle evidence](evidence/public-creator-lifecycle-20261111.json) is
+a historical record from an unpublished working tree, not a reproducible public
+example in this checkout. It records a fresh 1-percent market, authenticated
+creator consent, partial/final fills and independent single-receipt claims in
+both party orders. Each party accrued and claimed 1 KAS over two fills. Both
+outstanding balances are zero; both account principals remain 0.5 KAS. These
+fills exercise fee floors, not the above-floor percentage branch.
 
-The public snapshot transfer adapter now accepts the backend covenant envelope,
-checks the node's network/sync state and reads SDK nested UTXO entries. A funded
+The unpublished snapshot transfer adapter accepted the backend covenant envelope,
+checked the node's network/sync state and read SDK nested UTXO entries. A funded
 transfer to the second wallet passed through the documented source URL:
 `1ce1955884d834337bc60aee8275231e5931bf28eca18feca903b4cd334f76e0`.
-57 example tests pass after these source adapter regressions. Backend-assisted
-construction remains a separate unresolved route.
+57 example tests passed in that historical working tree after these source adapter
+regressions. Backend-assisted construction remains a separate unresolved route.
 
 The reviewer found stale documentation requiring signatures for argument-only
 inputs; wording now agrees with signingInputs. Final review must cover the latest

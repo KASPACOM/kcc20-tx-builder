@@ -2,6 +2,7 @@
   "network": "testnet-10",
   "packageVersion": "0.8.3-fee.3",
   "examples": "unpublished working tree",
+  "reproducibility": "Historical record only. The exact documentation checkout does not ship the lifecycle runner or adapters required to recreate these transactions.",
   "creatorFeeBps": 100,
   "feeCases": "1 KAS fills; both 0.5 KAS floors apply",
   "marketId": "1a0c32de7f34830cd684bbcc4b10ea6266c010576d3d870df492bfcbbdca08da",

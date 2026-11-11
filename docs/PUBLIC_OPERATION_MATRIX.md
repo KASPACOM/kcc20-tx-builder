@@ -11,6 +11,8 @@ Do not infer compatibility from a ticker or a similarly named contract.
 
 `/kcc20/build/tokens/{tokenId}` is abbreviated `BUILD` below. Public route
 presence does not mean the route can construct a new fee-market transaction.
+Local builder keys identify package APIs, not runnable example scripts. This
+checkout does not ship a public fee-market lifecycle runner or browser adapter.
 
 | Operation | Local builder key | Inputs/data needed | Public backend construction |
 | --- | --- | --- | --- |
@@ -68,6 +70,6 @@ fee keys as browser builders. These are not interchangeable server capabilities.
 This release documents the limitations instead of adding public write endpoints.
 
 Crossed ask/bid matching uses `kcc20orderbook.matcher-settle-crossed`, a backend-only
-builder. It is not exposed by the public example runner and never uses a coupon.
+builder. It is not exposed by a shipped public example runner and never uses a coupon.
 Root deployment/denomination changes are operator actions, separate from creating
 and spending user coupons.
