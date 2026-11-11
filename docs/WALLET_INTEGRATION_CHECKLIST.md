@@ -62,6 +62,15 @@ backend-generated unsigned request has not been submitted end to end.
 - Final funded return is indexed and decoded. Wallet A has `100000` base units in one holder; wallet B has no nonzero holding of the proof token.
 - Global freshness remains stale. Backend-assisted transfer building recovered after rollout, as recorded below. Real extension-wallet interaction and optional public mint were not exercised.
 
-- Backend transfer timeout follow-up: [PR #690](https://github.com/KASPACOM/kcc20-backend/pull/690), commit `bc5d9dd70a40125095a3f1e42a9f773d4d0c9435`. Independent source review approved and the PR merged as `44460ea2`. Full CI subsequently failed an older shutdown lifecycle assertion; the test-only follow-up [#692](https://github.com/KASPACOM/kcc20-backend/pull/692) passes both RPC suites locally (215 tests), is independently approved, and passed [full CI](https://github.com/KASPACOM/kcc20-backend/actions/runs/42925498123). It merged as `474786d8db3f866d38377226172b441f8b5058cd`. The DEV image pipeline is running; the timeout fix is not yet verified deployed. The PR contains its repeatable read-only transport proof.
+- Backend transfer timeout follow-up: [PR #690](https://github.com/KASPACOM/kcc20-backend/pull/690), commit `bc5d9dd70a40125095a3f1e42a9f773d4d0c9435`. Independent source review approved and the PR merged as `44460ea2`. Full CI subsequently failed an older shutdown lifecycle assertion; the test-only follow-up [#692](https://github.com/KASPACOM/kcc20-backend/pull/692) passes both RPC suites locally (215 tests), is independently approved, and passed [full CI](https://github.com/KASPACOM/kcc20-backend/actions/runs/42925498123). It merged as `474786d8db3f866d38377226172b441f8b5058cd`. The DEV image pipeline passed and both API replicas now run that revision. The PR contains its repeatable read-only transport proof.
 
-Deployed follow-up: [recorded backend checks](evidence/wallet-backend-rollout-20261110.json). After #689 rolled out, the public transfer build returned HTTP 201 and ready-to-sign in 1.335 seconds. Each replica also passed the origin build (799 ms / 752 ms). Display amount 1 became 100 base units. These unsigned builds were not broadcast. Fresh-process recovery does not replace the pending timeout fix in #690 or prove historical freshness.
+Deployed follow-up: [recorded backend checks](evidence/wallet-backend-rollout-20261110.json). After #689 rolled out, the public transfer build returned HTTP 201 and ready-to-sign in 1.335 seconds. Each replica also passed the origin build (799 ms / 752 ms). Display amount 1 became 100 base units. These unsigned builds were not broadcast. Those first checks established fresh-process recovery, separately from the final timeout-fix verification below; they do not prove historical freshness.
+
+Final backend verification, November 11: #690 and its test correction #692 are
+merged and deployed at `474786d8`. Full hosted CI passed 3,254 tests across 294
+suites and the production audit found zero vulnerabilities. The public unsigned
+transfer build returned HTTP 201 / ready-to-sign in 684 ms; both API replicas
+passed direct checks (1,373 ms / 1,004 ms). `/health` returned HTTP 200. Evidence
+is in the finalVerification section of the rollout JSON. No frontend was merged.
+Backend signing/broadcast with a real wallet, browser interaction, optional mint
+and historical freshness remain separate from these unsigned build checks.

@@ -27,5 +27,38 @@
     }
   ],
   "broadcast": false,
-  "note": "Fresh processes after #689 rollout restore requests. RPC timeout prevention is a separate pending PR #690. No historical freshness claim."
+  "note": "Initial checks followed #689. finalVerification covers deployed RPC recovery plus lifecycle correction (#690/#692). No transaction broadcast or historical freshness claim.",
+  "finalVerification": {
+    "observedAtUtc": "2026-11-11T00:05:42.372250+00:00",
+    "backendRevision": "474786d8db3f866d38377226172b441f8b5058cd",
+    "replicasUpdatedAndReady": 2,
+    "healthHttp": 200,
+    "publicTransferBuild": {
+      "http": 201,
+      "elapsedMs": 684,
+      "status": "wallet-operation-ready",
+      "signingStatus": "ready-to-sign",
+      "baseUnits": "100"
+    },
+    "originTransferBuilds": [
+      {
+        "pod": "kcc20-backend-86bcf6c99c-6rtzt",
+        "http": 201,
+        "elapsedMs": 1373,
+        "signingStatus": "ready-to-sign"
+      },
+      {
+        "pod": "kcc20-backend-86bcf6c99c-mhpvb",
+        "http": 201,
+        "elapsedMs": 1004,
+        "signingStatus": "ready-to-sign"
+      }
+    ],
+    "ciTests": 3254,
+    "ciSuites": 294,
+    "productionAuditVulnerabilities": 0,
+    "ciRun": 42925498123,
+    "deploymentRun": 42926779855,
+    "broadcast": false
+  }
 }
