@@ -72,3 +72,28 @@ for (const failure of [
     );
   });
 }
+
+test("public API snapshot without per-row IDs is checked against node identity and lineage", async () => {
+  const { data, build, config, holder } = await setup();
+  const { covenantId: ignored, ...row } = holder;
+  const fetcher: typeof fetch = async () => new Response(JSON.stringify({ covenantId: config.covenantId, utxos: [row] }));
+  const rpc = { ...data.sources, async getServerInfo() { return { networkId: network, isSynced: true }; } };
+  const operation = await liveTransferOperation(wasm, rpc, loadArtifact, config, fetcher);
+  const built = await build(operation);
+  assert.equal(built.metadata.tokenAmount, "1250");
+  await assert.rejects(liveTransferOperation(wasm, data.sources, loadArtifact, config, fetcher), /independent node identity/);
+  await assert.rejects(liveTransferOperation(wasm, { ...rpc, async getServerInfo() { return { networkId: "mainnet", isSynced: true }; } }, loadArtifact, config, fetcher), /synced TN10/);
+  await assert.rejects(liveTransferOperation(wasm, { ...rpc, async getServerInfo() { return { networkId: network, isSynced: false }; } }, loadArtifact, config, fetcher), /synced TN10/);
+});
+
+test("live transfer accepts SDK nested UTXO entries and still rejects a wrong lineage", async () => {
+  const { data, config, fetcher } = await setup();
+  let wrong = false;
+  const rpc = { async getUtxosByAddresses(args: { addresses: string[] }) {
+    const result = await data.sources.getUtxosByAddresses(args) as { entries: any[] };
+    return { ...result, entries: result.entries.map((row: any) => ({ outpoint: row.outpoint, entry: { ...row, covenantId: wrong ? 'ff'.repeat(32) : row.covenantId } })) };
+  } };
+  await liveTransferOperation(wasm, rpc, loadArtifact, config, fetcher);
+  wrong = true;
+  await assert.rejects(liveTransferOperation(wasm, rpc, loadArtifact, config, fetcher), /covenant ID differs/);
+});

@@ -1,0 +1,451 @@
+{
+  "network": "testnet-10",
+  "engineVersion": "0.8.3-fee.3",
+  "transactions": [
+    {
+      "operation": "batch3-claim-creator",
+      "transactionId": "4315f710592ec6aaab6d1b8902d14cf639ee271cddf8a4b77b08cda67af0957d",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "101861",
+        "computeBudgetUnits": "430",
+        "computeMass": "146321",
+        "transientMass": "407444",
+        "normalizedTransientMass": "203722",
+        "transactionMass": "203722",
+        "storageMass": "9766"
+      },
+      "receiptCount": 3,
+      "party": "creator",
+      "claimSompi": "150000000",
+      "remainderSompi": "150000000"
+    },
+    {
+      "operation": "batch3-claim-protocol",
+      "transactionId": "f90dc94b94bf31e28fe325e9b42c99245ef9a9d5c5afcf66351e6562404c490c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "51412",
+        "computeBudgetUnits": "330",
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "normalizedTransientMass": "102824",
+        "transactionMass": "102824",
+        "storageMass": "52997"
+      },
+      "receiptCount": 1,
+      "party": "protocol",
+      "claimSompi": "150000000",
+      "remainderSompi": "0"
+    },
+    {
+      "operation": "batch3-fill1-ask",
+      "transactionId": "52925ee99d1009800f5213ad4a7ead13b119fd1b043e8ebd9695ba60b6f0670c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "148682"
+      }
+    },
+    {
+      "operation": "batch3-fill1-buy",
+      "transactionId": "2fad53a48027a4eaebfad6547fa53fe815844c3d50248a3fdd52abf87d20e0e6",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch3-fill2-ask",
+      "transactionId": "4f116b45a10eef9a9305cf232aef091563ef1b030a4a86f4554dc8b09bdffb98",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "147358"
+      }
+    },
+    {
+      "operation": "batch3-fill2-buy",
+      "transactionId": "03a312ffaec85b811d6eea3ecd5a16b86d205e9ad27552a013e5ccba4ce7a3c6",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch3-fill3-ask",
+      "transactionId": "be928993794ab535c5b85d2dedf746c5088c818df703751f0e8d3bdf9a00fee3",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "145691"
+      }
+    },
+    {
+      "operation": "batch3-fill3-buy",
+      "transactionId": "ce7d718ac9bc0a25fa1344cece7d66f498d8f19fafedaab018bd7576e538651a",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch4-claim-creator",
+      "transactionId": "96093c38e1bd01ba99e2c1f6bdb8a97177756f03084566e7c1005fbbd829f26c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "51412",
+        "computeBudgetUnits": "330",
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "normalizedTransientMass": "102824",
+        "transactionMass": "102824",
+        "storageMass": "29657"
+      },
+      "receiptCount": 1,
+      "party": "creator",
+      "claimSompi": "200000000",
+      "remainderSompi": "0"
+    },
+    {
+      "operation": "batch4-claim-protocol",
+      "transactionId": "efb3c7f74aaa18bb24ea0a1d48ac312d9a378b2fd31beddbbb95dec51b3a10e9",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "127042",
+        "computeBudgetUnits": "480",
+        "computeMass": "176502",
+        "transientMass": "508168",
+        "normalizedTransientMass": "254084",
+        "transactionMass": "254084",
+        "storageMass": "0"
+      },
+      "receiptCount": 4,
+      "party": "protocol",
+      "claimSompi": "200000000",
+      "remainderSompi": "200000000"
+    },
+    {
+      "operation": "batch4-fill1-ask",
+      "transactionId": "f2c6b7f371c9d7fb2cd94fe929f104597a6ddf1777a09e33fe643b747140efd3",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "142824"
+      }
+    },
+    {
+      "operation": "batch4-fill1-buy",
+      "transactionId": "12590a29969fd24f266d91a817252dc9c3ae3f09a168dc7d0499ea5ce88d7f0c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch4-fill2-ask",
+      "transactionId": "da02b850d669e3bf4212d9d3292d7c6a0acbe85d239301402035037bf04b91f0",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "139673"
+      }
+    },
+    {
+      "operation": "batch4-fill2-buy",
+      "transactionId": "fe6cfaa66c655f00cd8076d6a68a4ce518fc6d2ce2b5e11a46d253b2b57963be",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch4-fill3-ask",
+      "transactionId": "64f97d8116c84e5b532c34505ae1b41b9a75a72e8409dcc593891d4c4544acd5",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "135275"
+      }
+    },
+    {
+      "operation": "batch4-fill3-buy",
+      "transactionId": "13e0e57696bff5ca009dee1ddead9d87272e039fd17180301d5498f86211f06c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch4-fill4-ask",
+      "transactionId": "e89c42a243d76a3c171b20b59eec5b685153320ff847e85227d3fe149618f6db",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "129511"
+      }
+    },
+    {
+      "operation": "batch4-fill4-buy",
+      "transactionId": "3ee0f38b1dfcd60b773906f81d143cb8e5bf88555e6d122553aeacb3e1111255",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch5-claim-creator",
+      "transactionId": "cf3f5a6bc3c554cf0734e703d80424f4a8ab0e52bcfa414f14b0bc1e494c1259",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "152223",
+        "computeBudgetUnits": "530",
+        "computeMass": "206683",
+        "transientMass": "608892",
+        "normalizedTransientMass": "304446",
+        "transactionMass": "304446",
+        "storageMass": "0"
+      },
+      "receiptCount": 5,
+      "party": "creator",
+      "claimSompi": "250000000",
+      "remainderSompi": "250000000"
+    },
+    {
+      "operation": "batch5-claim-protocol",
+      "transactionId": "a82d6a341ab19a82cfa809003afdbd0cfd5510c86d4c0bb27138bff793fb7429",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "51412",
+        "computeBudgetUnits": "330",
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "normalizedTransientMass": "102824",
+        "transactionMass": "102824",
+        "storageMass": "79299"
+      },
+      "receiptCount": 1,
+      "party": "protocol",
+      "claimSompi": "250000000",
+      "remainderSompi": "0"
+    },
+    {
+      "operation": "batch5-fill1-ask",
+      "transactionId": "e8baf7b7c570043cee0b9f21c2f4f49414c317218fd808382764c18c0d54fdcf",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "131974"
+      }
+    },
+    {
+      "operation": "batch5-fill1-buy",
+      "transactionId": "85e603fa216a1c6f62b8f705750dd5db3ef0962f83f543b2dfb2c524b136462d",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch5-fill2-ask",
+      "transactionId": "9d36ce0102cfe59dc7aa6550f8a2373d7e284af17d984d8df60035420570c643",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "128263"
+      }
+    },
+    {
+      "operation": "batch5-fill2-buy",
+      "transactionId": "c5ab3a163f502ee74f32c8e39853ce94c8f6e0a7c120afd3c68557d16c89e894",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch5-fill3-ask",
+      "transactionId": "a636c7d2060b1841e25e3780d9370dcb9935aa366503c2fc451856a4119f9b97",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "128263"
+      }
+    },
+    {
+      "operation": "batch5-fill3-buy",
+      "transactionId": "fe570db91de9840241364295612c87bc5044ca72afd631f9c7ee8c43da59298c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch5-fill4-ask",
+      "transactionId": "642260317c2710ce579857b161f3fc764faf420a41cd2eaa5f6e91f28314b437",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "128263"
+      }
+    },
+    {
+      "operation": "batch5-fill4-buy",
+      "transactionId": "a16c9e446fd8b587e476435a25539e83ee60c66b0b40cef6f733683e2b3be781",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    },
+    {
+      "operation": "batch5-fill5-ask",
+      "transactionId": "81901ea6083ae7c87d22d48d850701eabbb7d00f2ea69c1dc6fe3b57e1e5624c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "123035",
+        "computeBudgetUnits": "330",
+        "computeMass": "157135",
+        "transientMass": "492140",
+        "normalizedTransientMass": "246070",
+        "transactionMass": "246070",
+        "storageMass": "128263"
+      }
+    },
+    {
+      "operation": "batch5-fill5-buy",
+      "transactionId": "5793578ff54971906842fa822acb157e69af7e423d9699af3b2f0c5fd426fdf6",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "127485"
+      }
+    }
+  ],
+  "scope": "Three and five creator receipts first, four protocol receipts first; opposing replacement claimed independently. Two-receipt recipient proof is in public-sweeps-recipient evidence."
+}

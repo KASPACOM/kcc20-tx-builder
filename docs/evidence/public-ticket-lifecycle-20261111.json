@@ -1,0 +1,65 @@
+{
+  "network": "testnet-10",
+  "engineVersion": "0.8.3-fee.3",
+  "examplesPublished": false,
+  "transactions": [
+    {
+      "operation": "utility-mint",
+      "transactionId": "74c43beae215423152865cf046ccb2796a7b9226adfecb4b2473a8a1eac6beb0",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "27049",
+        "computeBudgetUnits": "400",
+        "computeMass": "68869",
+        "transientMass": "108196",
+        "normalizedTransientMass": "54098",
+        "transactionMass": "68869",
+        "storageMass": "324002"
+      },
+      "canonicalAcceptance": true
+    },
+    {
+      "operation": "ticket-create",
+      "transactionId": "b78d276f96684f6daaf740f3de28b9cedb83857c490e17a73df6c7818b4b4823",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "56868",
+        "computeBudgetUnits": "600",
+        "computeMass": "118338",
+        "transientMass": "227472",
+        "normalizedTransientMass": "113736",
+        "transactionMass": "118338",
+        "storageMass": "112648"
+      },
+      "canonicalAcceptance": true
+    },
+    {
+      "operation": "ticket-transfer",
+      "transactionId": "ee0be5ff757117e797bfa7f892dc33fafd936a8ca2ef01592a40316ac8e13047",
+      "packageVersion": "0.8.3-fee.3",
+      "mass": {
+        "estimatedSerializedSize": "6296",
+        "computeBudgetUnits": "230",
+        "computeMass": "30026",
+        "transientMass": "25184",
+        "normalizedTransientMass": "12592",
+        "transactionMass": "30026",
+        "storageMass": "21491"
+      },
+      "canonicalAcceptance": true
+    }
+  ],
+  "reconciliation": {
+    "utilityMintedBaseUnits": "120900000000",
+    "utilityBurnedForTicketBaseUnits": "2000000000",
+    "utilityRemainingBaseUnits": "118900000000",
+    "ticketOwnerAfterTransfer": "17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2",
+    "ticketPrincipalSompi": "100000000",
+    "source": "Public backend covenant UTXOs after acceptance; sequential observations"
+  },
+  "remaining": [
+    "Trade waiver and refund",
+    "Creator fee retained during waiver",
+    "Misuse rejection"
+  ]
+}

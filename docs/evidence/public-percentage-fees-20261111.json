@@ -1,0 +1,41 @@
+{
+  "network": "testnet-10",
+  "engineVersion": "0.8.3-fee.3",
+  "transactions": [
+    {
+      "operation": "percentage-ask",
+      "transactionId": "a4dd2a665f53b9ba7b52a6126af6e4c0109bad8b068b8a8b88d3cc29ed89818c",
+      "mass": {
+        "estimatedSerializedSize": "123036",
+        "computeBudgetUnits": "330",
+        "computeMass": "157136",
+        "transientMass": "492144",
+        "normalizedTransientMass": "246072",
+        "transactionMass": "246072",
+        "storageMass": "135701"
+      },
+      "accepted": true
+    },
+    {
+      "operation": "percentage-buy",
+      "transactionId": "8b0844b8464a135815469c0246d1047e3560157218e8fa0aa3a6edead84c92a8",
+      "mass": {
+        "estimatedSerializedSize": "147822",
+        "computeBudgetUnits": "1530",
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "normalizedTransientMass": "295644",
+        "transactionMass": "302282",
+        "storageMass": "107340"
+      },
+      "accepted": true
+    }
+  ],
+  "feeProof": {
+    "grossSompi": "5100000000",
+    "protocolFeeSompi": "51000000",
+    "creatorFeeSompi": "255000000",
+    "receiptAmountSompi": "306000000",
+    "indexedReceipt": "8b0844b8464a135815469c0246d1047e3560157218e8fa0aa3a6edead84c92a8:2"
+  }
+}

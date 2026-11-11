@@ -1,0 +1,648 @@
+{
+  "network": "testnet-10",
+  "engineVersion": "0.8.3-fee.3",
+  "transactions": [
+    {
+      "operation": "ten-standard-bid-1",
+      "transactionId": "5247b64d7a48db7cbaf2809edf873ab73d2ac152138ca8e16fadb4f2234288d2",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "46886"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "46886"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-2",
+      "transactionId": "28f2434a12542598fc1e101a249e6f4e1164464e2277ad1521a39ae76a9b1e46",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "46313"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "46313"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-3",
+      "transactionId": "d5097bd5b28581ce67503f12b1e7c2fa49cd936bdb06f365b715445ca4528da5",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "45488"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "45488"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-4",
+      "transactionId": "5b4eac9d2c10baae6162665900d25bd96810d6826e563ed587c3b68f0381bb2a",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "44230"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "44230"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-5",
+      "transactionId": "8f3548dcc85a6afb708b4194910a1552b486b60d5a16bcb9146d6462f5fcceed",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "42384"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "42384"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-6",
+      "transactionId": "6d20f974fdf56c1870e83e30b46fd6e4b39426c692da8cc914082e896a589b2d",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "56169"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "56169"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-7",
+      "transactionId": "300176d6d47ac0848411bbfe662f9823b407e4146f542423b4e200332118065e",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "56169"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "56169"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-8",
+      "transactionId": "51197ecb997e95fe049bfc63e10b31272af751cf92c6260e52b2810ce27f987a",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "56169"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "56169"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-9",
+      "transactionId": "53c47183617bdef368fae78325a10dc18a58c7b91861db54abacd0195b30fd86",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "56169"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "56169"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-bid-10",
+      "transactionId": "51a69647b7af99e92e693600b34f2eabf8e98a4563941e969a378eec617f5ece",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "56169"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "1",
+        "bidUnitPriceSompi": "20000000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "56169"
+        }
+      }
+    },
+    {
+      "operation": "ten-standard-sell",
+      "transactionId": "49663584c36bc11f86b78117d2f33d7367a1b05fd3170d8d29ec74ef0eac0d85",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "129823",
+        "computeBudgetUnits": "2030",
+        "computeMass": "341213",
+        "transientMass": "519292",
+        "normalizedTransientMass": "259646",
+        "transactionMass": "341213",
+        "storageMass": "229156"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.sell-into-bids",
+        "operation": "fee-market-sell-into-bids",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qqtmnl5yw6twyvgzyfr8r8v55mjfr0a4kk2hnrhe2xmy2fecfm80ynk06yrh6",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "fillCount": 10,
+        "soldAmount": "10",
+        "grossSompi": "2000000000",
+        "protocolFeeSompi": "500000000",
+        "creatorFeeSompi": "500000000",
+        "receiptOutputIndex": 20,
+        "ticketInputIndex": -1,
+        "ticketRefundIndex": -1,
+        "sellerChangeIndex": -1,
+        "sellerRefundIndex": 21,
+        "signedMass": {
+          "compute": "341213",
+          "transient": "519292",
+          "storage": "229156"
+        }
+      }
+    },
+    {
+      "operation": "native-consolidate",
+      "transactionId": "36f787d4680dd489d7c760fbae18c84d8335c0c7244910d0aa9a4e61b5f944c1",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "51943",
+        "computeBudgetUnits": "930",
+        "computeMass": "146033",
+        "transientMass": "207772",
+        "normalizedTransientMass": "103886",
+        "transactionMass": "146033",
+        "storageMass": "0"
+      },
+      "metadata": {
+        "builderKey": "kcc20.consolidate-holders",
+        "operation": "consolidate-holders",
+        "action": "consolidate",
+        "contract": "KCC20",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qqtmnl5yw6twyvgzyfr8r8v55mjfr0a4kk2hnrhe2xmy2fecfm80ynk06yrh6",
+        "covenantId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+        "appCanonicalTokenId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+        "sourceOutpoints": [
+          "1ce1955884d834337bc60aee8275231e5931bf28eca18feca903b4cd334f76e0:1",
+          "bfb9622d1626254dbec3bc20f56692b44e4da425630c383fb85713f92499f574:3"
+        ],
+        "mergedOutputIndex": 0,
+        "refundOutputIndex": 1,
+        "refundedHolderDepositSompi": "50000000",
+        "mergedHolderDepositSompi": "50000000",
+        "tokenAmount": "98999",
+        "owner": "17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2",
+        "ownerScheme": 0,
+        "ownerSchemeName": "p2pk-schnorr/v1",
+        "borrowScheme": 0,
+        "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+        "extensionCommitment": "f182f9b51472fa992d6711bc0f5e37af11f88dc87552f548f43ce3bbc23f9fdb",
+        "stateAmount": "98999",
+        "balance": "98999",
+        "amount": "98999",
+        "isMintAuthority": false
+      }
+    },
+    {
+      "operation": "cancel-proof-bid-1",
+      "transactionId": "e9c191ec585fa3f9ce9e8e0e344e3a9abf204776bae8259be41f59ed77be2a5f",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "8273",
+        "computeBudgetUnits": "330",
+        "computeMass": "42373",
+        "transientMass": "33092",
+        "normalizedTransientMass": "16546",
+        "transactionMass": "42373",
+        "storageMass": "56169"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.create-bid",
+        "operation": "fee-market-create-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "50",
+        "bidUnitPriceSompi": "400000000",
+        "grossSompi": "200000000",
+        "bidDepositSompi": "200000000",
+        "bidOutputIndex": 0,
+        "rootOutputIndex": 1,
+        "signedMass": {
+          "compute": "42373",
+          "transient": "33092",
+          "storage": "56169"
+        }
+      }
+    },
+    {
+      "operation": "cancel-bid",
+      "transactionId": "f497bf55a6f02baf8e929bcc4d10dd97131214e6c8f9b1cebfba785dd945c690",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "4960",
+        "computeBudgetUnits": "330",
+        "computeMass": "38680",
+        "transientMass": "19840",
+        "normalizedTransientMass": "9920",
+        "transactionMass": "38680",
+        "storageMass": "0"
+      },
+      "metadata": {
+        "builderKey": "kcc20fee.cancel-bid",
+        "operation": "fee-market-cancel-bid",
+        "network": "testnet-10",
+        "walletAddress": "kaspatest:qrc3qzdvem7xynpl74m3vr0g99gz0jgyukzd6eqqmpqtd7dtn7g2ysdu904yt",
+        "tokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "policyId": "e8e4d5073ec02fde272754a917d902dd14e6ebd7f3d447be90cb6a6f4eb65620",
+        "bidAmount": "50",
+        "refundOutputIndex": 0,
+        "signedMass": {
+          "compute": "38680",
+          "transient": "19840",
+          "storage": "0"
+        }
+      }
+    },
+    {
+      "operation": "backend-transfer",
+      "transactionId": "fd9beadae8e39f3d623f7193565cf71955d4cb99a1be3e6658f83711994e495c",
+      "accepted": true,
+      "mass": {
+        "estimatedSerializedSize": "26673",
+        "computeBudgetUnits": "230",
+        "computeMass": "50773",
+        "transientMass": "106692",
+        "normalizedTransientMass": "53346",
+        "transactionMass": "53346",
+        "storageMass": "122400"
+      },
+      "independentlyRebuiltIdentical": true
+    }
+  ],
+  "backendTransfer": {
+    "requestId": "kcc20-transfer-token-c852ae82-2f9a-4eff-947a-b71a11489eb0",
+    "transactionId": "fd9beadae8e39f3d623f7193565cf71955d4cb99a1be3e6658f83711994e495c",
+    "amountBaseUnits": "1",
+    "broadcast": "wallet node; not backend authenticated submission",
+    "comparison": "Independent local rebuild pinned backend-selected funding input. Derived storageMass and implicit Schnorr default normalized; consensus inputs/outputs and covenant witness hints agree.",
+    "settlement": {
+      "indexed": true,
+      "decoded": true,
+      "actionCount": 3,
+      "actions": [
+        {
+          "txidHex": "fd9beadae8e39f3d623f7193565cf71955d4cb99a1be3e6658f83711994e495c",
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantIdHex": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+          "classificationKind": "covenant",
+          "classificationStatus": "matched",
+          "address": "kaspatest:pqpffxe8pj4ev3mm86kw2ynpkvt56rt423kvlgpg7tekpshmejwpyguvhu43e",
+          "blockTimeMs": 1794430867222,
+          "decodedArgs": {
+            "decimals": null,
+            "inputIndex": "0",
+            "nextStates": [
+              {
+                "amount": "1",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extensionCommitment": "f182f9b51472fa992d6711bc0f5e37af11f88dc87552f548f43ce3bbc23f9fdb",
+                "owner": "f11009accefc624c3ff577160de8295027c904e584dd6400d840b6f9ab9f90a2",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1"
+              },
+              {
+                "amount": "98998",
+                "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+                "borrowScheme": 0,
+                "borrowSchemeName": "disabled/v1",
+                "extensionCommitment": "f182f9b51472fa992d6711bc0f5e37af11f88dc87552f548f43ce3bbc23f9fdb",
+                "owner": "17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2",
+                "ownerScheme": 0,
+                "ownerSchemeName": "p2pk-schnorr/v1"
+              }
+            ],
+            "profileId": "kaspacom-kcc20-last-call-v1",
+            "standard": "KCC20",
+            "standardRevision": "3fbec524abfbc20e87652eb938db218f8c17db17",
+            "state": {
+              "amount": "98999",
+              "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+              "borrowScheme": 0,
+              "borrowSchemeName": "disabled/v1",
+              "extensionCommitment": "f182f9b51472fa992d6711bc0f5e37af11f88dc87552f548f43ce3bbc23f9fdb",
+              "owner": "17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2",
+              "ownerScheme": 0,
+              "ownerSchemeName": "p2pk-schnorr/v1"
+            },
+            "templateHash": "5d6cacdf57c734536fcb8a9c833f0318671226727ec77c503a98fc5be59f9e29"
+          },
+          "inputs": {
+            "address": "kaspatest:pqpffxe8pj4ev3mm86kw2ynpkvt56rt423kvlgpg7tekpshmejwpyguvhu43e",
+            "previousOutpoint": {
+              "hash": "36f787d4680dd489d7c760fbae18c84d8335c0c7244910d0aa9a4e61b5f944c1",
+              "index": 0
+            }
+          },
+          "outputs": null
+        },
+        {
+          "txidHex": "fd9beadae8e39f3d623f7193565cf71955d4cb99a1be3e6658f83711994e495c",
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantIdHex": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+          "classificationKind": "covenant",
+          "classificationStatus": "matched",
+          "address": "kaspatest:pzvxwhm9htakfjelh5k7ng9p779qp4v486qzh0h9vky58x05pj5gwe92x0dgx",
+          "blockTimeMs": 1794430867222,
+          "decodedArgs": null,
+          "inputs": null,
+          "outputs": {
+            "address": "kaspatest:pzvxwhm9htakfjelh5k7ng9p779qp4v486qzh0h9vky58x05pj5gwe92x0dgx",
+            "amountSompi": 50000000,
+            "scriptPubKeyHex": "aa2098675f65bafb64cb3fbd2de9a0a1f78a00d5953e802bbee565894399f40ca88787",
+            "state": {
+              "amount": "1",
+              "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+              "borrowScheme": 0,
+              "borrowSchemeName": "disabled/v1",
+              "extensionCommitment": "f182f9b51472fa992d6711bc0f5e37af11f88dc87552f548f43ce3bbc23f9fdb",
+              "owner": "f11009accefc624c3ff577160de8295027c904e584dd6400d840b6f9ab9f90a2",
+              "ownerScheme": 0,
+              "ownerSchemeName": "p2pk-schnorr/v1"
+            },
+            "vout": 0
+          }
+        },
+        {
+          "txidHex": "fd9beadae8e39f3d623f7193565cf71955d4cb99a1be3e6658f83711994e495c",
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantIdHex": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+          "classificationKind": "covenant",
+          "classificationStatus": "matched",
+          "address": "kaspatest:pqgc62gwq6gmy5csu8uzp4pzp4nr8dwyhhdtv8n40xmxqdaexd4jz8pu3ttw8",
+          "blockTimeMs": 1794430867222,
+          "decodedArgs": null,
+          "inputs": null,
+          "outputs": {
+            "address": "kaspatest:pqgc62gwq6gmy5csu8uzp4pzp4nr8dwyhhdtv8n40xmxqdaexd4jz8pu3ttw8",
+            "amountSompi": 50000000,
+            "scriptPubKeyHex": "aa20118d290e0691b25310e1f820d4220d6633b5c4bddab61e7579b66037b9336b2187",
+            "state": {
+              "amount": "98998",
+              "borrowGuard": "0000000000000000000000000000000000000000000000000000000000000000",
+              "borrowScheme": 0,
+              "borrowSchemeName": "disabled/v1",
+              "extensionCommitment": "f182f9b51472fa992d6711bc0f5e37af11f88dc87552f548f43ce3bbc23f9fdb",
+              "owner": "17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2",
+              "ownerScheme": 0,
+              "ownerSchemeName": "p2pk-schnorr/v1"
+            },
+            "vout": 1
+          }
+        }
+      ],
+      "scanner": {
+        "cursorBlueScore": 609302419,
+        "cursorUpdatedAtMs": 1794430987829,
+        "dbCursorLagBlocks": 0,
+        "latestActionTimeMs": 1794430986144,
+        "latestBlockBlueScore": 609302444,
+        "latestBlockIndexedAtMs": 1794430986000,
+        "latestBlockTimeMs": 1794430986144
+      }
+    }
+  },
+  "bidCancel": {
+    "bidValueSompi": "400000000",
+    "walletOutputsIncludingFundingChangeSompi": "846132000"
+  },
+  "limits": "Non-ticket ten-bid trade at 2 KAS gross per fill passes. The 1.2 KAS variant remains rejected before signing."
+}
