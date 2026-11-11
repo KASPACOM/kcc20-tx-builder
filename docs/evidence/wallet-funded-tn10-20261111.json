@@ -1,0 +1,543 @@
+{
+  "dateUtc": "2026-11-11T20:41:27.792Z",
+  "network": "testnet-10",
+  "backendBuilderVersion": "0.8.3-fee.3",
+  "walletExamplePackageVersion": "0.8.3-fee.4",
+  "tokenId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0",
+  "decimals": 2,
+  "marketId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb",
+  "wallets": [
+    {
+      "address": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2",
+      "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4"
+    },
+    {
+      "address": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+      "owner": "31dd16005114a54ca60dcca82f50fbbdc838db4fe88fba4d75bfdd20697a81da"
+    }
+  ],
+  "initialBalances": [
+    {
+      "native": "100000",
+      "wrapped": "0"
+    },
+    {
+      "native": "0",
+      "wrapped": "0"
+    }
+  ],
+  "finalBalances": [
+    {
+      "wallet": "kaspatest:qp93l20xyghwrwqpnp2gdl4p746wdy78aewnjv74duuet3mc2qedgfvgz42s2",
+      "native": "100000",
+      "wrapped": "0",
+      "utxoCount": 1
+    },
+    {
+      "wallet": "kaspatest:qqca69sq2y222n9xphx2st6slw7uswxmfl5glwjdwkla6grf02qa5jmyup5s7",
+      "native": "0",
+      "wrapped": "0",
+      "utxoCount": 0
+    }
+  ],
+  "transactionCount": 10,
+  "networkFeesSompi": "170366900",
+  "steps": [
+    {
+      "operation": "backend-partial-A-to-B",
+      "txid": "7721caa30b7402f638f98bbf145e2301c57a932f3270ee9b6ac3aa181a84c245",
+      "construction": "deployed backend transfer endpoint",
+      "feeSompi": "5358200",
+      "mass": {
+        "compute": "50775",
+        "transient": "106700",
+        "storage": "156211"
+      },
+      "requestId": "kcc20-transfer-token-15e9fb59-8df3-49f8-beb0-eb2a3b3f6a7e",
+      "quantity": "1.25",
+      "baseUnits": "125",
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        }
+      ]
+    },
+    {
+      "operation": "backend-full-B-to-A",
+      "txid": "64a2667b192429b29712b0b80e1e5cc7b8c77b0d9f7d670824c6749fa04be2e1",
+      "construction": "deployed backend transfer endpoint",
+      "feeSompi": "5319600",
+      "mass": {
+        "compute": "50212",
+        "transient": "105928",
+        "storage": "47834"
+      },
+      "requestId": "kcc20-transfer-token-1d1fa002-30ff-4231-8ae9-21e51f1c62df",
+      "quantity": "1.25",
+      "baseUnits": "125",
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        }
+      ]
+    },
+    {
+      "operation": "backend-entire-consolidated-A-to-B",
+      "txid": "0b46c4910a167a05178d135fb56fc6f67e638e348e541abab24c971ad0684bdc",
+      "construction": "deployed backend transfer endpoint",
+      "feeSompi": "7625300",
+      "mass": {
+        "compute": "50215",
+        "transient": "105940",
+        "storage": "76155"
+      },
+      "requestId": "kcc20-transfer-token-7ab5039b-556a-4152-b9e3-0f269030b947",
+      "quantity": "1000",
+      "baseUnits": "100000",
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        }
+      ]
+    },
+    {
+      "operation": "backend-entire-balance-B-to-A",
+      "txid": "6ec28393e66e399bb924c0a48af3a682543883587f47cbbe525bbb270c3443ae",
+      "construction": "deployed backend transfer endpoint",
+      "feeSompi": "5320200",
+      "mass": {
+        "compute": "50215",
+        "transient": "105940",
+        "storage": "47141"
+      },
+      "requestId": "kcc20-transfer-token-ae8a41df-cae6-4ad0-bb62-4986e5b287f0",
+      "quantity": "1000",
+      "baseUnits": "100000",
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        }
+      ]
+    },
+    {
+      "operation": "wrap-1000-base-units-20261111",
+      "txid": "49d7efdae8b834895e991afae1594e7aa1d5d26172501cd2fba02340734ac10c",
+      "construction": "published builder 0.8.3-fee.4",
+      "feeSompi": "26914500",
+      "mass": {
+        "compute": "139602",
+        "transient": "379048",
+        "storage": "269145"
+      },
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "wrap",
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        }
+      ]
+    },
+    {
+      "operation": "place-ask-1000-base-units-20261111",
+      "txid": "c3f308229ede0c95ef53449c21b3a779e69a9deb83a0bb82f8ada0e2eec71c60",
+      "construction": "published builder 0.8.3-fee.4",
+      "feeSompi": "24590000",
+      "mass": {
+        "compute": "156680",
+        "transient": "491800",
+        "storage": "76204"
+      },
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "createAsk",
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        }
+      ]
+    },
+    {
+      "operation": "cancel-ask-20261111",
+      "txid": "6adcb07a014734bf1111b2763dc9e48323e1689d082f2a38fb3a8a50f299ddf4",
+      "construction": "published builder 0.8.3-fee.4",
+      "feeSompi": "24582000",
+      "mass": {
+        "compute": "156640",
+        "transient": "491640",
+        "storage": "76191"
+      },
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "cancelAsk",
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        }
+      ]
+    },
+    {
+      "operation": "partial-unwrap-400-20261111",
+      "txid": "9f108de29a0e4829e58c7163980eaaaba121d7abad0fd40e5e79be374cc46daf",
+      "construction": "published builder 0.8.3-fee.4",
+      "feeSompi": "25859300",
+      "mass": {
+        "compute": "170310",
+        "transient": "381880",
+        "storage": "258593"
+      },
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "unwrap",
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "unwrap",
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        }
+      ]
+    },
+    {
+      "operation": "full-unwrap-600-20261111",
+      "txid": "479266ede7606fa78a61123f2a6869e1aedd1ab7328d47d44260148824f1a7d9",
+      "construction": "published builder 0.8.3-fee.4",
+      "feeSompi": "19047600",
+      "mass": {
+        "compute": "169698",
+        "transient": "380952",
+        "storage": "118503"
+      },
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "unwrap",
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "unwrap",
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb"
+        }
+      ]
+    },
+    {
+      "operation": "consolidate-native-holders-20261111",
+      "txid": "350e2a8b074d2b5ecc5b3085765cec62c66c2fcf897f4d8388e77e861638ff3c",
+      "construction": "published builder 0.8.3-fee.4",
+      "feeSompi": "25750200",
+      "mass": {
+        "compute": "257182",
+        "transient": "412368",
+        "storage": "50734"
+      },
+      "nodeOutputObserved": true,
+      "indexed": true,
+      "decoded": true,
+      "actions": [
+        {
+          "action": "spend",
+          "entrypoint": "transfer",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "transfer_delegator",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "transfer_delegator",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "spend",
+          "entrypoint": "transfer_delegator",
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        },
+        {
+          "action": "continuation",
+          "entrypoint": null,
+          "covenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0"
+        }
+      ]
+    }
+  ],
+  "openOrderReadback": {
+    "native": {
+      "amount": "99000",
+      "utxoCount": 2,
+      "transferable": true,
+      "wrappable": true
+    },
+    "wrapped": {
+      "wrappedMarketId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb",
+      "amount": "0",
+      "utxoCount": 0,
+      "transferable": false,
+      "tradeable": true,
+      "unwrapSupported": true
+    },
+    "order": {
+      "orderId": "c3f308229ede0c95ef53449c21b3a779e69a9deb83a0bb82f8ada0e2eec71c60:0",
+      "txidHex": "c3f308229ede0c95ef53449c21b3a779e69a9deb83a0bb82f8ada0e2eec71c60",
+      "vout": 0,
+      "tokenIdHex": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0",
+      "canonicalTokenIdHex": null,
+      "wrapperIdHex": null,
+      "wrappedMarketIdHex": null,
+      "side": "ask",
+      "marketSide": null,
+      "owner": "4b1fa9e6222ee1b801985486fea1f574e693c7ee5d3933d56f3995c7785032d4",
+      "seller": null,
+      "buyer": null,
+      "address": "kaspatest:ppeaye8qjsky3y8u0rmjndg3qmguqt8wsg42h39sywtg8ps5u2gaxl65c7s9c",
+      "saleAddress": null,
+      "bidAddress": null,
+      "status": "open",
+      "templateName": "KCC20OrderbookFeeAskV1",
+      "tokenAmount": "1000",
+      "remainingTokenAmount": "1000",
+      "minFillAmount": null,
+      "priceSompi": "1000000000",
+      "unitPriceSompi": "100000000",
+      "createdAtMs": 1794429459835,
+      "bidValueSompi": null,
+      "bidUtxos": null,
+      "saleUtxos": null,
+      "lockedTokenUtxos": null,
+      "lockedTokenAmount": null,
+      "saleCovenantIdHex": null,
+      "bidCovenantIdHex": null,
+      "saleScriptHashHex": null,
+      "bidScriptHashHex": null,
+      "closeTxidHex": null,
+      "closeEntrypoint": null,
+      "feeTicketId": null
+    },
+    "conservedBaseUnits": "100000"
+  },
+  "cancelReadback": {
+    "canonicalCovenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0",
+    "nativeBalance": {
+      "amount": "99000",
+      "utxoCount": 2,
+      "transferable": true,
+      "wrappable": true
+    },
+    "wrappedBalance": {
+      "wrappedMarketId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb",
+      "amount": "1000",
+      "utxoCount": 1,
+      "transferable": false,
+      "tradeable": true,
+      "unwrapSupported": true
+    }
+  },
+  "partialUnwrapReadback": {
+    "canonicalCovenantId": "2fc5ff8f98d77db31772300c18a61423a56247abec726775f95e198037250db0",
+    "nativeBalance": {
+      "amount": "99400",
+      "utxoCount": 3,
+      "transferable": true,
+      "wrappable": true
+    },
+    "wrappedBalance": {
+      "wrappedMarketId": "068720e50fbdfed5507548225941dc53afb7b06d6ac3a85353a1056b64c190bb",
+      "amount": "600",
+      "utxoCount": 1,
+      "transferable": false,
+      "tradeable": true,
+      "unwrapSupported": true
+    }
+  },
+  "proofOrderClosed": true,
+  "negativeChecks": [
+    {
+      "case": "fragmented full-balance send",
+      "result": "Rejected before signing: consolidate the token balance first",
+      "holders": 4,
+      "consolidationSubsequentlyAccepted": true
+    },
+    {
+      "case": "invalid-recipient",
+      "http": 400,
+      "message": "recipientOwner must be a 64 hex owner or Kaspa P2PK address"
+    },
+    {
+      "case": "spent-holder",
+      "http": 422,
+      "message": "You need enough native token balance before this transaction can be built."
+    },
+    {
+      "case": "insufficient-token-balance",
+      "http": 422,
+      "message": "You need enough native token balance before this transaction can be built."
+    }
+  ],
+  "freshness": {
+    "ok": false,
+    "stale": true,
+    "suggestedPollMs": 15000,
+    "scanner": {
+      "cursorBlueScore": 609288119,
+      "cursorUpdatedAtMs": 1794429687027,
+      "dbCursorLagBlocks": 1229,
+      "latestActionTimeMs": 1794429686474,
+      "latestBlockBlueScore": 609289386,
+      "latestBlockIndexedAtMs": 1794429687000,
+      "latestBlockTimeMs": 1794429686474
+    }
+  },
+  "limitations": [
+    "Transactions signed with controlled Node wallets; browser extension UX not exercised.",
+    "The first transfer exceeded the initial 30-second node-output wait. Its saved ID was checked and confirmed, never blindly rebroadcast. Node reported about 54000 pending transactions during diagnosis.",
+    "Optional public mint, unsupported direct wrapped transfers and general burns are not proven by these wallet journeys.",
+    "Global freshness remains stale; these transaction-level proofs do not certify complete historical coverage.",
+    "DEV advanced from the previously verified revision during this session. The post-run image is recorded; per-request image attribution was not captured. Its builder dependency remains 0.8.3-fee.3."
+  ],
+  "commands": [
+    "tsx /tmp/wallet-backend-funded-20261111.ts",
+    "tsx /tmp/wallet-fee-funded-20261111.ts",
+    "tsx /tmp/wallet-fee-funded-20261111.ts --continue --cancel-only",
+    "tsx /tmp/wallet-fee-funded-20261111.ts --continue --partial-only",
+    "tsx /tmp/wallet-fee-funded-20261111.ts --continue",
+    "tsx /tmp/wallet-consolidate-funded-20261111.ts",
+    "node /tmp/export-wallet-funded-proof.cjs"
+  ],
+  "priorVerifiedBackendRevision": "474786d8db3f866d38377226172b441f8b5058cd",
+  "backendRevisionObservedAfterRun": "e4994f809c9be85e86c94f416559c2c56d6789de"
+}

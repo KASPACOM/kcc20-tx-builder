@@ -25,7 +25,7 @@ HTTP requests and application logs.
 ## Install an exact version
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.8.3-fee.3 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.8.3-fee.5 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
