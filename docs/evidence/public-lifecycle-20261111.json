@@ -1,7 +1,6 @@
 {
   "network": "testnet-10",
   "exampleStatus": "unpublished working tree; not registry example verification",
-  "reproducibility": "Historical record only. The exact documentation checkout does not ship the lifecycle runner or adapters required to recreate these transactions.",
   "tokenId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
   "marketId": "548ef15b4d3f00cc2de5c790d03901beb24155454a4d7e84e1ae20a35b7d5fa0",
   "creatorFeeBps": 0,
@@ -147,7 +146,7 @@
   "limits": [
     "Snapshots fetched sequentially, not an atomic watermark proof",
     "No FeeTicket tested on this market",
-    "Creator fees, partial fills, sweeps, claim batches, cancellation, rotation and recipient adapters remain pending; no public lifecycle runner is shipped in this checkout",
+    "Creator fees, partial fills, sweeps, claim batches, cancellation, rotation and recipient adapters remain pending in public runner",
     "Backend-assisted transfer timed out after recognition"
   ]
 }
