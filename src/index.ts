@@ -1,4 +1,5 @@
 export * from "./artifacts.js";
+export * from "./kachat.js";
 export * from "./token-profiles.js";
 export * from "./token-profiles.generated.js";
 export * from "./action-source-resolver.js";
