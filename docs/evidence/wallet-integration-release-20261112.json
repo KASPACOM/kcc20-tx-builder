@@ -1,0 +1,24 @@
+{
+  "version": "0.8.3-fee.5",
+  "verifiedAt": "2026-11-11T23:00:25.565Z",
+  "credentialFreeInstall": true,
+  "build": "passed",
+  "tests": "passed",
+  "browser": "passed",
+  "package": "@kaspacom/kcc20-tx-builder",
+  "mergeCommit": "416d801d59423d0849481e7e20db739e2cf80537",
+  "pullRequest": "https://github.com/KASPACOM/kcc20-tx-builder/pull/62",
+  "publicationRun": "https://github.com/KASPACOM/kcc20-tx-builder/actions/runs/43115666114",
+  "registryPackIntegrity": "sha512-3w1Mv0KwPAS9YYNbIEEo57EIV/it35+MkoquDAbB2JErsyfqS9+7Q5by7DGCblaqI+wMaSJUqc+OPp1XGmY2aQ==",
+  "exampleTests": 49,
+  "browserRecipeComparisons": 24,
+  "distAndArtifactsByteIdenticalToFundedVersion": "0.8.3-fee.4",
+  "backendFix": {
+    "pullRequest": "https://github.com/KASPACOM/kcc20-backend/pull/698",
+    "commit": "24d9690ca81091f5a36d4c20f73a30cecc37725a",
+    "ci": "https://github.com/KASPACOM/kcc20-backend/actions/runs/43114696457",
+    "independentReview": "approved",
+    "deploymentEvidenceLocation": "https://github.com/KASPACOM/kcc20-backend/pull/698"
+  },
+  "frontendMerged": false
+}
