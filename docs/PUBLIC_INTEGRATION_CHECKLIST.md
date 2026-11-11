@@ -16,7 +16,7 @@ not filled by adding endpoints. Keep npm `latest` unchanged.
 | PUB-01 | Public repository and npm access | Verified | #60 / 0.8.3-fee.3 | Anonymous tarball retrieval; PACKAGE_CONTENT_REVIEW.md | Not applicable |
 | PUB-02 | Reviewed published archive | Verified | #60 / 0.8.3-fee.3 | Scoped credential-pattern scan, archive SHA-256 recorded | Not applicable |
 | PUB-03 | Builder-first guide and baseline examples | Verified | #60 merged / 0.8.3-fee.3 | 42 example tests; build; offline deploy/transfer; fee quote; hosted CI | Not claimed |
-| PUB-04 | Backend public guides deployed | In progress | #686 / 0.8.3-fee.3 | PR #686 merged at 4082590; public OpenAPI returns HTTP 200 with 62 paths; served Markdown/revision parity still pending | Not applicable |
+| PUB-04 | Backend public guides deployed | In progress | #686 / 0.8.3-fee.3 | PR #686 head 4082590 merged as 91eadbf3; public OpenAPI returns HTTP 200 with 62 paths; three served Markdown guides exactly match fetched develop (evidence below) | Not applicable |
 | PUB-05 | Operation and public-route support matrix | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 | PUBLIC_OPERATION_MATRIX.md traces planners and registry; funded HTTP support pending | Pending supported HTTP journeys |
 | PUB-23 | Wallet-provider balances/transfer guide | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 | Current public OpenAPI confirms decimals and all balance query fields; PUBLIC_WALLET_PROVIDER.md | Pending transfer journey |
 | PUB-06 | IDs, policies, fees, refunds and lifecycle diagram | In progress | [#63](https://github.com/KASPACOM/kcc20-tx-builder/pull/63), [#64](https://github.com/KASPACOM/kcc20-tx-builder/pull/64), [#65](https://github.com/KASPACOM/kcc20-tx-builder/pull/65) / 0.8.3-fee.3 | Source-backed documentation | Pending lifecycle reconciliation |
@@ -276,3 +276,11 @@ acceptance without broadcasting. Reusing its spent holder fails before signing.
 See [the replay evidence](evidence/public-fee5-registry-transfer-20261112.json).
 This verifies the published engine with checkout examples; publication of the
 complete lifecycle examples remains a separate gate.
+
+Public documentation checks: Swagger, OpenAPI, three Markdown guides, llms.txt
+and llms-full.txt return HTTP 200 anonymously. The three Markdown bodies exactly
+match the fetched backend develop revision recorded in
+[served documentation evidence](evidence/public-served-docs-20261112.json).
+This checks the served content; it does not establish full endpoint behavior.
+The packed combined build passed 300 package tests, 64 example tests and
+browser/Node parity for all 24 recipes.

@@ -1,0 +1,53 @@
+{
+  "backendSourceRevision": "24d9690ca81091f5a36d4c20f73a30cecc37725a",
+  "observations": [
+    {
+      "path": "/public-docs",
+      "status": "200",
+      "bytes": 3168,
+      "sha256": "b878aa015b24ff93137670927636a1da43a4086f7a2fedb111af8101ebeaca72"
+    },
+    {
+      "path": "/public-docs-json",
+      "status": "200",
+      "bytes": 117298,
+      "sha256": "49be79cf48d9d04a1724febc3bb50604dc47aaf92535ac6b87e16606e8c67f1b"
+    },
+    {
+      "path": "/agent-guide.md",
+      "status": "200",
+      "bytes": 17697,
+      "sha256": "856b3062bdaa1ce934162417bba1f777e9346bf25864bc45fc62dd8cc6c5d2d6"
+    },
+    {
+      "path": "/public-testnet-api.md",
+      "status": "200",
+      "bytes": 21414,
+      "sha256": "f70afa3fedd84ff1152e23b5f41cfc38aa7341c28c4dd8b12b5e007f7333b9d4"
+    },
+    {
+      "path": "/agent-integration.md",
+      "status": "200",
+      "bytes": 7955,
+      "sha256": "62fee570495297cacbf0ab3efe1f467342a9d8d4948309957034fce09957ccd9"
+    },
+    {
+      "path": "/llms.txt",
+      "status": "200",
+      "bytes": 2118,
+      "sha256": "a8f187d95472691773b9842a0d2754a106c83d67315bf7e4a7599ff6f761b9a8"
+    },
+    {
+      "path": "/llms-full.txt",
+      "status": "200",
+      "bytes": 49392,
+      "sha256": "28597c393bce627a7e8921034f7abb0ed4c74324bccb31ef1f6d8f3b3a3dda17"
+    }
+  ],
+  "markdownExactMatches": [
+    "AGENT_TRADING_GUIDE.md",
+    "PUBLIC_TESTNET_API.md",
+    "AGENT_INTEGRATION.md"
+  ],
+  "scope": "Anonymous HTTP responses and exact Markdown content parity; not full endpoint behavior or pod image verification"
+}
