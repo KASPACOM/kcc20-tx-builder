@@ -17,7 +17,7 @@ npm --prefix examples run frontend
 ```
 
 `test:examples` packs the current candidate and installs it into the examples
-before testing. The checked-in examples pin the published `0.8.3-fee.3`
+before testing. The checked-in examples pin the published `0.8.3-fee.5`
 prerelease; candidate testing intentionally replaces that dependency temporarily.
 
 Synthetic offline examples use the same digest-authenticated bundled profile as
@@ -27,7 +27,7 @@ After publication, users can copy `examples` from the package or repository,
 run `npm ci` inside it, then install the matching release explicitly:
 
 ```sh
-npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.3 \
+npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.5 \
   --registry=https://registry.npmjs.org/ --@kaspacom:registry=https://registry.npmjs.org/
 npm run backend -- offline
 npm run frontend
