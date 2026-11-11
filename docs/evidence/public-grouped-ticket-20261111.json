@@ -187,6 +187,48 @@
         "storageMass": "192625"
       },
       "accepted": true
+    },
+    {
+      "operation": "five-consolidate",
+      "transactionId": "99566cff3c71091573275a88cb0cb521b69c8bc6701f20dce9d4db30bfd24c40",
+      "mass": {
+        "estimatedSerializedSize": "114460",
+        "computeBudgetUnits": "1530",
+        "computeMass": "268550",
+        "transientMass": "457840",
+        "normalizedTransientMass": "228920",
+        "transactionMass": "268550",
+        "storageMass": "20318"
+      },
+      "accepted": true
+    },
+    {
+      "operation": "five-rotate",
+      "transactionId": "fe870b06bd35a31f75b17fd5c17630c0c1059f8f5076ea076fb228cd0af4d5e2",
+      "mass": {
+        "estimatedSerializedSize": "26179",
+        "computeBudgetUnits": "130",
+        "computeMass": "39909",
+        "transientMass": "104716",
+        "normalizedTransientMass": "52358",
+        "transactionMass": "52358",
+        "storageMass": "54088"
+      },
+      "accepted": true
+    },
+    {
+      "operation": "five-rotate-back",
+      "transactionId": "cfeb94d2665cba41db62c68e4a5e5bd72a50fab532a4392834eead988f01e96b",
+      "mass": {
+        "estimatedSerializedSize": "26179",
+        "computeBudgetUnits": "130",
+        "computeMass": "39909",
+        "transientMass": "104716",
+        "normalizedTransientMass": "52358",
+        "transactionMass": "52358",
+        "storageMass": "44347"
+      },
+      "accepted": true
     }
   ],
   "reconciliation": {
@@ -199,6 +241,12 @@
     "ticketRefundSompi": "100000000",
     "creatorAccountPrincipalSompi": "50000000",
     "wrappedBuyerAmount": "200",
-    "scope": "Sequential indexed observations; not atomic watermark or reorg proof"
+    "scope": "Sequential indexed observations; not atomic watermark or reorg proof",
+    "authorityRotation": "Creator to test buyer, then back; same account lineage and 50000000-sompi principal"
+  },
+  "negativeBuild": {
+    "request": "previously accepted two-ask trade",
+    "result": "Rejected before signing: fee-market ask 0 is spent or unavailable",
+    "broadcast": false
   }
 }
