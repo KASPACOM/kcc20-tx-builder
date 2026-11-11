@@ -8,13 +8,13 @@ Status and evidence describe this integration, not older internal proofs.
 | --- | --- | --- | --- | --- | --- |
 | W01 | Public installation and runtime pins | Exists | Published 0.8.3-fee.4 | Credential-free public installation, 49 tests, build and 24 browser recipe comparisons pass | N/A |
 | W02 | Directory, decimals, metadata fallback | Exists | Documented | Missing precision stays explicit; unknown holdings remain visible | Live directory and native proof balance agree on decimals 2 |
-| W03 | Native/wrapped balances and exact formatting | Needs correction | PR #689 deployed | Exact formatting and grouping pass | Recorded live data reproduces incorrect native labeling; corrected local service groups 990 native + 10 wrapped |
+| W03 | Native/wrapped balances and exact formatting | Exists | PR #689 deployed | Exact formatting and grouping pass | Funded November 11: deployed API groups 99000 native + 1000 wrapped under one canonical token; partial unwrap gives 99400 + 600 |
 | W04 | Search, pagination, filters, sorts | Exists | Existing query contract documented | Existing service filter/sort tests and URL tests pass | Combined search/native/quantity/pagination/sort query returned expected 100000-unit row |
 | W05 | Open ask quantities, no bid token credit | Exists | Source audit complete | Existing projection inspected | Real ask showed 990 native + 10 open; cancel accepted |
-| W06 | Honest profile/action capabilities | Needs correction | PR #689 merged after independent review | 13 focused tests and hosted functional checks pass | Zero production audit findings; both DEV replicas updated; native-only holder resolves current fee market |
-| W07 | Native partial/full send | Exists | Public helper implemented | Build and sign tested | Partial A-to-B and full B-to-A accepted, indexed; A returned to 100000 base units |
-| W08 | Fragmented inputs and consolidation | Exists | Existing helper reused | Full fragmented send rejects before signing | Five holders consolidated; full 100000-unit A-to-B and B-to-A transactions accepted using final adapter |
-| W09 | Fee-market wrap and partial/full unwrap | Exists | Example implemented | Existing 111 signed wrapper tests pass | Wrap 1000, unwrap 400 then 600 accepted; another wrap/unwrap accepted |
+| W06 | Honest profile/action capabilities | Exists | PR #689 merged after independent review | 13 focused tests and hosted functional checks pass | Zero production audit findings; both DEV replicas updated; native-only holder resolves current fee market |
+| W07 | Native partial/full send | Exists | Public helper implemented | Build and sign tested | Four backend-built sends signed and broadcast: partial, full recipient return, full consolidated balance and full return; all accepted/indexed |
+| W08 | Fragmented inputs and consolidation | Exists | Existing helper reused | Full fragmented send rejects before signing | Prior five-holder proof plus fresh four-holder consolidation using fee.4; full 100000-unit backend sends accepted in both directions |
+| W09 | Fee-market wrap and partial/full unwrap | Exists | Example implemented | Existing 111 signed wrapper tests pass | Repeated with published fee.4: wrap 1000, unwrap 400 then 600 accepted/indexed; balances verified at each stage |
 | W10 | Direct wrapped send | Missing | Not advertised; unwrap then send | N/A | N/A |
 | W11 | Public mint | Exists | Conditional on token policy | Pending | Pending |
 | W12 | General token burn | Missing | No public generic burn operation advertised | Source operation registry checked | N/A |
@@ -23,7 +23,7 @@ Status and evidence describe this integration, not older internal proofs.
 | W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | Live freshness remains stale; no overall health claim |
 | W16 | Browser and Node examples | Exists | Shared build/sign flow implemented | 49 tests and browser build pass | Node adapter funded; real extension/browser signing not tested |
 | W17 | Independent review | Complete | All five review findings fixed; independent review approved | Base units, input recheck, durable pre-submit persistence tested | N/A |
-| W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.4 public; release workflow passed | Exact registry version installed without credentials; 49 examples/build/browser pass | Funded operations used 0.8.3-fee.3; engine/artifacts unchanged in fee.4 |
+| W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.4 public; release workflow passed | Exact registry version installed without credentials; 49 examples/build/browser pass | November 11 funded wrap/order/cancel/unwrap/consolidation uses public fee.4; deployed backend transfer engine remains pinned fee.3, signed with fee.4 examples |
 | W19 | Deployed docs verification | Exists | Builder guide public and byte-verified | Backend docs linked in PR #689 | Served public-testnet-api.md byte-matches #689 and includes wallet guide/checklist links |
 
 ## Evidence rules
@@ -50,8 +50,8 @@ Backend #689 merged; frontend remains unmerged.
 
 Before #689 rollout, backend-assisted transfer building timed out after 25 seconds.
 Post-rollout unsigned builds now pass on the public route and both replicas (evidence below).
-Local builder construction and funded submission passed independently; the new
-backend-generated unsigned request has not been submitted end to end.
+Local builder construction and funded submission passed independently; the November 11
+backend-generated requests were signed, broadcast, accepted and decoded with controlled Node wallets.
 
 ## Delivery evidence, November 10
 
@@ -72,5 +72,25 @@ suites and the production audit found zero vulnerabilities. The public unsigned
 transfer build returned HTTP 201 / ready-to-sign in 684 ms; both API replicas
 passed direct checks (1,373 ms / 1,004 ms). `/health` returned HTTP 200. Evidence
 is in the finalVerification section of the rollout JSON. No frontend was merged.
-Backend signing/broadcast with a real wallet, browser interaction, optional mint
-and historical freshness remain separate from these unsigned build checks.
+The funded proof below now covers backend signing and broadcasting with controlled
+Node wallets. Browser interaction, optional mint and historical freshness remain open.
+
+## Funded TN10 verification, November 11
+
+[Transaction IDs, mass, fees, settlement results and balance snapshots](evidence/wallet-funded-tn10-20261111.json).
+
+Ten fresh transactions were broadcast, observed in the node UTXO set and decoded
+through the existing settlement API: four backend-built sends, wrap, ask placement,
+cancel, partial unwrap, full unwrap and four-holder consolidation. The test token
+finished with all 100000 base units in wallet A, in one native holder; wallet B,
+wrapped holdings and the test order are empty. Total network fees: 1.703669 KAS
+on TN10. No frontend merge or new indexer API was involved.
+
+The live backend rejected an invalid recipient (400), a spent holder (422), and
+insufficient token balance (422). Fragmented full sending required consolidation
+before signing. The first transfer needed more than the initial 30-second wait;
+we checked the saved transaction ID and resumed without rebroadcasting it.
+
+These tests cover the wallet integration flows listed above. They do not prove
+browser-extension UX, optional public mint, every owner authority scheme, or
+historical indexer completeness. `/trading/freshness` still reports stale.
