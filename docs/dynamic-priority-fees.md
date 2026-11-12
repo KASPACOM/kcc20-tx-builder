@@ -35,9 +35,9 @@ transaction. Post-signing checks may reject a transaction but never rewrite it.
 - [x] Dynamic legacy FeeTicket structural regression: 5 passed with fee-dependent change and unchanged ticket/refund amounts.
 - [x] Verify actual signed mass before wallet or backend broadcast.
 - [x] Backend activation and saved public build receipts validate the supplied build quote.
-- [x] Browser polling, source replacement, timeout and wallet tests: 94 passed.
+- [x] Browser polling, source replacement, timeout and wallet tests: 96 passed.
 - [ ] Independent review of final changes.
-- [x] Funded DEV deployment plus eight market/account/trade/claim transactions accepted and indexed.
+- [x] Funded DEV deployment plus eleven market/account/trade/claim transactions accepted and indexed.
 - [ ] Published-package browser and authenticated backend lifecycle completion evidence.
 - [ ] Immutable prerelease published and integrity checked in both registries.
 - [ ] Matching backend/frontend pins verified against the published package.
@@ -54,11 +54,16 @@ quote, signed masses, paid fee, broadcast start and acceptance block time.
 The deployment paid 61,523,137 sompi. The market buy paid 43,090,976 sompi in
 network fees and a separate 50,000,000-sompi protocol entitlement. Claiming that
 entitlement paid 14,242,375 sompi in network fees and preserved its account's
-100,000,000-sompi principal. Source block times were approximately 0.3–1.1 seconds
+100,000,000-sompi principal. Source block times were approximately 0.3–4.5 seconds
 after local broadcast starts in this sample. These times are observations.
 
 The proof uses a test-owned fee account. No customer pending transaction was
 replaced, and no frontend branch was merged.
+
+The final-code repeat covers another ask, buy and claim, with source revision
+recorded per transaction. The buy took approximately 4.5 seconds. Inclusion
+time remains a measurement, not a guarantee. Publication and consumer rollout
+status are tracked in the matching consumer pull requests after this release.
 
 ## Compatibility and transport
 
