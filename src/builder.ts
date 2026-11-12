@@ -22,6 +22,8 @@ export async function buildKcc20Pskt(
     config: dependencies.config,
     sourceProvider: dependencies.sourceProvider,
     rpcClientFactory: dependencies.rpcClientFactory,
+    networkFeeQuoteProvider: dependencies.networkFeeQuoteProvider,
+    networkFeeQuote: dependencies.networkFeeQuote,
   });
   return engine.build(request);
 }
