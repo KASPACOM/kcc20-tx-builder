@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { priceNetworkFee, validateNetworkFeeQuote } from "./network-fee.js";
+import type { NetworkFeeQuote } from "./network-fee.js";
 import { planFeeAccountAuthority } from "./escrow-authority.js";
 import { planTokenOwnerWitness } from "./token-authorization.js";
 import { sha256 } from "@noble/hashes/sha256";
@@ -102,6 +104,9 @@ import {
 } from "./artifacts.js";
 
 export interface Kcc20PsktBuilderEngineOptions {
+  /** Host-owned estimate transport. Each build receives an isolated quote. */
+  networkFeeQuoteProvider?: (network: string) => Promise<NetworkFeeQuote>;
+  networkFeeQuote?: NetworkFeeQuote;
   wasm: KaspaWasmRuntime;
   artifacts: Record<string, unknown>;
   artifactProvider?: (key: string) => Promise<unknown>;
@@ -132,6 +137,7 @@ export interface Kcc20PsktProtocolApi {
 }
 
 export interface Kcc20PsktBuilderEngine {
+  verifySignedNetworkFee(transactionJson: string, quote: NetworkFeeQuote): Record<string, unknown>;
   build(input: unknown): Promise<Record<string, unknown>>;
   buildInProcessPskt(input: unknown): Promise<Record<string, unknown>>;
   resolveFeeTicketBatchCreateCapability(input: {
@@ -647,6 +653,16 @@ export function createKcc20PsktBuilderEngine(
   }
 
   async function buildInProcessPskt(input) {
+    const network = input.request?.network || env.KASPA_NETWORK || "testnet-10";
+    if (options.networkFeeQuoteProvider) {
+      const quote = await options.networkFeeQuoteProvider(network);
+      validateNetworkFeeQuote(quote, network);
+      return createKcc20PsktBuilderEngine({
+        ...options, networkFeeQuoteProvider: undefined,
+        networkFeeQuote: Object.freeze({ ...quote }),
+      }).build(input);
+    }
+    if (options.networkFeeQuote) validateNetworkFeeQuote(options.networkFeeQuote, network);
     if (input.schema !== INPUT_SCHEMA) {
       throw new Error(
         `unsupported in-process PSKT builder input schema: ${input.schema || "missing"}`,
@@ -669,7 +685,17 @@ export function createKcc20PsktBuilderEngine(
         `unsupported builderKey: ${input.request?.builderKey || "missing"}`,
       );
     }
-    return builder(input);
+    const result = await builder(input);
+    if (options.networkFeeQuote && result.psktTransactionJson) {
+      const tx = kaspaWasm.Transaction.deserializeFromSafeJSON(result.psktTransactionJson);
+      const summary = networkFeeSummary(tx, result.scripts || [], false);
+      const paid = transactionFeeFromSafeJson(JSON.parse(result.psktTransactionJson), "priority fee");
+      if (paid < BigInt(summary.requiredFeeSompi)) {
+        throw kcc20PsktBuilderError("Builder path did not fund the priority fee", "KAS_FUNDING_FEE_INSUFFICIENT");
+      }
+      result.networkFee = { ...summary, paidFeeSompi: String(paid) };
+    }
+    return result;
   }
 
   async function buildFeeAccountCreatePskt(input) {
@@ -16141,6 +16167,7 @@ export function createKcc20PsktBuilderEngine(
     label,
     scriptHints = [],
   ) {
+    if (options.networkFeeQuote) return transactionWithPriorityFeeChange(kw, transaction, changeOutputIndex, network, label, scriptHints);
     if (changeOutputIndex < 0) {
       return transaction;
     }
@@ -16190,6 +16217,7 @@ export function createKcc20PsktBuilderEngine(
     label,
     scriptHints = [],
   ) {
+    if (options.networkFeeQuote) return transactionWithPriorityFeeChange(kw, transaction, changeOutputIndex, network, label, scriptHints);
     if (changeOutputIndex < 0) {
       return transaction;
     }
@@ -16306,7 +16334,7 @@ export function createKcc20PsktBuilderEngine(
       }
       const json = JSON.parse(serialized);
       const paidFeeSompi = transactionFeeFromSafeJson(json, label);
-      if (paidFeeSompi >= requiredFeeSompi) {
+      if (paidFeeSompi === requiredFeeSompi || (!options.networkFeeQuote && paidFeeSompi > requiredFeeSompi)) {
         return {
           transaction: adjustedTransaction,
           predictedTransaction,
@@ -16439,7 +16467,7 @@ export function createKcc20PsktBuilderEngine(
       if (candidate.deficit < best.deficit) best = candidate;
     }
     if (best.deficit > 0n) {
-      if (best.requiredFeeSompi > TOCCATA_MAX_STANDARD_RELAY_FEE_SOMPI) {
+      if (!options.networkFeeQuote && best.requiredFeeSompi > TOCCATA_MAX_STANDARD_RELAY_FEE_SOMPI) {
         throw kcc20PsktBuilderError(
           `${label} predicted signed transaction exceeds standard transaction mass`,
           "TRANSACTION_MASS_EXCEEDED",
@@ -16499,6 +16527,9 @@ export function createKcc20PsktBuilderEngine(
     transaction,
     massOptions = [],
   ) {
+    if (options.networkFeeQuote) {
+      return BigInt(networkFeeSummary(transaction, Array.isArray(massOptions) ? massOptions : [], false).requiredFeeSompi);
+    }
     const requireConsensusV1Mass = massOptions === true;
     if (requireConsensusV1Mass) {
       const { transactionMass: nonContextualMass } =
@@ -16582,6 +16613,39 @@ export function createKcc20PsktBuilderEngine(
     const relayMass = computeMass > transientMass ? computeMass : transientMass;
     const massFloor = relayMass * MIN_RELAY_FEE_PER_MASS_SOMPI;
     return massFloor > calculatedFee ? massFloor : calculatedFee;
+  }
+
+  function networkFeeSummary(transaction, scriptHints = [], signed = false) {
+    const json = transactionJsonWithScriptHints(kaspaWasm, JSON.parse(transaction.serializeToSafeJSON()), scriptHints);
+    if (!signed) {
+      // Reserve a wallet witness for each input in addition to covenant hints.
+      // Covers P2PK, PKH and ECDSA; explicit covenant witnesses come from hints.
+      for (const input of json.inputs) input.signatureScript = (input.signatureScript || "") + "00".repeat(110);
+    }
+    const predicted = kaspaWasm.Transaction.deserializeFromSafeJSON(JSON.stringify(json));
+    const masses = calculateToccataV1NonContextualMass(predicted, "priority fee");
+    return priceNetworkFee(options.networkFeeQuote, {
+      computeMass: masses.computeMass, transientMass: masses.transientMass,
+      storageMass: calculateToccataStorageMass(predicted, "priority fee"),
+    });
+  }
+
+  function transactionWithPriorityFeeChange(kw, transaction, changeOutputIndex, network, label, scriptHints) {
+    let adjusted = transaction;
+    for (let attempt = 0; attempt < SIGNED_FEE_CONVERGENCE_ATTEMPTS; attempt++) {
+      const required = requiredTransactionFeeSompi(kw, network, adjusted, scriptHints);
+      const json = JSON.parse(adjusted.serializeToSafeJSON());
+      const paid = transactionFeeFromSafeJson(json, label);
+      if (paid === required) return adjusted;
+      const output = json.outputs[changeOutputIndex];
+      if (!output || changeOutputIndex < 0) throw kcc20PsktBuilderError(`${label} has no funding change for priority fee`, "KAS_FUNDING_FEE_INSUFFICIENT");
+      const key = output.value === undefined ? "amount" : "value";
+      const change = BigInt(output[key]) - (required - paid);
+      if (change <= MIN_FUNDING_CHANGE_SOMPI) throw kcc20PsktBuilderError(`${label} selected insufficient funding for priority fee`, "KAS_FUNDING_CHANGE_TOO_SMALL");
+      output[key] = String(change);
+      adjusted = kw.Transaction.deserializeFromSafeJSON(JSON.stringify(json));
+    }
+    throw kcc20PsktBuilderError(`${label} priority fee did not converge`, "TRANSACTION_FEE_CONVERGENCE_FAILED");
   }
 
   function transactionJsonWithScriptHints(kw, json, scriptHints) {
@@ -17319,6 +17383,17 @@ export function createKcc20PsktBuilderEngine(
   }
 
   return {
+    verifySignedNetworkFee(transactionJson, quote) {
+      // Freshness applies to construction, not the time spent approving in a wallet.
+      validateNetworkFeeQuote(quote, quote.network, quote.observedAtMs);
+      const scoped = createKcc20PsktBuilderEngine({ ...options, networkFeeQuoteProvider: undefined, networkFeeQuote: quote });
+      const transaction = kaspaWasm.Transaction.deserializeFromSafeJSON(transactionJson);
+      const summary = scoped.protocol.networkFeeSummary(transaction, [], true);
+      const paid = transactionFeeFromSafeJson(JSON.parse(transactionJson), "signed priority fee");
+      if (paid < BigInt(summary.requiredFeeSompi)) throw kcc20PsktBuilderError("Signed transaction does not cover its priority fee; rebuild before broadcasting", "KAS_FUNDING_FEE_INSUFFICIENT");
+      if (BigInt(summary.computeMass) > 500000n || BigInt(summary.transientMass) > 1000000n || BigInt(summary.storageMass) > 500000n) throw kcc20PsktBuilderError("Signed transaction exceeds TN10 mass limits", "TRANSACTION_MASS_EXCEEDS_STANDARD");
+      return { ...summary, paidFeeSompi: String(paid) };
+    },
     build: buildInProcessPskt,
     buildInProcessPskt,
     resolveFeeTicketBatchCreateCapability,
@@ -17378,6 +17453,7 @@ export function createKcc20PsktBuilderEngine(
       assertPaidMintPaymentStorageMassStandard,
       assertTransactionStorageMassStandard,
       calculateToccataStorageMass,
+      networkFeeSummary,
       parseQuotedProtocolFeeSompi,
       splitKcc20MintSupply,
     }),

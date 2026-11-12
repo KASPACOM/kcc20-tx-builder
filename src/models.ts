@@ -1,4 +1,5 @@
 import type { KaspaWasmRuntime } from "./runtime.js";
+import type { NetworkFeeQuote } from "./network-fee.js";
 
 export const KCC20_BUILDER_INPUT_SCHEMA =
   "kcc20-shared-pskt-builder-input/v1" as const;
@@ -87,6 +88,8 @@ export interface Kcc20PsktBuildResult {
 }
 
 export interface Kcc20PsktBuilderDependencies {
+  networkFeeQuoteProvider?: (network: string) => Promise<NetworkFeeQuote>;
+  networkFeeQuote?: NetworkFeeQuote;
   wasm: KaspaWasmRuntime;
   artifacts?: Record<string, unknown>;
   artifactProvider?: (key: string) => Promise<unknown>;

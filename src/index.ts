@@ -60,3 +60,4 @@ export * from "./kcom-claim-builder.js";
 export * from "./kcom-configurable-schedule.js";
 export * from "./kcom-configurable-pins.js";
 export * from "./kcom-artifact-profile.js";
+export * from "./network-fee.js";
