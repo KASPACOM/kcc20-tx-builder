@@ -94,7 +94,7 @@ export async function buildKcomClaimSeal({ options, kw, req, p, codec, graphId, 
         tx.outputs[0].value !== sealedValue ||
         tx.outputs[1].covenant ||
         tx.outputs[1].scriptPublicKey.script !== sponsorSpk ||
-        tx.outputs[1].value <= 10000n || tx.outputs[1].value > sponsorChange ||
+        tx.outputs[1].value <= 10000n || tx.outputs[1].value > sponsorChange + (options.networkFeeQuote ? FEE - 1n : 0n) ||
         [vault, collector, funding].some((entry, i) =>
           String(tx.inputs[i].previousOutpoint.transactionId) !== String(entry.outpoint.transactionId) ||
           tx.inputs[i].previousOutpoint.index !== entry.outpoint.index))

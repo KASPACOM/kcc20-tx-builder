@@ -148,7 +148,7 @@ export async function buildKcomClaimDeployInitializer({ options, kw, req, p, cod
         tx.outputs[0].value !== value || tx.outputs[1].covenant ||
         tx.outputs[1].scriptPublicKey.script !== sponsorSpk.script ||
         tx.outputs[1].value <= 10000n ||
-        tx.outputs[1].value > utxoAmountSompi(funding) - value - FEE)
+        tx.outputs[1].value > utxoAmountSompi(funding) - value - FEE + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM initializer fee adjustment changed a custody output or source");
     return { schema: "kcc20-in-process-pskt-builder-output/v1",
       psktTransactionJson: tx.serializeToSafeJSON(),
@@ -228,7 +228,7 @@ export async function buildKcomClaimInitialize({ options, kw, req, p, codec, add
         tx.outputs[1].scriptPublicKey.script !== vaultSpk.script ||
         tx.outputs[1].value !== VAULT_CELL ||
         tx.outputs[2].covenant || tx.outputs[2].scriptPublicKey.script !== sponsorSpk.script ||
-        tx.outputs[2].value <= 10000n || tx.outputs[2].value > utxoAmountSompi(funding) - FEE)
+        tx.outputs[2].value <= 10000n || tx.outputs[2].value > utxoAmountSompi(funding) - FEE + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM initialization fee adjustment changed a campaign output or source");
     const { adminSigning } = finishKcomAdminIntent({ kw, tx, params: p, codec,
       sourceScript: script, actor: "KCOMInitialize", entry: "initialize", publicKeys,

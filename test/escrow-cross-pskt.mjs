@@ -1,3 +1,4 @@
+import { assertSignedPriorityFee, dynamicFeeOptions } from "./helpers/network-fee-fixture.mjs";
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -30,7 +31,7 @@ function fixture({askAmount=2n,bidAmount=2n,bps=100,wrapperProfile='native',limi
   const ask=row(askEntry,askPlan.askState),bid=row(bidEntry,bidPlan.bidState);
   const request={schema:'kcc20-in-process-pskt-builder-input/v1',request:{builderKey:'kcc20orderbook.matcher-settle-crossed',network,owner:{walletAddress:matcher.address,kcc20Owner:matcher.owner},params:{canonicalTokenId:tokenId,wrappedMarketId:marketId,activeAskOrderUtxo:ask,activeBidOrderUtxo:bid,maxFeeSompi:limit}}};
   const submitted=[];
-  const engine=createKcc20PsktBuilderEngine({wasm:kw,artifacts:artifactMap,allowBackendOnly:true,
+  const engine=createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(),wasm:kw,artifacts:artifactMap,allowBackendOnly:true,
     config:{KCC20_WRAPPER_OPERATOR_PRIVATE_KEY:'05'.padStart(64,'0')},
     rpcClientFactory:()=>({connect:async()=>{},disconnect:async()=>{},getUtxosByAddresses:async({addresses})=>({entries:addresses.includes(matcher.address)?[funding]:[askEntry,bidEntry]}),submitTransaction:async({transaction})=>{submitted.push(transaction);return {transactionId:'0d'.repeat(32)};}})});
   return {engine,request,submitted,askEntry,bidEntry,funding,ask,bid};
@@ -39,6 +40,7 @@ for (const [askAmount,bidAmount] of [[2n,2n],[3n,2n],[2n,3n]]) {
   for (const bps of [0,100,500]) test(`fee cross ${askAmount} asks / ${bidAmount} bids at ${bps} creator bps preserves payouts`,async()=>{
     const f=fixture({askAmount,bidAmount,bps});const b=await f.engine.build(f.request);
     assert.equal(f.submitted.length,1);
+    assertSignedPriorityFee(kw, b, b.psktTransactionJson);
     if (process.env.FEE_CROSS_FIXTURE_DIR && bps === 100) {
       const raw=JSON.parse(b.psktTransactionJson);
       const tx={transaction_id:b.submittedTxidHex,inputs:raw.inputs.map((i,n)=>({previous_outpoint_hash:i.transactionId,previous_outpoint_index:String(i.index),previous_outpoint_amount:String([f.askEntry,f.bidEntry,f.funding][n].amount),previous_outpoint_script:[f.askEntry,f.bidEntry,f.funding][n].scriptPublicKey.script,signature_script:i.signatureScript})),outputs:raw.outputs.map((o,index)=>({index,amount:String(o.value),script_public_key:o.scriptPublicKey.slice(4),covenant_id:o.covenant?.covenantId,covenant_authorizing_input:o.covenant?.authorizingInput}))};

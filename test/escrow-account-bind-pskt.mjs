@@ -1,3 +1,4 @@
+import { assertSignedPriorityFee, dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -54,7 +55,7 @@ function fixture(mutate = () => {}) {
   };
   const fixture = { initial, indexed, request, accountEntry, fundingEntry, walletEntries, accountAddress };
   mutate(fixture);
-  const engine = createKcc20PsktBuilderEngine({
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(),
     wasm: kw, artifacts: { "KCC20FeeEscrowV1.placeholder.json": artifact },
     rpcClientFactory: () => ({
       connect: async () => {}, disconnect: async () => {},
@@ -87,6 +88,7 @@ function signedMassAndPaidFee(f, built) {
     { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee account bind");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee account bind");
   const paidFee = principalSompi + f.fundingEntry.amount -
@@ -193,7 +195,7 @@ test("fee account binding builds a wallet-signable v1 PSKT and preserves princip
 });
 
 test("small funding pays the final signed storage fee or fails before signing", async () => {
-  const enough = fixture(({ fundingEntry }) => { fundingEntry.amount = 30000000n; });
+  const enough = fixture(({ fundingEntry }) => { fundingEntry.amount = dynamicFeeFunding(30000000n, 100000000n); });
   const built = await enough.engine.build(enough.request);
   const { transactionMass, storageMass, paidFee } = signedMassAndPaidFee(enough, built);
   assert(transactionMass <= 450000n);

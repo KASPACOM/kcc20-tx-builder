@@ -1,3 +1,4 @@
+import { assertSignedPriorityFee, dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { signFeeAuthorityBuild, feeSigningHash } from "./helpers/fee-authority-signing.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -106,7 +107,7 @@ function fixture(amount = 10n, wrap = 5n, marketPolicy = policy,
       params: { wrapperVersion, marketId, contractCanonicalTokenId: tokenId,
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: wrap.toString(),
         feePolicy: marketPolicy, policyId: genesis.policyId, tokenUtxo: source, wrapperUtxo } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -151,6 +152,7 @@ test("fee-market partial wrap signs exact reserve, holder and wrapper outputs", 
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market wrap");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market wrap");
   assert(transactionMass <= 450000n);
@@ -264,7 +266,7 @@ function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0, wrapperProfile = "
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: unwrapAmount.toString(),
         feePolicy: marketPolicy, policyId: genesis.policyId,
         wrappedUtxo, reserveUtxo, wrapperUtxo } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -320,7 +322,7 @@ function mergeFixture(count = 3, wrapperVersion = 1) {
       feePolicy: marketPolicy, policyId: genesis.policyId, holderUtxos,
     },
   } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2 },
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw, artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2 },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({ entries:
         addresses.includes(wallet) ? [fundingEntry] : entries }),
@@ -359,6 +361,7 @@ test("creator-fee holders merge three UTXOs with exact deposit refund and signed
   }
   signed.inputs[3].signatureScript = kw.createInputSignature(signed, 3,
     key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { computeMass, transientMass } = f.engine.protocol.calculateToccataV1NonContextualMass(
     signed, "fee-market holder merge");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed,
@@ -412,6 +415,7 @@ test("fee-market full unwrap returns the exact holder deposit and native reserve
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[3].signatureScript = kw.createInputSignature(signed, 3, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market unwrap");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market unwrap");
   assert(transactionMass <= 450000n);
@@ -504,6 +508,7 @@ test("fee-market ask creation signs the exact order and holder change", async ()
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market ask");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market ask");
   assert(non.transactionMass <= 450000n);
@@ -579,6 +584,7 @@ test("fee-market cancel ask signs the exact holder restoration and deposit", asy
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market cancel ask");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market cancel ask");
   assert(non.transactionMass <= 450000n);
@@ -610,7 +616,7 @@ function bidFixture(wrapperProfile = "native") {
         feeTicketId: "00".repeat(32), priceScale: "1",
         bidAmount: "5", bidUnitPriceSompi: "100000000",
         feePolicy: policy, policyId: binding.genesis.policyId, rootUtxo } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -634,6 +640,7 @@ test("fee-market bid creation signs exact 2 KAS deposit and preserves root", asy
     f.binding.root.scriptPublicKey.scriptHex);
   const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market create bid");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market create bid");
   assert(non.transactionMass <= 450000n);
@@ -685,6 +692,7 @@ test("fee-market cancel bid refunds gross and the full 2 KAS deposit", async () 
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market cancel bid");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market cancel bid");
   assert(non.transactionMass <= 450000n);
@@ -751,7 +759,7 @@ function buyAskFixture(fillAmount = 5n, { useTicket = false,
         fillAmount: fillAmount.toString(), feePolicy: marketPolicy,
         policyId: genesis.policyId, askUtxo,
         ...(ticket ? { feeTicketUtxo: ticket.utxo } : {}) } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -783,6 +791,7 @@ function signBuyerTicketBuild(built) {
   const fundingIndex = built.signInputs[0].index;
   signed.inputs[fundingIndex].signatureScript = kw.createInputSignature(
     signed, fundingIndex, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   return signed;
 }
 
@@ -801,6 +810,7 @@ test("fee-market buyer fills an ask with one authenticated fee receipt", async (
   assert.equal(json.outputs[2].covenant.covenantId, marketId);
   const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market buy ask");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market buy ask");
   assert(non.transactionMass <= 450000n);
@@ -819,6 +829,7 @@ test("fee-market buyer burns one ticket and receives its exact deposit refund", 
   assert.equal(BigInt(json.outputs[2].value), f.ticket.entry.amount);
   assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);
   const signed = signBuyerTicketBuild(built);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = f.engine.protocol.calculateToccataV1NonContextualMass(signed,
     "fee-market ticket buy");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed,
@@ -850,7 +861,7 @@ test("fee-market buyer group fills two asks with one receipt and exact refunds",
   const secondEntry = { ...f.askEntry,
     outpoint: { transactionId: "1c".repeat(32), index: 0 } };
   const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -876,6 +887,7 @@ test("fee-market buyer group fills two asks with one receipt and exact refunds",
   assert.equal(BigInt(json.outputs[4].value), 100000000n);
   const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
   signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market two asks");
   const storage = engine.protocol.calculateToccataStorageMass(signed, "fee-market two asks");
   assert(mass.computeMass <= 450000n);
@@ -888,7 +900,7 @@ test("fee-market buyer group burns one ticket across both asks", async () => {
   const secondEntry = { ...f.askEntry,
     outpoint: { transactionId: "1c".repeat(32), index: 0 } };
   const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -911,6 +923,7 @@ test("fee-market buyer group burns one ticket across both asks", async () => {
   assert.equal(BigInt(json.outputs[4].value), f.ticket.entry.amount);
   assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
   const signed = signBuyerTicketBuild(built);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = engine.protocol.calculateToccataV1NonContextualMass(signed,
     "fee-market ticket buyer group");
   const storage = engine.protocol.calculateToccataStorageMass(signed,
@@ -925,7 +938,7 @@ test("fee-market buyer group burns one ticket and preserves per-fill creator fee
   const secondEntry = { ...f.askEntry,
     outpoint: { transactionId: "1c".repeat(32), index: 0 } };
   const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -950,6 +963,7 @@ test("fee-market buyer group burns one ticket and preserves per-fill creator fee
   assert.equal(BigInt(json.outputs[5].value), f.ticket.entry.amount);
   assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
   const signed = signBuyerTicketBuild(built);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = engine.protocol.calculateToccataV1NonContextualMass(signed,
     "fee-market ticket buyer group");
   const storage = engine.protocol.calculateToccataStorageMass(signed,
@@ -1075,7 +1089,7 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0, ena
     redeemScriptHex: hex(authorityScript), arguments: signedAuthority ? [{ type: "signature" }] : [], computeBudget: 30,
   };
   const rpcCalls = { connect: 0, read: 0, disconnect: 0 };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     walletSigningCapabilities: { schnorr: true, ecdsa: enabled },
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
@@ -1144,6 +1158,7 @@ test("fee-market protocol claim preserves creator share and account principal", 
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market claim");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market claim");
   assert(non.transactionMass <= 450000n);
@@ -1283,6 +1298,7 @@ function signImported(built) {
       .encodePayToScriptHashSignatureScript(args.drain());
   }
   for (const h of built.signInputs) tx.inputs[h.index].signatureScript = kw.createInputSignature(tx, h.index, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, tx);
   return tx;
 }
 for (const direction of ["wrap", "unwrap"]) for (const amount of [5n, 10n]) {
@@ -1375,7 +1391,7 @@ for (const useTicket of [false,true]) test(`Argent two-ask group ticket=${useTic
   const f = buyAskFixture(5n,{wrapperProfile:"argent",useTicket});
   const secondEntry={...f.askEntry,outpoint:{transactionId:"1c".repeat(32),index:0}};
   const secondAsk={...f.askUtxo,txidHex:secondEntry.outpoint.transactionId};
-  f.engine=createKcc20PsktBuilderEngine({wasm:kw,artifacts:artifactMap,
+  f.engine=createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(),wasm:kw,artifacts:artifactMap,
     rpcClientFactory:()=>({connect:async()=>{},disconnect:async()=>{},getUtxosByAddresses:async({addresses})=>({entries:addresses.flatMap(a=>a===wallet?[f.fundingEntry]:a===f.ticket?.utxo.address?[f.ticket.entry]:[f.askEntry,secondEntry])})})});
   f.request.request.builderKey="kcc20fee.buy-two-asks";f.request.request.params.asks=[f.askUtxo,secondAsk];
   const built=await f.engine.build(f.request);

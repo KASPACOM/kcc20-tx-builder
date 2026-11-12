@@ -76,7 +76,7 @@ export async function buildKcomClaimFinishSettlement({ options, kw, req, p, code
         String(tx.outputs[0].covenant?.covenantId) !== graphId ||
         tx.outputs[0].scriptPublicKey.script !== nextSpk.script || tx.outputs[0].value !== value ||
         tx.outputs[1].covenant || tx.outputs[1].scriptPublicKey.script !== sponsorSpk.script ||
-        tx.outputs[1].value <= 10000n || tx.outputs[1].value > change)
+        tx.outputs[1].value <= 10000n || tx.outputs[1].value > change + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM settlement fee adjustment changed a custody output or source");
     return {
       schema: "kcc20-in-process-pskt-builder-output/v1",

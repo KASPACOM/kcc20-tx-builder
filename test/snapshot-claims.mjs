@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
+import { createKcc20PsktBuilderEngine } from "../dist/index.js";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { loadPinnedKaspaWasm } from "./load-kaspa-wasm.mjs";
@@ -12,8 +13,8 @@ import {
   entitlementLeaf,
 } from "../dist/snapshot-signerless.js";
 import {
-  buildClaimUnsignedTransaction,
-  buildRecipientTransferUnsignedTransaction,
+  buildClaimUnsignedTransaction as originalbuildClaimUnsignedTransaction,
+  buildRecipientTransferUnsignedTransaction as originalbuildRecipientTransferUnsignedTransaction,
   buildSnapshotControllerScriptForState,
 } from "../dist/snapshot-signerless-transactions.js";
 
@@ -25,6 +26,24 @@ const [kcc20, controller, bootstrap] = await Promise.all([
   readJson("artifacts/KCC20SnapshotBootstrap.placeholder.json"),
 ]);
 const kw = await loadPinnedKaspaWasm(process.env.SNAPSHOT_TEST_WASM);
+const feeEngine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: {}, networkFeeQuote: { network: 'testnet-10', source: 'snapshot-claim-fixture', observedAtMs: Date.now(), tier: 'priority', sompiPerNormalizedMass: '250.125' } });
+let pricedClaims = 0;
+function checkClaimPricing(original, args) {
+  const built = original(...args);
+  const before = JSON.parse(built.transaction.serializeToSafeJSON());
+  const change = before.outputs.length - 1;
+  const tx = feeEngine.protocol.transactionWithCalculatedFeeChange(kw, built.transaction, change, 'testnet-10', 'snapshot claim fee regression');
+  const after = JSON.parse(tx.serializeToSafeJSON());
+  assert.deepEqual(after.outputs.slice(0,change), before.outputs.slice(0,change));
+  assert.deepEqual(after.inputs, before.inputs);
+  const quote = feeEngine.protocol.networkFeeSummary(tx);
+  const paid = after.inputs.reduce((n,i)=>n+BigInt(i.utxo.amount),0n)-after.outputs.reduce((n,o)=>n+BigInt(o.value),0n);
+  assert(paid >= BigInt(quote.requiredFeeSompi));
+  pricedClaims++;
+  return built;
+}
+const buildClaimUnsignedTransaction = (...args) => checkClaimPricing(originalbuildClaimUnsignedTransaction,args);
+const buildRecipientTransferUnsignedTransaction = (...args) => checkClaimPricing(originalbuildRecipientTransferUnsignedTransaction,args);
 const bytes = (value) => Uint8Array.from({ length: 32 }, () => value);
 const hex = (value) => Buffer.from(value).toString("hex");
 const migration = bytes(0x33);
@@ -554,3 +573,6 @@ assert.equal(p2shTransfer.networkValidationRequired, true);
 assert.equal(p2shTransfer.readyForSigning, false);
 
 console.log("signerless snapshot claim and recipient transaction tests passed");
+
+assert(pricedClaims >= 2);
+console.log(`snapshot claim/transfer priority conservation passed: ${pricedClaims} shapes`);

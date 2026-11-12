@@ -324,6 +324,121 @@
           "entrypoint": null
         }
       ]
+    },
+    {
+      "name": "ask-priority-final",
+      "txid": "8ae4531714cb848c1f0af1351666c1cd2ddbcc5573d2a0100779117998c8812a",
+      "builderSourceRevision": "0cb7cbb8c6762fc1309d70f4cb5107758a9e48b5",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794514416438,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "106.52196378212349"
+      },
+      "signedMass": {
+        "computeMass": "156680",
+        "transientMass": "491800",
+        "storageMass": "76059",
+        "normalizedMass": "245900"
+      },
+      "feeSompi": "26240621",
+      "broadcastStartedAt": "2026-11-12T20:13:36.747Z",
+      "acceptedBlockTimeMs": 1794514417669,
+      "elapsedToBlockTimeMs": 922,
+      "indexerObservedAt": "2026-11-12T20:19:21.889658+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "createAsk"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "name": "buy-priority-final",
+      "txid": "5caba5b44698d3d6b79c4e541d4c4d980db73191fa7e3dbbf6fd10681445ab96",
+      "builderSourceRevision": "0cb7cbb8c6762fc1309d70f4cb5107758a9e48b5",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794514419856,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "100"
+      },
+      "signedMass": {
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "storageMass": "162778",
+        "normalizedMass": "302282"
+      },
+      "feeSompi": "30250200",
+      "broadcastStartedAt": "2026-11-12T20:13:40.200Z",
+      "acceptedBlockTimeMs": 1794514424712,
+      "elapsedToBlockTimeMs": 4512,
+      "indexerObservedAt": "2026-11-12T20:19:22.008922+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "buyAsks"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "name": "claim-priority-final",
+      "txid": "4b32248bd7c6997f2e6a9f2088b53c8a93241f858864af779bd3e3f7fc80e737",
+      "builderSourceRevision": "0cb7cbb8c6762fc1309d70f4cb5107758a9e48b5",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794514506454,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "108.79592388900605"
+      },
+      "signedMass": {
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "storageMass": "48668",
+        "normalizedMass": "102824"
+      },
+      "feeSompi": "11258638",
+      "broadcastStartedAt": "2026-11-12T20:15:06.554Z",
+      "acceptedBlockTimeMs": 1794514507061,
+      "elapsedToBlockTimeMs": 507,
+      "indexerObservedAt": "2026-11-12T20:19:22.121833+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "claim"
+        },
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "authorize"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
     }
   ],
   "conservation": {

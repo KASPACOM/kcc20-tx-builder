@@ -1,3 +1,4 @@
+import { assertSignedPriorityFee, dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
@@ -109,7 +110,7 @@ function fixture(count, { partialFirst = false, holderExtra = 0, useTicket = fal
       state: { stateOwner: owner, ownerScheme: 0, stateMode: 2,
         utilityTokenId, denomination: "1" } } };
   })() : null;
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: artifactMap,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw, artifacts: artifactMap,
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({
         entries: addresses.flatMap(address => byAddress.get(address) || []),
@@ -152,6 +153,7 @@ function signBuilt(built, f) {
   const fundingIndex = built.signInputs[0].index;
   tx.inputs[fundingIndex].signatureScript = kw.createInputSignature(
     tx, fundingIndex, ownerKey, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, tx);
   return tx;
 }
 
@@ -295,7 +297,7 @@ test("partial ten-bid sale selects a fitting wallet UTXO without changing payout
     creatorFeeBps: 100, bidPriceSompi: 200_000_000n });
   f.fundingEntry.amount = 230_000_000_000n;
   const alternative = { ...f.fundingEntry,
-    outpoint: { transactionId: "ef".repeat(32), index: 0 }, amount: 150_000_000n };
+    outpoint: { transactionId: "ef".repeat(32), index: 0 }, amount: dynamicFeeFunding(150_000_000n, 200_000_000n) };
   f.fundingEntries.push(...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,
     outpoint: { transactionId: (100 + i).toString(16).repeat(32), index: 0 },
     amount: 60_000_000n })), ...Array.from({ length: 12 }, (_, i) => ({ ...f.fundingEntry,

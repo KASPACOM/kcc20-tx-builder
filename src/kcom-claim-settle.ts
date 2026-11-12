@@ -197,7 +197,7 @@ export async function buildKcomClaimSettle({ options, kw, req, p, codec, graphId
         String(tx.outputs[1].covenant?.covenantId) !== graphId ||
         tx.outputs[1].scriptPublicKey.script !== entitlementSpk.script || tx.outputs[1].value !== commitmentValue ||
         tx.outputs[2].covenant || tx.outputs[2].scriptPublicKey.script !== sponsorSpk.script ||
-        tx.outputs[2].value <= 10000n || tx.outputs[2].value > change)
+        tx.outputs[2].value <= 10000n || tx.outputs[2].value > change + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM settlement fee adjustment changed an entitlement or source");
     return { schema: "kcc20-in-process-pskt-builder-output/v1",
       psktTransactionJson: tx.serializeToSafeJSON(), signInputs: [{ index: 2, sighashType: 1 }],
