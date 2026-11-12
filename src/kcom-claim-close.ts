@@ -87,7 +87,7 @@ export async function buildKcomClaimClose({ options, kw, req, p, codec, graphId,
         String(tx.outputs[0].covenant?.covenantId) !== graphId ||
         tx.outputs[0].scriptPublicKey.script !== nextSpkHex || tx.outputs[0].value !== value ||
         tx.outputs[1].covenant || tx.outputs[1].scriptPublicKey.script !== sponsorSpkHex ||
-        tx.outputs[1].value <= 10000n || tx.outputs[1].value > change)
+        tx.outputs[1].value <= 10000n || tx.outputs[1].value > change + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM close fee adjustment changed a custody output or source");
     const { adminSigning } = finishKcomAdminIntent({ kw, tx, params: p, codec,
       sourceScript, actor: "KCOMClaimShard", entry: "close", publicKeys, approvals });

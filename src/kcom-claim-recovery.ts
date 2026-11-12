@@ -131,7 +131,7 @@ export async function buildKcomClaimRecovery({ options, kw, req, p, codec, graph
           String(out.covenant?.covenantId ?? "") !== expectedOutputs[i].covenantId ||
           (i < outputs.length - 1 && out.value !== expectedOutputs[i].value)) ||
         tx.outputs.at(-1).value <= 10000n ||
-        tx.outputs.at(-1).value > expectedOutputs.at(-1).value)
+        tx.outputs.at(-1).value > expectedOutputs.at(-1).value + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM recovery fee adjustment changed a custody output or source");
     const { adminSigning } = finishKcomAdminIntent({ kw, tx, params: p, codec,
       sourceScript: vaultScript, actor: "KCOMVault", entry, publicKeys, approvals, appendExplicit });

@@ -1,4 +1,4 @@
-import { dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
+import { assertSignedPriorityFee, dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
@@ -153,6 +153,7 @@ function signBuilt(built, f) {
   const fundingIndex = built.signInputs[0].index;
   tx.inputs[fundingIndex].signatureScript = kw.createInputSignature(
     tx, fundingIndex, ownerKey, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, tx);
   return tx;
 }
 

@@ -1,4 +1,4 @@
-import { dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
+import { assertSignedPriorityFee, dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -88,6 +88,7 @@ function signedMassAndPaidFee(f, built) {
     { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee account bind");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee account bind");
   const paidFee = principalSompi + f.fundingEntry.amount -

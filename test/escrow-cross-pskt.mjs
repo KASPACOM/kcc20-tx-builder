@@ -1,4 +1,4 @@
-import { dynamicFeeOptions } from "./helpers/network-fee-fixture.mjs";
+import { assertSignedPriorityFee, dynamicFeeOptions } from "./helpers/network-fee-fixture.mjs";
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -40,6 +40,7 @@ for (const [askAmount,bidAmount] of [[2n,2n],[3n,2n],[2n,3n]]) {
   for (const bps of [0,100,500]) test(`fee cross ${askAmount} asks / ${bidAmount} bids at ${bps} creator bps preserves payouts`,async()=>{
     const f=fixture({askAmount,bidAmount,bps});const b=await f.engine.build(f.request);
     assert.equal(f.submitted.length,1);
+    assertSignedPriorityFee(kw, b, b.psktTransactionJson);
     if (process.env.FEE_CROSS_FIXTURE_DIR && bps === 100) {
       const raw=JSON.parse(b.psktTransactionJson);
       const tx={transaction_id:b.submittedTxidHex,inputs:raw.inputs.map((i,n)=>({previous_outpoint_hash:i.transactionId,previous_outpoint_index:String(i.index),previous_outpoint_amount:String([f.askEntry,f.bidEntry,f.funding][n].amount),previous_outpoint_script:[f.askEntry,f.bidEntry,f.funding][n].scriptPublicKey.script,signature_script:i.signatureScript})),outputs:raw.outputs.map((o,index)=>({index,amount:String(o.value),script_public_key:o.scriptPublicKey.slice(4),covenant_id:o.covenant?.covenantId,covenant_authorizing_input:o.covenant?.authorizingInput}))};

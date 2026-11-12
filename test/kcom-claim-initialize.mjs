@@ -95,3 +95,21 @@ await assert.rejects(builder(request("kcom-claim.deploy-initializer", { ...base,
 await assert.rejects(builder(request("kcom-claim.initialize", { ...initializeParams,
   initializer: { ...initializer.outpoint, index: 1 } })), /SOURCE_STALE/);
 console.log("ok KCOM initializer deploy and two-admin graph creation preserve reviewed terms and manifest");
+
+// Dynamic pricing can return the obsolete fixed fee reserve to sponsor change.
+// Custody and identity checks still reject changes to every protected output.
+const { createKcc20PsktBuilderEngine } = await import('../dist/index.js');
+const dynamic = createKcc20PsktBuilderEngine({ ...options, networkFeeQuoteProvider: async network => ({
+  network, source: 'offline-fixture', observedAtMs: Date.now(), tier: 'priority',
+  sompiPerNormalizedMass: '100',
+}) });
+const priced = await dynamic.build(request('kcom-claim.deploy-initializer',
+  { ...base, initializerValueSompi: '600000000' }));
+const pricedTx = kw.Transaction.deserializeFromSafeJSON(priced.psktTransactionJson);
+pricedTx.inputs[0].signatureScript = kw.createInputSignature(pricedTx, 0, sponsorKey, kw.SighashType.All);
+const verified = dynamic.verifySignedNetworkFee(pricedTx.serializeToSafeJSON(), priced.networkFee.quote);
+assert.equal(pricedTx.outputs[0].value, deployTx.outputs[0].value);
+assert.equal(pricedTx.outputs[0].scriptPublicKey.script, deployTx.outputs[0].scriptPublicKey.script);
+assert.ok(pricedTx.outputs[1].value > deployTx.outputs[1].value);
+assert.ok(BigInt(verified.paidFeeSompi) >= BigInt(verified.requiredFeeSompi));
+console.log('ok dynamic KCOM initializer returns unused fee reserve without changing custody');

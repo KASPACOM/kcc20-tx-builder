@@ -152,7 +152,7 @@ export async function buildKcomClaimCollect({ options, kw, req, p, codec, graphI
         String(tx.outputs[0].covenant?.covenantId) !== graphId ||
         tx.outputs[0].scriptPublicKey.script !== nextScriptHex || tx.outputs[0].value !== value ||
         tx.outputs[1].covenant || tx.outputs[1].scriptPublicKey.script !== sponsorScriptHex ||
-        tx.outputs[1].value <= 10000n || tx.outputs[1].value > change)
+        tx.outputs[1].value <= 10000n || tx.outputs[1].value > change + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM collection fee adjustment changed a custody output or source");
     return {
       schema: "kcc20-in-process-pskt-builder-output/v1",

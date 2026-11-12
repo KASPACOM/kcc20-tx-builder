@@ -1,4 +1,4 @@
-import { dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
+import { assertSignedPriorityFee, dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -58,6 +58,7 @@ function sign(built, mutate = () => {}){
     tx.inputs[hint.inputIndex].signatureScript=kw.ScriptBuilder.fromScript(Buffer.from(hint.scriptHex,'hex'),{flags:{covenantsEnabled:true}}).encodePayToScriptHashSignatureScript(b.drain());
   }
   for(const input of built.signInputs)tx.inputs[input.index].signatureScript=kw.createInputSignature(tx,input.index,key,kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, tx);
   return tx;
 }
 for(const count of [1,2,3,4,5])for(const party of ['protocol','creator'])for(const other of [true,false]){

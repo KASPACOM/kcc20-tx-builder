@@ -171,7 +171,7 @@ export async function buildKcomClaimActivation({ options, kw, req, p, codec, gra
           (out.value !== expectedOutputs[i].value && i !== outputs.length - 1) ||
           out.scriptPublicKey.script !== expectedOutputs[i].script ||
           String(out.covenant?.covenantId ?? "") !== expectedIds[i]) ||
-        tx.outputs.at(-1).value <= 10000n || tx.outputs.at(-1).value > expectedOutputs.at(-1).value ||
+        tx.outputs.at(-1).value <= 10000n || tx.outputs.at(-1).value > expectedOutputs.at(-1).value + (options.networkFeeQuote ? FEE - 1n : 0n) ||
         tx.inputs.length !== 4 ||
         [vault, entitlement, token, funding].some((entry, i) =>
           String(tx.inputs[i].previousOutpoint.transactionId) !== String(entry.outpoint.transactionId) ||

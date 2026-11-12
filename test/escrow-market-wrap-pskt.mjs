@@ -1,4 +1,4 @@
-import { dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
+import { assertSignedPriorityFee, dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { signFeeAuthorityBuild, feeSigningHash } from "./helpers/fee-authority-signing.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -152,6 +152,7 @@ test("fee-market partial wrap signs exact reserve, holder and wrapper outputs", 
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market wrap");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market wrap");
   assert(transactionMass <= 450000n);
@@ -360,6 +361,7 @@ test("creator-fee holders merge three UTXOs with exact deposit refund and signed
   }
   signed.inputs[3].signatureScript = kw.createInputSignature(signed, 3,
     key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { computeMass, transientMass } = f.engine.protocol.calculateToccataV1NonContextualMass(
     signed, "fee-market holder merge");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed,
@@ -413,6 +415,7 @@ test("fee-market full unwrap returns the exact holder deposit and native reserve
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[3].signatureScript = kw.createInputSignature(signed, 3, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const { transactionMass } = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market unwrap");
   const storageMass = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market unwrap");
   assert(transactionMass <= 450000n);
@@ -505,6 +508,7 @@ test("fee-market ask creation signs the exact order and holder change", async ()
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market ask");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market ask");
   assert(non.transactionMass <= 450000n);
@@ -580,6 +584,7 @@ test("fee-market cancel ask signs the exact holder restoration and deposit", asy
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market cancel ask");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market cancel ask");
   assert(non.transactionMass <= 450000n);
@@ -635,6 +640,7 @@ test("fee-market bid creation signs exact 2 KAS deposit and preserves root", asy
     f.binding.root.scriptPublicKey.scriptHex);
   const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market create bid");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market create bid");
   assert(non.transactionMass <= 450000n);
@@ -686,6 +692,7 @@ test("fee-market cancel bid refunds gross and the full 2 KAS deposit", async () 
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market cancel bid");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market cancel bid");
   assert(non.transactionMass <= 450000n);
@@ -784,6 +791,7 @@ function signBuyerTicketBuild(built) {
   const fundingIndex = built.signInputs[0].index;
   signed.inputs[fundingIndex].signatureScript = kw.createInputSignature(
     signed, fundingIndex, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   return signed;
 }
 
@@ -802,6 +810,7 @@ test("fee-market buyer fills an ask with one authenticated fee receipt", async (
   assert.equal(json.outputs[2].covenant.covenantId, marketId);
   const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
   signed.inputs[1].signatureScript = kw.createInputSignature(signed, 1, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market buy ask");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market buy ask");
   assert(non.transactionMass <= 450000n);
@@ -820,6 +829,7 @@ test("fee-market buyer burns one ticket and receives its exact deposit refund", 
   assert.equal(BigInt(json.outputs[2].value), f.ticket.entry.amount);
   assert.deepEqual(built.signInputs, [{ index: 2, sighashType: 1 }]);
   const signed = signBuyerTicketBuild(built);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = f.engine.protocol.calculateToccataV1NonContextualMass(signed,
     "fee-market ticket buy");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed,
@@ -877,6 +887,7 @@ test("fee-market buyer group fills two asks with one receipt and exact refunds",
   assert.equal(BigInt(json.outputs[4].value), 100000000n);
   const signed = kw.Transaction.deserializeFromSafeJSON(built.psktTransactionJson);
   signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market two asks");
   const storage = engine.protocol.calculateToccataStorageMass(signed, "fee-market two asks");
   assert(mass.computeMass <= 450000n);
@@ -912,6 +923,7 @@ test("fee-market buyer group burns one ticket across both asks", async () => {
   assert.equal(BigInt(json.outputs[4].value), f.ticket.entry.amount);
   assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
   const signed = signBuyerTicketBuild(built);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = engine.protocol.calculateToccataV1NonContextualMass(signed,
     "fee-market ticket buyer group");
   const storage = engine.protocol.calculateToccataStorageMass(signed,
@@ -951,6 +963,7 @@ test("fee-market buyer group burns one ticket and preserves per-fill creator fee
   assert.equal(BigInt(json.outputs[5].value), f.ticket.entry.amount);
   assert.deepEqual(built.signInputs, [{ index: 3, sighashType: 1 }]);
   const signed = signBuyerTicketBuild(built);
+  assertSignedPriorityFee(kw, built, signed);
   const mass = engine.protocol.calculateToccataV1NonContextualMass(signed,
     "fee-market ticket buyer group");
   const storage = engine.protocol.calculateToccataStorageMass(signed,
@@ -1145,6 +1158,7 @@ test("fee-market protocol claim preserves creator share and account principal", 
     Buffer.from(script.scriptHex, "hex"), { flags: { covenantsEnabled: true } },
   ).encodePayToScriptHashSignatureScript(args.drain());
   signed.inputs[2].signatureScript = kw.createInputSignature(signed, 2, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, signed);
   const non = f.engine.protocol.calculateToccataV1NonContextualMass(signed, "fee-market claim");
   const storage = f.engine.protocol.calculateToccataStorageMass(signed, "fee-market claim");
   assert(non.transactionMass <= 450000n);
@@ -1284,6 +1298,7 @@ function signImported(built) {
       .encodePayToScriptHashSignatureScript(args.drain());
   }
   for (const h of built.signInputs) tx.inputs[h.index].signatureScript = kw.createInputSignature(tx, h.index, key, kw.SighashType.All);
+  assertSignedPriorityFee(kw, built, tx);
   return tx;
 }
 for (const direction of ["wrap", "unwrap"]) for (const amount of [5n, 10n]) {

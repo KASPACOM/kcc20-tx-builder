@@ -96,7 +96,7 @@ export async function buildKcomClaimOpen({ options, kw, req, p, codec, graphId, 
         tx.outputs[1].value !== vaultValue || tx.outputs[1].scriptPublicKey.script !== vaultSpkHex ||
         String(tx.outputs[1].covenant?.covenantId) !== graphId ||
         tx.outputs[2].covenant || tx.outputs[2].scriptPublicKey.script !== sponsorSpkHex ||
-        tx.outputs[2].value <= 10000n || tx.outputs[2].value > change)
+        tx.outputs[2].value <= 10000n || tx.outputs[2].value > change + (options.networkFeeQuote ? FEE - 1n : 0n))
       throw new Error("KCOM open fee adjustment changed a custody output or source");
     const { adminSigning } = finishKcomAdminIntent({ kw, tx, params: p, codec,
       sourceScript: factoryScript, actor: "KCOMFactory", entry: "open", publicKeys, approvals });
