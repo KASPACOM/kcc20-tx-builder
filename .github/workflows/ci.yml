@@ -24,6 +24,8 @@ jobs:
           npm exec --prefix examples -- playwright install --with-deps --only-shell chromium
       - name: Test packed package in Node and browser
         run: npm run test:examples
+      - name: Verify dynamic priority fees across trading and claims
+        run: npm run test:network-fee:matrix
       - name: Verify public integration documentation
         run: npm run build && node scripts/verify-public-docs.mjs
       - name: Verify snapshot transactions with pinned WASM

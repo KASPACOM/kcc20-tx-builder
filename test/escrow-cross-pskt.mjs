@@ -1,3 +1,4 @@
+import { dynamicFeeOptions } from "./helpers/network-fee-fixture.mjs";
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -30,7 +31,7 @@ function fixture({askAmount=2n,bidAmount=2n,bps=100,wrapperProfile='native',limi
   const ask=row(askEntry,askPlan.askState),bid=row(bidEntry,bidPlan.bidState);
   const request={schema:'kcc20-in-process-pskt-builder-input/v1',request:{builderKey:'kcc20orderbook.matcher-settle-crossed',network,owner:{walletAddress:matcher.address,kcc20Owner:matcher.owner},params:{canonicalTokenId:tokenId,wrappedMarketId:marketId,activeAskOrderUtxo:ask,activeBidOrderUtxo:bid,maxFeeSompi:limit}}};
   const submitted=[];
-  const engine=createKcc20PsktBuilderEngine({wasm:kw,artifacts:artifactMap,allowBackendOnly:true,
+  const engine=createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(),wasm:kw,artifacts:artifactMap,allowBackendOnly:true,
     config:{KCC20_WRAPPER_OPERATOR_PRIVATE_KEY:'05'.padStart(64,'0')},
     rpcClientFactory:()=>({connect:async()=>{},disconnect:async()=>{},getUtxosByAddresses:async({addresses})=>({entries:addresses.includes(matcher.address)?[funding]:[askEntry,bidEntry]}),submitTransaction:async({transaction})=>{submitted.push(transaction);return {transactionId:'0d'.repeat(32)};}})});
   return {engine,request,submitted,askEntry,bidEntry,funding,ask,bid};

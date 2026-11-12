@@ -1,3 +1,4 @@
+import { dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -36,7 +37,7 @@ function fixture(count=1,party='creator',other=true){
   const funding={outpoint:{transactionId:id(22),index:0},amount:1000000000n,scriptPublicKey:kw.payToAddressScript(wallet),blockDaaScore:0n,isCoinbase:false};
   const request={schema:'kcc20-in-process-pskt-builder-input/v1',request:{builderKey:'kcc20fee.claim',network:'testnet-10',owner:{walletAddress:wallet,kcc20Owner:owner},
     params:{contractCanonicalTokenId:tokenId,marketId,policyId,protocolAccountId,creatorAccountId,party,receipts,account:indexedAccount,recipient:indexedRecipient}}};
-  const engine=createKcc20PsktBuilderEngine({wasm:kw,artifacts,rpcClientFactory:()=>({connect:async()=>{},disconnect:async()=>{},
+  const engine=createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(),wasm:kw,artifacts,rpcClientFactory:()=>({connect:async()=>{},disconnect:async()=>{},
     getUtxosByAddresses:async({addresses})=>({entries:addresses.includes(wallet)?[funding]:covenantEntries})})});
   return {request,engine,covenantEntries,funding};
 }

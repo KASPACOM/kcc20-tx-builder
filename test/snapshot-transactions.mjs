@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
+import { createKcc20PsktBuilderEngine } from "../dist/index.js";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { loadPinnedKaspaWasm } from "./load-kaspa-wasm.mjs";
@@ -14,9 +15,9 @@ import {
   ZERO_32,
 } from "../dist/snapshot-signerless.js";
 import {
-  buildBootstrapGenesisUnsignedTransaction,
-  buildControllerGenesisUnsignedTransaction,
-  buildSnapshotStartUnsignedTransaction,
+  buildBootstrapGenesisUnsignedTransaction as originalbuildBootstrapGenesisUnsignedTransaction,
+  buildControllerGenesisUnsignedTransaction as originalbuildControllerGenesisUnsignedTransaction,
+  buildSnapshotStartUnsignedTransaction as originalbuildSnapshotStartUnsignedTransaction,
   buildSnapshotBootstrapScriptForState,
   buildSnapshotControllerScriptForState,
   assertSnapshotStartPredictedSignedMass,
@@ -35,6 +36,26 @@ const [bootstrapArtifact, controllerArtifact, kcc20Artifact, standardsLock] = aw
   readJson("artifacts/snapshot-standards.lock.json"),
 ]);
 const kw = await loadPinnedKaspaWasm(process.env.SNAPSHOT_TEST_WASM);
+const priorityEngine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: {},
+  networkFeeQuote: { network: 'testnet-10', source: 'snapshot-fixture', observedAtMs: Date.now(), tier: 'priority', sompiPerNormalizedMass: '250.125' } });
+let priorityShapes = 0;
+function checkPriorityConstruction(original, args) {
+  const built = original(...args);
+  const before = JSON.parse(built.transaction.serializeToSafeJSON());
+  const changeIndex = before.outputs.length - 1;
+  const adjusted = priorityEngine.protocol.transactionWithCalculatedFeeChange(kw, built.transaction, changeIndex, 'testnet-10', 'snapshot priority regression');
+  const after = JSON.parse(adjusted.serializeToSafeJSON());
+  assert.deepEqual(after.outputs.slice(0, changeIndex), before.outputs.slice(0, changeIndex), 'snapshot principals and recipients must not fund fees');
+  assert.deepEqual(after.inputs, before.inputs);
+  const summary = priorityEngine.protocol.networkFeeSummary(adjusted);
+  const paid = after.inputs.reduce((n,i)=>n+BigInt(i.utxo.amount),0n)-after.outputs.reduce((n,o)=>n+BigInt(o.value),0n);
+  assert(paid >= BigInt(summary.requiredFeeSompi));
+  priorityShapes++;
+  return built;
+}
+const buildBootstrapGenesisUnsignedTransaction = (...args) => checkPriorityConstruction(originalbuildBootstrapGenesisUnsignedTransaction,args);
+const buildControllerGenesisUnsignedTransaction = (...args) => checkPriorityConstruction(originalbuildControllerGenesisUnsignedTransaction,args);
+const buildSnapshotStartUnsignedTransaction = (...args) => checkPriorityConstruction(originalbuildSnapshotStartUnsignedTransaction,args);
 const bytes = (value) => Uint8Array.from({ length: 32 }, () => value);
 const hex = (value) => Buffer.from(value).toString("hex");
 const migration = bytes(0x10);
@@ -446,3 +467,6 @@ for (const cellSompi of ['', '0', '-1', '49999999', '050000000', '50000000.0', '
   }, artifacts), /cellSompi/, String(cellSompi));
 }
 console.log('explicit 0.5 KAS and default 2 KAS deployment principals verified without changing mass gates');
+
+assert(priorityShapes >= 10);
+console.log(`snapshot priority conservation passed for ${priorityShapes} transaction shapes`);

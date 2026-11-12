@@ -1,3 +1,4 @@
+import { dynamicFeeOptions, dynamicFeeFunding } from "./helpers/network-fee-fixture.mjs";
 import { signFeeAuthorityBuild, feeSigningHash } from "./helpers/fee-authority-signing.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -106,7 +107,7 @@ function fixture(amount = 10n, wrap = 5n, marketPolicy = policy,
       params: { wrapperVersion, marketId, contractCanonicalTokenId: tokenId,
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: wrap.toString(),
         feePolicy: marketPolicy, policyId: genesis.policyId, tokenUtxo: source, wrapperUtxo } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -264,7 +265,7 @@ function unwrapFixture(unwrapAmount = 10n, creatorFeeBps = 0, wrapperProfile = "
         feeTicketId: "00".repeat(32), priceScale: "1", tokenAmount: unwrapAmount.toString(),
         feePolicy: marketPolicy, policyId: genesis.policyId,
         wrappedUtxo, reserveUtxo, wrapperUtxo } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -320,7 +321,7 @@ function mergeFixture(count = 3, wrapperVersion = 1) {
       feePolicy: marketPolicy, policyId: genesis.policyId, holderUtxos,
     },
   } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw, artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2 },
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw, artifacts: { ...artifactMap, "KCC20WrapperFeeV2.placeholder.json": wrapperV2 },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
       getUtxosByAddresses: async ({ addresses }) => ({ entries:
         addresses.includes(wallet) ? [fundingEntry] : entries }),
@@ -610,7 +611,7 @@ function bidFixture(wrapperProfile = "native") {
         feeTicketId: "00".repeat(32), priceScale: "1",
         bidAmount: "5", bidUnitPriceSompi: "100000000",
         feePolicy: policy, policyId: binding.genesis.policyId, rootUtxo } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -751,7 +752,7 @@ function buyAskFixture(fillAmount = 5n, { useTicket = false,
         fillAmount: fillAmount.toString(), feePolicy: marketPolicy,
         policyId: genesis.policyId, askUtxo,
         ...(ticket ? { feeTicketUtxo: ticket.utxo } : {}) } } };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -850,7 +851,7 @@ test("fee-market buyer group fills two asks with one receipt and exact refunds",
   const secondEntry = { ...f.askEntry,
     outpoint: { transactionId: "1c".repeat(32), index: 0 } };
   const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -888,7 +889,7 @@ test("fee-market buyer group burns one ticket across both asks", async () => {
   const secondEntry = { ...f.askEntry,
     outpoint: { transactionId: "1c".repeat(32), index: 0 } };
   const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -925,7 +926,7 @@ test("fee-market buyer group burns one ticket and preserves per-fill creator fee
   const secondEntry = { ...f.askEntry,
     outpoint: { transactionId: "1c".repeat(32), index: 0 } };
   const secondAsk = { ...f.askUtxo, txidHex: secondEntry.outpoint.transactionId };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
     rpcClientFactory: () => ({ connect: async () => {}, disconnect: async () => {},
@@ -1075,7 +1076,7 @@ function claimFixture(party = "protocol", count = 1, accountOwnerScheme = 0, ena
     redeemScriptHex: hex(authorityScript), arguments: signedAuthority ? [{ type: "signature" }] : [], computeBudget: 30,
   };
   const rpcCalls = { connect: 0, read: 0, disconnect: 0 };
-  const engine = createKcc20PsktBuilderEngine({ wasm: kw,
+  const engine = createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(), wasm: kw,
     walletSigningCapabilities: { schnorr: true, ecdsa: enabled },
     artifacts: { ...artifactMap, "KCC20.placeholder.json": native,
       "ArgentKCC20.reference.json": argent },
@@ -1375,7 +1376,7 @@ for (const useTicket of [false,true]) test(`Argent two-ask group ticket=${useTic
   const f = buyAskFixture(5n,{wrapperProfile:"argent",useTicket});
   const secondEntry={...f.askEntry,outpoint:{transactionId:"1c".repeat(32),index:0}};
   const secondAsk={...f.askUtxo,txidHex:secondEntry.outpoint.transactionId};
-  f.engine=createKcc20PsktBuilderEngine({wasm:kw,artifacts:artifactMap,
+  f.engine=createKcc20PsktBuilderEngine({ ...dynamicFeeOptions(),wasm:kw,artifacts:artifactMap,
     rpcClientFactory:()=>({connect:async()=>{},disconnect:async()=>{},getUtxosByAddresses:async({addresses})=>({entries:addresses.flatMap(a=>a===wallet?[f.fundingEntry]:a===f.ticket?.utxo.address?[f.ticket.entry]:[f.askEntry,secondEntry])})})});
   f.request.request.builderKey="kcc20fee.buy-two-asks";f.request.request.params.asks=[f.askUtxo,secondAsk];
   const built=await f.engine.build(f.request);

@@ -32,9 +32,9 @@ transaction. Post-signing checks may reject a transaction but never rewrite it.
 - [x] Snapshot priority conservation: 30 bootstrap/controller/start shapes; existing claim suite passes.
 - [x] Dynamic legacy deploy, mint-lane, transfer and reveal cases: 8 passed.
 - [x] Snapshot claim/transfer fee conservation: 4 shapes.
-- [ ] Finish the legacy FeeTicket dynamic regression run.
-- [ ] Verify actual signed mass before wallet or backend broadcast.
-- [ ] Backend activation validation preserves the originally approved fee.
+- [x] Dynamic legacy FeeTicket structural regression: 5 passed with fee-dependent change and unchanged ticket/refund amounts.
+- [x] Verify actual signed mass before wallet or backend broadcast.
+- [x] Backend activation and saved public build receipts validate the supplied build quote.
 - [x] Browser polling, source replacement, timeout and wallet tests: 94 passed.
 - [ ] Independent review of final changes.
 - [x] Funded DEV deployment plus eight market/account/trade/claim transactions accepted and indexed.
