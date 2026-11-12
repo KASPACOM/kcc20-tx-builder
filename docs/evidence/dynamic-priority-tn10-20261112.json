@@ -1,0 +1,346 @@
+{
+  "network": "testnet-10",
+  "scope": "Local candidate builder, funded offline signer, owned node broadcast. Not a browser journey or deployed consumer proof.",
+  "tokenId": "abc49d7f71f815d7ece5e4b58fc4cc8773014733d597a085555efb2e566524b7",
+  "marketId": "a7d934de345f6aa124784661be60d93121aee3c831ea2f905900ba4b0a89a845",
+  "deployment": {
+    "txid": "1e0caa76e2c1dcbed4ecf82e6d7c8167b7e2f74cf7c59dd89a6354fa4c23d2ac",
+    "fee": {
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794512538314,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "219.4856228206813"
+      },
+      "computeMass": "7884",
+      "transientMass": "7736",
+      "storageMass": "280306",
+      "normalizedMass": "280306",
+      "requiredFeeSompi": "61523137",
+      "paidFeeSompi": "61523137"
+    },
+    "submittedAt": "2026-11-12T19:42:18.468Z"
+  },
+  "transactions": [
+    {
+      "operation": "create-account",
+      "txid": "91af51a2b7ffbc8dfb03f190bd3a137defb2b581259a16cc5919d86f0f2542c3",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513313874,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "143.21888272044313"
+      },
+      "signedMass": {
+        "computeMass": "4083",
+        "transientMass": "1412",
+        "storageMass": "40027",
+        "normalizedMass": "40027"
+      },
+      "feeSompi": "5732623",
+      "broadcastStartedAt": "2026-11-12T19:55:13.926Z",
+      "acceptedBlockTimeMs": 1794513314951,
+      "elapsedToBlockTimeMs": 1025,
+      "indexerObservedAt": "2026-11-12T19:58:43.946403+00:00",
+      "indexedActions": [
+        {
+          "action": "deploy",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "operation": "deploy-market",
+      "txid": "6c4a071161bf41b6e822b858cc559e584c7fb3f8c1ca2fc6e9a6df9ef6b467ea",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513318063,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "151.31073596724724"
+      },
+      "signedMass": {
+        "computeMass": "4083",
+        "transientMass": "1412",
+        "storageMass": "40029",
+        "normalizedMass": "40029"
+      },
+      "feeSompi": "10000000",
+      "broadcastStartedAt": "2026-11-12T19:55:18.186Z",
+      "acceptedBlockTimeMs": 1794513319067,
+      "elapsedToBlockTimeMs": 881,
+      "indexerObservedAt": "2026-11-12T19:58:43.958113+00:00",
+      "indexedActions": [
+        {
+          "action": "deploy",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "operation": "bind-market",
+      "txid": "3312cddab1829772e24726eca8d8cb5739f4e3e39e0371dd92ed7ec08309dd1c",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513322222,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "140.75969701083537"
+      },
+      "signedMass": {
+        "computeMass": "218327",
+        "transientMass": "56908",
+        "storageMass": "76256",
+        "normalizedMass": "218327"
+      },
+      "feeSompi": "30762610",
+      "broadcastStartedAt": "2026-11-12T19:55:22.297Z",
+      "acceptedBlockTimeMs": 1794513322737,
+      "elapsedToBlockTimeMs": 440,
+      "indexerObservedAt": "2026-11-12T19:58:43.932031+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "bindMarket"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "operation": "bind-account",
+      "txid": "a348ffb92a14219219b142da2543833ccfaba9cced8c6f4e7fa30aaefedc9a8b",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513325337,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "143.70643601368855"
+      },
+      "signedMass": {
+        "computeMass": "79354",
+        "transientMass": "102496",
+        "storageMass": "36213",
+        "normalizedMass": "79354"
+      },
+      "feeSompi": "11435296",
+      "broadcastStartedAt": "2026-11-12T19:55:25.366Z",
+      "acceptedBlockTimeMs": 1794513325825,
+      "elapsedToBlockTimeMs": 459,
+      "indexerObservedAt": "2026-11-12T19:58:44.091631+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "bindMarket"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "operation": "wrap",
+      "txid": "b32e0d38daa8abc3023268f75e38d3e878df2ed5f5ec0774146d01698cc096f2",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513328474,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "140.50812507342712"
+      },
+      "signedMass": {
+        "computeMass": "139605",
+        "transientMass": "379060",
+        "storageMass": "229137",
+        "normalizedMass": "229137"
+      },
+      "feeSompi": "32195611",
+      "broadcastStartedAt": "2026-11-12T19:55:28.711Z",
+      "acceptedBlockTimeMs": 1794513329728,
+      "elapsedToBlockTimeMs": 1017,
+      "indexerObservedAt": "2026-11-12T19:58:44.147160+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "transfer"
+        },
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "wrap"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "operation": "ask",
+      "txid": "a997744df730bde1e0eb7ed576ffaaf9ce9635d4e12d365a2bad870d74a6b751",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513331794,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "154.11832967652367"
+      },
+      "signedMass": {
+        "computeMass": "156680",
+        "transientMass": "491800",
+        "storageMass": "76094",
+        "normalizedMass": "245900"
+      },
+      "feeSompi": "37965510",
+      "broadcastStartedAt": "2026-11-12T19:55:32.057Z",
+      "acceptedBlockTimeMs": 1794513332955,
+      "elapsedToBlockTimeMs": 898,
+      "indexerObservedAt": "2026-11-12T19:58:44.118161+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "createAsk"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "operation": "buy",
+      "txid": "4efa12e193a7f41580e731c8e5c7d3920e6d21922db45a67b1ddc30e26b59f5d",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513336153,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "142.44856438106908"
+      },
+      "signedMass": {
+        "computeMass": "302282",
+        "transientMass": "591288",
+        "storageMass": "162820",
+        "normalizedMass": "302282"
+      },
+      "feeSompi": "43090976",
+      "broadcastStartedAt": "2026-11-12T19:55:36.542Z",
+      "acceptedBlockTimeMs": 1794513337643,
+      "elapsedToBlockTimeMs": 1101,
+      "indexerObservedAt": "2026-11-12T19:58:44.222469+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "buyAsks"
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    },
+    {
+      "operation": "claim",
+      "txid": "fc3cd5800b7ad45276249d344330a5efefadbc2fe10f220b9c729f5092298e07",
+      "quote": {
+        "network": "testnet-10",
+        "source": "wss://tn10-node.kaspa.com/testnet-10",
+        "observedAtMs": 1794513359624,
+        "tier": "priority",
+        "sompiPerNormalizedMass": "137.62875625593227"
+      },
+      "signedMass": {
+        "computeMass": "85502",
+        "transientMass": "205648",
+        "storageMass": "48773",
+        "normalizedMass": "102824"
+      },
+      "feeSompi": "14242375",
+      "broadcastStartedAt": "2026-11-12T19:55:59.704Z",
+      "acceptedBlockTimeMs": 1794513360037,
+      "elapsedToBlockTimeMs": 333,
+      "indexerObservedAt": "2026-11-12T19:58:44.245307+00:00",
+      "indexedActions": [
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "claim"
+        },
+        {
+          "action": "spend",
+          "classificationStatus": "matched",
+          "entrypoint": "authorize"
+        },
+        {
+          "action": "spend",
+          "classificationStatus": "unmatched",
+          "entrypoint": null
+        },
+        {
+          "action": "continuation",
+          "classificationStatus": "matched",
+          "entrypoint": null
+        }
+      ]
+    }
+  ],
+  "conservation": {
+    "tradeGrossSompi": "100000000",
+    "sellerPayoutIncludingDepositSompi": "150000000",
+    "receiptProtocolSompi": "50000000",
+    "receiptCreatorSompi": "0",
+    "claimPayoutSompi": "50000000",
+    "preservedAccountPrincipalSompi": "100000000"
+  },
+  "backendIdentity": {
+    "verificationStatus": "verified",
+    "claimVerified": true
+  },
+  "limitations": [
+    "Backend identity was queried after acceptance; no authenticated backend operation was created for this offline proof.",
+    "One ordinary funding input has an unmatched indexer record; receipt claim and account authorization are matched.",
+    "Timing compares local broadcast start to source block time; clock differences apply."
+  ]
+}
