@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 const root = new URL('../', import.meta.url).pathname;
-const names = ['PUBLIC_INTEGRATION', 'PUBLIC_INTEGRATION_CHECKLIST', 'PUBLIC_LIFECYCLE', 'PUBLIC_OPERATION_MATRIX', 'PUBLIC_WALLET_PROVIDER'];
+const names = ['PUBLIC_INTEGRATION', 'PUBLIC_INTEGRATION_CHECKLIST', 'PUBLIC_LIFECYCLE', 'PUBLIC_OPERATION_MATRIX', 'PUBLIC_WALLET_PROVIDER', 'PUBLIC_BACKEND_SUBMISSION'];
 for (const name of names) {
   const file = resolve(root, `docs/${name}.md`);
   const body = await readFile(file, 'utf8');

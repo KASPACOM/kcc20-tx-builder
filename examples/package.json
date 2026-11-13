@@ -22,7 +22,7 @@
     "wallet:wrap": "tsx backend/wrap.ts"
   },
   "dependencies": {
-    "@kaspacom/kcc20-tx-builder": "0.8.3-fee.5"
+    "@kaspacom/kcc20-tx-builder": "0.8.3-fee.6"
   },
   "devDependencies": {
     "@types/node": "22.18.8",

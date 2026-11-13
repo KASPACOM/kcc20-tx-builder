@@ -17,7 +17,7 @@ npm --prefix examples run frontend
 ```
 
 `test:examples` packs the current candidate and installs it into the examples
-before testing. The checked-in examples pin the published `0.8.3-fee.5`
+before testing. The checked-in examples pin the published `0.8.3-fee.6`
 prerelease; candidate testing intentionally replaces that dependency temporarily.
 
 Synthetic offline examples use the same digest-authenticated bundled profile as
@@ -27,7 +27,7 @@ After publication, users can copy `examples` from the package or repository,
 run `npm ci` inside it, then install the matching release explicitly:
 
 ```sh
-npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.5 \
+npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.6 \
   --registry=https://registry.npmjs.org/ --@kaspacom:registry=https://registry.npmjs.org/
 npm run backend -- offline
 npm run frontend
@@ -98,3 +98,22 @@ broadcast requires an explicit signer and spend cap. See the
 [checklist](../docs/PUBLIC_INTEGRATION_CHECKLIST.md) for per-flow proof status and
 the [wallet-provider guide](../docs/PUBLIC_WALLET_PROVIDER.md) for balance/transfer
 integrations. These commands do not use the legacy order recipes above.
+
+## Release archive
+
+Release `0.8.3-fee.7` contains these examples. Their lockfile installs the
+unchanged `0.8.3-fee.6` engine; the release changes example wiring and docs.
+Extract the public archive and install the example dependencies:
+
+```sh
+npm pack @kaspacom/kcc20-tx-builder@0.8.3-fee.7 --ignore-scripts --registry=https://registry.npmjs.org/
+tar -xzf kaspacom-kcc20-tx-builder-0.8.3-fee.7.tgz
+cd package/examples
+npm ci --registry=https://registry.npmjs.org/ --@kaspacom:registry=https://registry.npmjs.org/
+npm test
+```
+
+Live lifecycle builds fetch a fresh priority quote from the connected TN10 node.
+Fee-estimate failure stops construction. Wallet signing validates the quoted fee
+against the complete signed transaction. Inspection remains the default;
+broadcast still requires explicit `--submit`, a signer and a debit cap.

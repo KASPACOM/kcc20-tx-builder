@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { runtime, loadArtifact } from './runtime.ts';
 import { lifecycleBuilder, validateRequest, walletDebit, resumeAcceptance, network, type Signer } from '../shared/lifecycle.ts';
+import { nodePriorityQuote } from '../shared/priority-fee.ts';
 import { withTimeout } from '../shared/timeout.ts';
 
 const json = (v: unknown) => JSON.stringify(v, (_, x) => typeof x === 'bigint' ? x.toString() : x, 2) + '\n';
@@ -34,7 +35,9 @@ async function main() {
     // The signer is trusted host code, never supplied by the backend or an API response.
     const signer: Signer | undefined = v.signer
       ? (await import(pathToFileURL(resolve(v.signer)).href)).default : undefined;
-    const builder = lifecycleBuilder(wasm, rpc, loadArtifact, signer?.capabilities);
+    const builder = lifecycleBuilder(wasm, rpc, loadArtifact, signer?.capabilities, {
+      networkFeeQuoteProvider: () => nodePriorityQuote(rpc, v.rpc!),
+    });
     const built = await builder.build(request);
     const debit = walletDebit(wasm, built, request.request.owner.walletAddress);
     if (v['max-debit-sompi'] && (!/^[0-9]+$/.test(v['max-debit-sompi']) || debit > BigInt(v['max-debit-sompi'])))

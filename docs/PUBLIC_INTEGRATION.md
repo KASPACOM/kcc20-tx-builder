@@ -32,7 +32,7 @@ HTTP requests and application logs.
 ## Install an exact version
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.8.3-fee.5 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.8.3-fee.7 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
@@ -146,3 +146,5 @@ that every future release is free of secrets.
 - Verify public HTTP build support by market version, not merely route presence.
 - Review the lightweight index server separately. It is not required for this
   first integration guide and is not presented here as a released dependency.
+
+For authenticated backend broadcasting, follow the [submission guide](PUBLIC_BACKEND_SUBMISSION.md).
