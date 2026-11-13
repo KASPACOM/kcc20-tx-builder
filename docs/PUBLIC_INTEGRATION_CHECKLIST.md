@@ -33,8 +33,8 @@ not filled by adding endpoints. Keep npm `latest` unchanged.
 | PUB-17 | Authority rotation and supported recipient adapter | In progress | #65 / 0.8.3-fee.3 | Rotation runner | Wallet rotation, pinned recipient-covenant two-receipt claim and rotation back accepted |
 | PUB-18 | Resumption, stale inputs, wallet/RPC/indexing failures | In progress | #65 / 0.8.3-fee.3 | 57 example tests include signer/RPC/source failures and mismatch-ID resume | Accepted-ID resumption works; spent-ask rebuild rejects before signing; broader matrix pending |
 | PUB-19 | Creator 0/1/5%, fee floors and signed mass matrix | In progress | #65 / 0.8.3-fee.3 | Signed fixtures and recorded masses | 0/1/5-percent markets, fee floors, grouped waiver and above-floor 51-KAS trade accepted |
-| PUB-20 | Independent final example/security-boundary review | In progress | Follow-up | Reviewer found resume mismatch-ID omission; fixed with regression test. Final static review APPROVE for 0c55e7c; no tests run by reviewer | Not applicable |
-| PUB-21 | Immutable prerelease and fresh registry smoke checks | Not started | Pending | No new version published | Pending published-version proof |
+| PUB-20 | Independent final example/security-boundary review | Verified | #74 / 84379b0 | Independent approval after fixing RPC URL retention; source/quote/signing checks reviewed | Scoped funded evidence reviewed; broader fault cases remain separate |
+| PUB-21 | Immutable prerelease and fresh registry smoke checks | Verified | #74 / fee.7 examples, fee.6 engine | Anonymous archive download/integrity, clean install, 67 tests and build passed; latest unchanged | Registry-only native transfer through CLI and authenticated backend accepted/indexed; resume and spent-input checks passed |
 | PUB-22 | Served docs/OpenAPI/link parity and CI checks | Not started | Pending | Pending | Not applicable |
 
 ## Completion requirements
@@ -307,3 +307,31 @@ signatures; no authentication bypass or saved bearer appears in public evidence.
 Publication and fresh fee.7 registry replay remain pending until recorded below.
 Forced crashes/reorgs, other authenticated operation shapes and untested
 authority permutations remain open. Frontend remains unmerged.
+
+## Published release and additional checks, 2026-11-13
+
+PR #74 merged as 8017784. Independent review approved 84379b0 after removing
+RPC URLs from quote provenance. Main CI and the publisher passed; both registries
+report the expected fee.7 integrity. npm next is fee.7 and latest remains 0.7.0.
+The archive initially returned HTTP 404 after metadata appeared, then became
+downloadable. An anonymous clean install from the matching registry archive
+passed all 67 example tests and the example build. The release replay submitted
+one transfer through the public CLI and another through authenticated backend
+submission; both are accepted and indexed. Resume only observed acceptance, and
+rebuilding the spent input failed before signing. PUB-21 is Verified.
+
+This follow-up adds actual archive-download verification to the publisher, with
+tests for temporary archive unavailability and integrity mismatch. Matching
+metadata alone no longer satisfies the proposed release check.
+
+[Additional evidence](evidence/public-release-verification-20261113.json) records
+a third accepted/indexed authenticated backend transfer after a 15-second wallet
+approval delay, rejection of a reused login nonce, and direct node/script
+verification of all eleven current native token outputs. Wallet-provider balances
+agree and total native supply including reserves remains 100000 base units.
+These are sequential snapshots, not a forced crash/reorg or atomic-watermark test.
+
+Remaining scope: forced service-crash and chain-reorg tests, other authenticated
+backend operation shapes, untested authority permutations, and full standalone
+fee-market API parity. The successful registry smoke tests do not close those
+separate gates. No frontend repository was merged.
