@@ -1,6 +1,6 @@
 # Building the fee-market lifecycle
 
-This cookbook uses `0.8.3-fee.5` on DEV TN10. Follow the
+This cookbook uses `0.8.3-fee.6` on DEV TN10. Follow the
 [installation guide](PUBLIC_INTEGRATION.md), [operation matrix](PUBLIC_OPERATION_MATRIX.md)
 and [verification checklist](PUBLIC_INTEGRATION_CHECKLIST.md). The runner and
 recipe generator are under development until their checklist gates are verified.
@@ -202,3 +202,12 @@ and tokenAmount as documented by LiveTransferConfig. Pass the resulting request
 to lifecycle for explicit signing and submission. `recipe NAME args.json --engine-input`
 also converts existing helper recipes into lifecycle requests; the default recipe
 output remains the wallet operation envelope.
+
+## Network-fee quotes
+
+The live CLI and browser lifecycle adapter request a fresh node priority quote.
+For an authenticated backend build, pass its exact fresh quote as the fifth
+`lifecycleBuilder` argument: `{ networkFeeQuote: operation.payload.signing.networkFee.quote }`.
+The signed-fee check uses that construction quote; signing time does not rewrite
+its timestamp. Request a new build when the quote has already expired before
+construction. See [authenticated submission](PUBLIC_BACKEND_SUBMISSION.md).

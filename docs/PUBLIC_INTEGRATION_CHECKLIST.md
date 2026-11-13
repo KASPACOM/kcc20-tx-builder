@@ -284,3 +284,26 @@ match the fetched backend develop revision recorded in
 This checks the served content; it does not establish full endpoint behavior.
 The packed combined build passed 300 package tests, 64 example tests and
 browser/Node parity for all 24 recipes.
+
+## Authenticated submission and release candidate, 2026-11-13
+
+The registry fee.6 archive includes the lifecycle examples. A clean extraction
+and example install passed 64 tests. Its example lockfile still used fee.5, and
+the adapter omitted priority quotes, producing a different change output from
+the current backend. No mismatched build was signed.
+
+The fee.7 release candidate pins its example engine to fee.6, forwards the exact
+backend quote or obtains a fresh node priority quote, and validates signed fees.
+All 67 example tests pass, including stale/wrong-network quotes and unavailable
+or malformed fee estimates.
+
+[Authenticated backend evidence](evidence/public-authenticated-submit-20261113.json)
+records two real transfers submitted through `/kcc20/submit`, accepted by TN10
+and decoded by the indexer. Anonymous submit/status returned 401; a different
+wallet and a missing receipt returned 404; changed outputs returned 400; a used
+receipt returned 409. Owner status remained available. Login used real wallet
+signatures; no authentication bypass or saved bearer appears in public evidence.
+
+Publication and fresh fee.7 registry replay remain pending until recorded below.
+Forced crashes/reorgs, other authenticated operation shapes and untested
+authority permutations remain open. Frontend remains unmerged.

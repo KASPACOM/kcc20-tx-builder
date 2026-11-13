@@ -1,3 +1,4 @@
+import type { NetworkFeeQuote } from "@kaspacom/kcc20-tx-builder/network-fee";
 import { withTimeout } from "./timeout.ts";
 import { createKcc20PsktBuilderEngine } from "@kaspacom/kcc20-tx-builder/engine";
 import { buildKcc20DeployTokenOperation } from "@kaspacom/kcc20-tx-builder/deploy-operation";
@@ -33,6 +34,7 @@ export type ScriptHint = {
   };
 };
 export type Built = {
+  networkFee?: { quote: NetworkFeeQuote; requiredFeeSompi: string; paidFeeSompi: string };
   psktTransactionJson: string;
   signInputs: { index: number; sighashType: number }[];
   scripts?: ScriptHint[];

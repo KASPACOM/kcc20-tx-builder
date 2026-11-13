@@ -1,0 +1,97 @@
+{
+  "network": "testnet-10",
+  "login": "OTP plus wallet signature exchanged for bearer; no credentials retained in public evidence",
+  "engineVersion": "0.8.3-fee.6",
+  "transactions": [
+    {
+      "transactionId": "851c62d3afb075f64462e7dab91f25d4bb01f249427cef909aaa8f8658cca7f1",
+      "buildId": "kcc20-public-3824af49-1559-49fd-949e-38d704ead341",
+      "packageVersion": "0.8.3-fee.6",
+      "network": "testnet-10",
+      "mass": {
+        "estimatedSerializedSize": "26673",
+        "computeBudgetUnits": "230",
+        "computeMass": "50773",
+        "transientMass": "106692",
+        "normalizedTransientMass": "53346",
+        "transactionMass": "53346",
+        "storageMass": "126794"
+      },
+      "submitHttpStatus": 201,
+      "independentRebuildMatched": true,
+      "accepted": true,
+      "indexed": true,
+      "decoded": true
+    },
+    {
+      "transactionId": "558b21a6c306e23f4327a728d7d908c5a7e1ef87ca4ffa53ad0e905adb1ca0ed",
+      "buildId": "kcc20-public-161a2343-88a7-4bb1-a81f-15b99fa63f82",
+      "packageVersion": "0.8.3-fee.6",
+      "network": "testnet-10",
+      "mass": {
+        "estimatedSerializedSize": "26673",
+        "computeBudgetUnits": "230",
+        "computeMass": "50773",
+        "transientMass": "106692",
+        "normalizedTransientMass": "53346",
+        "transactionMass": "53346",
+        "storageMass": "126794"
+      },
+      "submitHttpStatus": 201,
+      "independentRebuildMatched": true,
+      "accepted": true,
+      "indexed": true,
+      "decoded": true
+    }
+  ],
+  "negativeCases": [
+    {
+      "case": "anonymous-submit",
+      "httpStatus": 401,
+      "message": "Unauthorized",
+      "status": null
+    },
+    {
+      "case": "duplicate-submit",
+      "httpStatus": 409,
+      "message": "authenticated build receipt already used",
+      "status": null
+    },
+    {
+      "case": "owner-status",
+      "httpStatus": 200,
+      "message": null,
+      "status": "submitted"
+    },
+    {
+      "case": "anonymous-status",
+      "httpStatus": 401,
+      "message": "Unauthorized",
+      "status": null
+    },
+    {
+      "case": "missing-receipt",
+      "httpStatus": 404,
+      "message": "authenticated build receipt not found or expired",
+      "status": null
+    },
+    {
+      "case": "wrong-owner",
+      "httpStatus": 404,
+      "message": "authenticated build receipt not found or expired",
+      "status": null
+    },
+    {
+      "case": "changed-output",
+      "httpStatus": 400,
+      "message": "signedTransactionJson does not match the authenticated build receipt",
+      "status": null
+    }
+  ],
+  "finding": "Independent rebuild initially rejected change-output disagreement because the adapter omitted the backend priority quote. Passing the exact fresh quote restored parity; no mismatched transaction was signed.",
+  "limitations": [
+    "Native transfer only for authenticated backend broadcast",
+    "No forced service-crash or chain-reorg proof",
+    "Source checkout adapter correction used with the published engine; release replay recorded separately"
+  ]
+}

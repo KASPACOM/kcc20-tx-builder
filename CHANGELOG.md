@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3-fee.7
+
+- Ship public lifecycle examples pinned to the fee.6 engine, with fresh node or backend priority quotes and signed-fee validation.
+- Document authenticated backend submission and record funded TN10 acceptance plus receipt ownership and intent checks.
+- Keep npm latest unchanged; this release uses the next prerelease tag.
+
 ## 0.8.3-fee.5
 
 - Package wallet integration guidance and funded TN10 evidence for native sends, wrap/unwrap and public minting.

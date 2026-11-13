@@ -1,12 +1,15 @@
+import { nodePriorityQuote } from '../shared/priority-fee.ts';
 import type { Built, Runtime } from '../shared/build.ts';
 import { lifecycleBuilder, type Source } from '../shared/lifecycle.ts';
 
 // Use the application's existing connection. This adapter does not create a wallet
 // session, node connection or backend cookie, and does not broadcast automatically.
-export function browserLifecycle(wasm: Runtime, rpc: Source,
+export function browserLifecycle(wasm: Runtime, rpc: Source & Parameters<typeof nodePriorityQuote>[0],
   loadArtifact: (key: string) => Promise<unknown>,
   wallet: { getAccounts(): Promise<string[]>; signTransaction(tx: string, options: unknown): Promise<string> }) {
-  const builder = lifecycleBuilder(wasm, rpc, loadArtifact);
+  const builder = lifecycleBuilder(wasm, rpc, loadArtifact, undefined, {
+    networkFeeQuoteProvider: () => nodePriorityQuote(rpc),
+  });
   return {
     build: builder.build,
     async sign(built: Built, expectedAddress: string) {

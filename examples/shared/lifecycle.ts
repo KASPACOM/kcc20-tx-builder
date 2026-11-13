@@ -1,3 +1,4 @@
+import type { NetworkFeeQuote } from '@kaspacom/kcc20-tx-builder/network-fee';
 import { createKcc20PsktBuilderEngine } from '@kaspacom/kcc20-tx-builder/engine';
 import { isKcc20BuilderKey } from '@kaspacom/kcc20-tx-builder/operations';
 import { assertKcc20ArtifactScriptHash, isKcc20ArtifactKey } from '@kaspacom/kcc20-tx-builder/artifacts';
@@ -31,12 +32,13 @@ export type Signer = {
 };
 
 // One host-owned node connection; the package owns all construction and fee rules.
+export type FeeOptions = { networkFeeQuote?: NetworkFeeQuote; networkFeeQuoteProvider?: (network: string) => Promise<NetworkFeeQuote> };
 export function lifecycleBuilder(wasm: Runtime, source: Source,
-  loadArtifact: (key: string) => Promise<unknown>, capabilities = { schnorr: true, ecdsa: false }) {
+  loadArtifact: (key: string) => Promise<unknown>, capabilities = { schnorr: true, ecdsa: false }, fees: FeeOptions = {}) {
   let building = false;
   const observed = new Map<string, string>();
   const lineages = new WeakMap<Built, Map<string, string>>();
-  const engine = createKcc20PsktBuilderEngine({ wasm, artifacts: {},
+  const engine = createKcc20PsktBuilderEngine({ wasm, artifacts: {}, ...fees,
     sourceProvider: { async getUtxosByAddresses(args) {
       const response = await withTimeout(source.getUtxosByAddresses(args), 'Fresh UTXOs') as { entries: any[] };
       for (const entry of response.entries) {
@@ -80,6 +82,7 @@ export function lifecycleBuilder(wasm: Runtime, source: Source,
       // Reject changed intent and missing signatures before attaching covenant arguments.
       const signed = attachScripts(wasm, raw, built, signer.capabilities);
       const tx = wasm.Transaction.deserializeFromSafeJSON(signed);
+      if (built.networkFee) engine.verifySignedNetworkFee(signed, built.networkFee.quote);
       engine.protocol.assertTransactionComputeMassStandard(tx, 'public lifecycle');
       engine.protocol.assertTransactionStorageMassStandard(tx, 'public lifecycle');
       const mass = engine.protocol.calculateToccataV1NonContextualMass(tx, 'public lifecycle');

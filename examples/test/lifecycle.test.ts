@@ -197,3 +197,36 @@ test('resume checks both mismatch IDs without signing or resubmitting', async ()
   await assert.rejects(resumeAcceptance('https://example.invalid/', { network: 'testnet-10', transactionId: local, broadcastTransactionId: 'invalid' }, lookup), /invalid transaction ID/);
   assert.equal(seen.length, 0);
 });
+
+test('priority-priced builds preserve the quote and validate signed fees', async () => {
+  const f = fixture(wasm);
+  const quote = { network: 'testnet-10', source: 'fixture', observedAtMs: Date.now(), tier: 'priority' as const, sompiPerNormalizedMass: '150' };
+  const b = lifecycleBuilder(wasm, f.sources, loadArtifact, undefined, { networkFeeQuote: quote });
+  const built = await b.build(engineInput(deployOperation(f.wallet)));
+  assert.deepEqual(built.networkFee?.quote, quote);
+  const signed = await b.sign(built, signer());
+  assert(signed.mass.storageMass > 0n);
+  const { createKcc20PsktBuilderEngine } = await import('@kaspacom/kcc20-tx-builder/engine');
+  const verifier = createKcc20PsktBuilderEngine({ wasm, artifacts: {} });
+  const summary = verifier.verifySignedNetworkFee(signed.signed, quote);
+  assert(BigInt(String(summary.paidFeeSompi)) >= BigInt(String(summary.requiredFeeSompi)));
+});
+test('stale and wrong-network fee quotes fail before signing', async () => {
+  const f = fixture(wasm);
+  for (const patch of [{ observedAtMs: Date.now() - 20000 }, { network: 'mainnet' }]) {
+    const quote = { network: 'testnet-10', source: 'fixture', observedAtMs: Date.now(), tier: 'priority' as const, sompiPerNormalizedMass: '150', ...patch };
+    const b = lifecycleBuilder(wasm, f.sources, loadArtifact, undefined, { networkFeeQuote: quote });
+    await assert.rejects(b.build(engineInput(deployOperation(f.wallet))), /stale|network mismatch/);
+  }
+});
+test('node fee estimate failures and invalid rates have no fixed-rate fallback', async () => {
+  const { nodePriorityQuote } = await import('../shared/priority-fee.ts');
+  await assert.rejects(nodePriorityQuote({ async getFeeEstimate() { throw Error('node unavailable'); } }), /node unavailable/);
+  for (const feerate of [0, -1, NaN, Infinity]) {
+    await assert.rejects(nodePriorityQuote({ async getFeeEstimate() { return { estimate: { priorityBucket: { feerate } } }; } }), /rate/);
+  }
+  const quote = await nodePriorityQuote({ async getFeeEstimate() { return { estimate: { priorityBucket: { feerate: 123.5 } } }; } });
+  assert.equal(quote.sompiPerNormalizedMass, '123.5');
+  assert.equal(quote.source, 'connected-tn10-node');
+  assert(!JSON.stringify(quote).includes('://'));
+});
