@@ -27,7 +27,7 @@ jobs:
       - name: Verify dynamic priority fees across trading and claims
         run: npm run test:network-fee:matrix
       - name: Verify public integration documentation
-        run: npm run build && node scripts/verify-public-docs.mjs
+        run: npm run build && node scripts/verify-public-docs.mjs && node scripts/test-publish-verification.mjs
       - name: Verify snapshot transactions with pinned WASM
         run: npm run test:snapshot:transactions
         env:

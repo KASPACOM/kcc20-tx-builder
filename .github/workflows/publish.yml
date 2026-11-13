@@ -131,13 +131,25 @@ jobs:
               fi
             done
             if [ "$pending" -eq 0 ]; then
-              echo "Both registries expose version $VERSION with matching integrity"
-              exit 0
+              # Metadata can become visible before npm serves the archive.
+              mkdir -p "$RUNNER_TEMP/registry-package-check"
+              if npm pack "@kaspacom/kcc20-tx-builder@$VERSION" --ignore-scripts --json \
+                --prefer-online --cache "$RUNNER_TEMP/registry-package-check/cache" \
+                --registry=https://registry.npmjs.org/ \
+                --@kaspacom:registry=https://registry.npmjs.org/ \
+                --pack-destination "$RUNNER_TEMP/registry-package-check" \
+                > "$RUNNER_TEMP/registry-package-check/pack.json"; then
+                node -e 'const p=require(process.argv[1]); if(p.length !== 1 || p[0].integrity !== process.env.INTEGRITY) throw new Error("Downloaded npm archive integrity mismatch")' \
+                  "$RUNNER_TEMP/registry-package-check/pack.json"
+                echo "Both registries match and the npm archive is downloadable"
+                exit 0
+              fi
+              echo 'npm metadata is visible but the archive is not downloadable yet'
             fi
             echo "Registry metadata is processing ($attempt/60)"
             sleep 10
           done
-          echo 'Registry metadata did not become available within 10 minutes'
+          echo 'Registry metadata or archive did not become available within 10 minutes'
           exit 1
       - name: Create matching GitHub Release
         if: steps.version.outputs.publish == 'true'

@@ -1,0 +1,106 @@
+{
+  "delayedApproval": {
+    "transactionId": "2a75b39ce8d70f18ed767b5067d156dfe6ec5a310b6af70055584a6f80fd8cfa",
+    "buildId": "kcc20-public-33ad77ef-805d-49d8-a216-28a954146ed5",
+    "delayMs": 15000,
+    "mass": {
+      "estimatedSerializedSize": "26673",
+      "computeBudgetUnits": "230",
+      "computeMass": "50773",
+      "transientMass": "106692",
+      "normalizedTransientMass": "53346",
+      "transactionMass": "53346",
+      "storageMass": "145825"
+    },
+    "accepted": true,
+    "indexed": true,
+    "decoded": true
+  },
+  "nonceReplay": {
+    "initialLoginSuccess": true,
+    "replayHttpStatus": 401
+  },
+  "balanceReconciliation": {
+    "network": "testnet-10",
+    "tokenId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+    "verifiedLiveOutputs": 11,
+    "decodedScriptsMatchNode": true,
+    "totalNativeIncludingReserve": "100000",
+    "ownerTotals": {
+      "f11009accefc624c3ff577160de8295027c904e584dd6400d840b6f9ab9f90a2": "108",
+      "17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2": "98992",
+      "68d1f63bd63db6f3ce26d87aa826795dd592de3ed4a246b0a6b689f4d1478566": "900"
+    },
+    "walletProviderNativeBalancesMatch": true,
+    "scope": "Sequential snapshots; not a forced reorg or atomic-watermark proof"
+  },
+  "release": {
+    "version": "0.8.3-fee.7",
+    "commit": "8017784d22ead832c279441a284153fcdafd1ee6",
+    "publishRun": "https://github.com/KASPACOM/kcc20-tx-builder/actions/runs/43398086909",
+    "expectedIntegrity": "sha512-Pv99/UPOWdfzZPHENFVsuD/3ghWaYuXT4REdTA9zByfzqeNVKi3ELjXuFQzea93cBFUBLYM/q0dNrNXb6x6WPw==",
+    "latestUnchanged": "0.7.0",
+    "next": "0.8.3-fee.7",
+    "metadataVerified": true,
+    "anonymousArchiveDownload": "Verified: anonymous npm pack succeeded after initial 404 propagation delay",
+    "cleanInstall": {
+      "npmUserConfig": "/dev/null",
+      "npmAuthEnvironmentRemoved": true,
+      "exampleTestsPassed": 67,
+      "exampleBuildPassed": true,
+      "archiveIntegrityMatchesReviewedPack": true
+    }
+  },
+  "registryTransactions": [
+    {
+      "flow": "authenticated backend",
+      "transactionId": "58dd5b587d6002145d74115f2917a2ef68a36da3f2cbf8f900bd1442fe4cbe81",
+      "mass": {
+        "estimatedSerializedSize": "26673",
+        "computeBudgetUnits": "230",
+        "computeMass": "50773",
+        "transientMass": "106692",
+        "normalizedTransientMass": "53346",
+        "transactionMass": "53346",
+        "storageMass": "144019"
+      },
+      "accepted": true,
+      "indexed": true,
+      "decoded": true,
+      "archiveVersion": "0.8.3-fee.7",
+      "engineVersion": "0.8.3-fee.6"
+    },
+    {
+      "flow": "public lifecycle CLI",
+      "transactionId": "dad7d783a526f1e64d7383dfa9322ec21436ff883d491c33f8014e6b7052aa5d",
+      "mass": {
+        "estimatedSerializedSize": "26673",
+        "computeBudgetUnits": "230",
+        "computeMass": "50773",
+        "transientMass": "106692",
+        "normalizedTransientMass": "53346",
+        "transactionMass": "53346",
+        "storageMass": "141705"
+      },
+      "accepted": true,
+      "indexed": true,
+      "decoded": true,
+      "archiveVersion": "0.8.3-fee.7",
+      "engineVersion": "0.8.3-fee.6"
+    }
+  ],
+  "registryResume": {
+    "observations": [
+      {
+        "transactionId": "dad7d783a526f1e64d7383dfa9322ec21436ff883d491c33f8014e6b7052aa5d",
+        "accepted": true
+      }
+    ],
+    "requiresReconciliation": false,
+    "indexed": "not checked"
+  },
+  "registrySpentInputRebuild": {
+    "rejectedBeforeSigning": true,
+    "error": "active holder UTXO 58dd5b587d6002145d74115f2917a2ef68a36da3f2cbf8f900bd1442fe4cbe81:1 not found"
+  }
+}
