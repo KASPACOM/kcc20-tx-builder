@@ -1,0 +1,35 @@
+{
+  "verifiedAtUtc": "2026-11-13T14:31:47.046255+00:00",
+  "builderVersion": "0.8.3-fee.7",
+  "examplesRevision": "fca20ba88922f5f1411417c011e433ef81ba3cea",
+  "registry": "https://registry.npmjs.org/",
+  "integrity": "sha512-Pv99/UPOWdfzZPHENFVsuD/3ghWaYuXT4REdTA9zByfzqeNVKi3ELjXuFQzea93cBFUBLYM/q0dNrNXb6x6WPw==",
+  "installation": "Fresh directory; empty npm user/global authentication configuration; public registry; npm ci",
+  "checks": [
+    {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    {
+      "command": "npm test",
+      "passed": 67,
+      "failed": 0
+    },
+    {
+      "command": "npm run test:browser",
+      "identicalBrowserNodeRecipes": 24,
+      "externalRequests": 0,
+      "result": "passed"
+    }
+  ],
+  "boundaries": [
+    "Offline construction and browser recipe equivalence, not extension-wallet approval UX.",
+    "No transactions broadcast in this verification; previous funded evidence retains its recorded package versions.",
+    "Live freshness and historical coverage are separate operational gates."
+  ],
+  "nodeVersions": [
+    "v22.23.5",
+    "v24.22.0"
+  ],
+  "runtimeCoverage": "All listed checks passed on both Node runtimes; Node 22 is the documented reference."
+}
