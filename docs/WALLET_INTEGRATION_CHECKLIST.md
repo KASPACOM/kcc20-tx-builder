@@ -135,3 +135,25 @@ evidence and package/example version metadata changed.
 
 [Release verification evidence](evidence/wallet-integration-release-20261112.json).
 Frontend remains unmerged. No new indexer API was introduced.
+
+## External-wallet handoff, November 13
+
+- [x] Merge builder [#76](https://github.com/KASPACOM/kcc20-tx-builder/pull/76)
+  after independent exact-head review and successful test/consensus CI.
+  Merge commit: `01aa9909e9d1f2a1c5b7f3132158a6d560745155`.
+- [x] Align public setup and runnable example pins with published
+  `0.8.3-fee.7`. This documentation update does not republish the package or
+  replace the version-specific funded evidence above.
+- [x] Diagnose public freshness against internal live health and persisted
+  recovery state. REST repair is near tip, but live accepted progress is stale.
+  Recovery repeatedly rejects indexed descendants absent from its frozen plan.
+- [ ] Pass review and hosted recovery tests for
+  [indexer #796](https://github.com/KASPACOM/kaspa-covenants/pull/796).
+- [ ] Deploy the recovery fix and observe the retained intent complete, accepted
+  progress resume, and `/trading/freshness?refresh=true` become healthy.
+- [ ] Resolve or explicitly disclose outstanding historical recovery/source
+  failures before claiming complete balances.
+
+The docs and package can be reviewed by wallet developers now. End-to-end DEV
+readiness remains blocked by live freshness; do not describe that service as
+healthy based on a successful recent transfer alone. Frontend remains unmerged.
