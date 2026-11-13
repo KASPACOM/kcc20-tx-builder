@@ -6,7 +6,7 @@ Status and evidence describe this integration, not older internal proofs.
 
 | ID | Capability | Inventory | Implementation | Local test | Funded TN10 test |
 | --- | --- | --- | --- | --- | --- |
-| W01 | Public installation and runtime pins | Exists | Published 0.8.3-fee.5 | Credential-free public installation, 49 tests, build and 24 browser recipe comparisons pass | N/A |
+| W01 | Public installation and runtime pins | Exists | Published 0.8.3-fee.7 | November 13: credential-free installation, 67 tests, build and 24 browser recipe comparisons pass | N/A |
 | W02 | Directory, decimals, metadata fallback | Exists | Documented | Missing precision stays explicit; unknown holdings remain visible | Live directory and native proof balance agree on decimals 2 |
 | W03 | Native/wrapped balances and exact formatting | Exists | PR #689 deployed | Exact formatting and grouping pass | Funded November 11: deployed API groups 99000 native + 1000 wrapped under one canonical token; partial unwrap gives 99400 + 600 |
 | W04 | Search, pagination, filters, sorts | Exists | Existing query contract documented | Existing service filter/sort tests and URL tests pass | Combined search/native/quantity/pagination/sort query returned expected 100000-unit row |
@@ -20,8 +20,8 @@ Status and evidence describe this integration, not older internal proofs.
 | W12 | General token burn | Missing | No public generic burn operation advertised | Source operation registry checked | N/A |
 | W13 | FeeTickets | Exists | Separate coupon reference; admin/trading deferred | N/A | N/A |
 | W14 | Activity | Exists | Optional existing route only | N/A | Both public mint IDs appear as mint_public with 100 base units each; optional UI not built |
-| W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | Latest read: ok=false, stale=false; no overall health claim |
-| W16 | Browser and Node examples | Exists | Shared build/sign flow implemented | 49 tests and browser build pass | Node adapter funded; real extension/browser signing not tested |
+| W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | November 13: ok=false, stale=true; retained canonical recovery blocks live readiness |
+| W16 | Browser and Node examples | Exists | Shared build/sign flow implemented | Published fee.7: 67 tests and browser build pass | Node adapter funded; real extension/browser signing not tested |
 | W17 | Independent review | Complete | All five review findings fixed; independent review approved | Base units, input recheck, durable pre-submit persistence tested | N/A |
 | W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.5 public; release workflow passed | Exact fee.5 registry version installed without credentials; 49 tests, build and 24 browser comparisons pass | November 11 funded wrap/order/cancel/unwrap/consolidation uses public fee.4; deployed backend transfer engine remains pinned fee.3, signed with fee.4 examples |
 | W19 | Deployed docs verification | Exists | Builder guide public and byte-verified | Backend docs linked in PR #689 | Served public-testnet-api.md byte-matches #689 and includes wallet guide/checklist links |
@@ -138,6 +138,11 @@ Frontend remains unmerged. No new indexer API was introduced.
 
 ## External-wallet handoff, November 13
 
+[Clean fee.7 installation and offline browser/Node verification](evidence/wallet-public-fee7-20261113.json)
+passed on Node 22.23.5 and 24.22.0: build, 67 tests and 24 matching recipes. This is a fresh
+registry verification; the funded transaction evidence retains its original versions.
+
+
 - [x] Merge builder [#76](https://github.com/KASPACOM/kcc20-tx-builder/pull/76)
   after independent exact-head review and successful test/consensus CI.
   Merge commit: `01aa9909e9d1f2a1c5b7f3132158a6d560745155`.
@@ -147,12 +152,30 @@ Frontend remains unmerged. No new indexer API was introduced.
 - [x] Diagnose public freshness against internal live health and persisted
   recovery state. REST repair is near tip, but live accepted progress is stale.
   Recovery repeatedly rejects indexed descendants absent from its frozen plan.
-- [ ] Pass review and hosted recovery tests for
-  [indexer #796](https://github.com/KASPACOM/kaspa-covenants/pull/796).
-- [ ] Deploy the recovery fix and observe the retained intent complete, accepted
-  progress resume, and `/trading/freshness?refresh=true` become healthy.
-- [ ] Resolve or explicitly disclose outstanding historical recovery/source
-  failures before claiming complete balances.
+- [x] Pass independent review and hosted recovery tests for
+  [indexer #796](https://github.com/KASPACOM/kaspa-covenants/pull/796), merged as
+  `f4cb716fb89262d4ab5c90e23be19facc78a3630`. The final head passed full CI
+  (run `43429189180`, attempt 3) and all 28 isolated recovery checks
+  (run `43434478642`). Earlier timing failures remain documented on the PR.
+- [x] Reproduce external browser CORS failures with Chromium. Local HTTP tests
+  and independent review pass for [backend #722](https://github.com/KASPACOM/kcc20-backend/pull/722).
+- [x] Merge #722 after full CI at the independently reviewed head; merge revision
+  `fd44bf7ccddc4a4d2eb7140f84ddd4c6199fa811`.
+- [ ] Verify its DEV rollout and repeat public wallet reads plus negative
+  private-route checks from a separate browser origin.
+- [x] Deploy the recovery fix: Argo revision `91312ec638b66ca10a847045fee08cc9b9270f2a`,
+  all DEV indexer images pinned to `f4cb716f`, migrations completed and one watcher
+  active. The plan now discovers previously omitted dependencies with its
+  exclusive-write fence enabled.
+- [ ] Observe the retained intent complete, accepted progress resume, and
+  `/trading/freshness?refresh=true` become healthy.
+- [x] Disclose the separate historical source blocker: settled replay retains
+  window `610267400` because required prevout
+  `52b8c9757fed87ae95dbddb5c6a8d83fa65baaf702111be9fd90200ec0874346`
+  returns 404 from both configured REST sources. The prior verification watermark
+  is `576386000`; current coverage remains incomplete.
+- [ ] Restore source availability, replay the retained historical window and
+  verify coverage before claiming complete balances.
 
 The docs and package can be reviewed by wallet developers now. End-to-end DEV
 readiness remains blocked by live freshness; do not describe that service as
