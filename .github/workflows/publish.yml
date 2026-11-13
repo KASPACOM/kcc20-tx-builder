@@ -134,7 +134,8 @@ jobs:
               # Metadata can become visible before npm serves the archive.
               mkdir -p "$RUNNER_TEMP/registry-package-check"
               if npm pack "@kaspacom/kcc20-tx-builder@$VERSION" --ignore-scripts --json \
-                --prefer-online --registry=https://registry.npmjs.org/ \
+                --prefer-online --cache "$RUNNER_TEMP/registry-package-check/cache" \
+                --registry=https://registry.npmjs.org/ \
                 --@kaspacom:registry=https://registry.npmjs.org/ \
                 --pack-destination "$RUNNER_TEMP/registry-package-check" \
                 > "$RUNNER_TEMP/registry-package-check/pack.json"; then

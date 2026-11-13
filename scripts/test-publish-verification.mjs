@@ -8,6 +8,7 @@ const block = workflow.split('      - name: Verify both registries\n')[1]?.split
 assert(block, 'Missing registry verification step');
 const script = block.split('        run: |\n')[1]?.split('\n').map(line => line.replace(/^          /, '')).join('\n');
 assert(script, 'Missing registry verification shell');
+assert.match(script, /--cache "\$RUNNER_TEMP\/registry-package-check\/cache"/, 'Use a dedicated download cache rather than a pre-existing package cache');
 const root = mkdtempSync(join(tmpdir(), 'kcc20-publish-check-'));
 try {
   const bin = join(root, 'bin'); mkdirSync(bin);
