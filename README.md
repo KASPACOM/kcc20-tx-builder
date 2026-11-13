@@ -7,7 +7,7 @@ frontend and the Node backend.
 ## Install
 
 ```sh
-npm install --save-exact @kaspacom/kcc20-tx-builder@0.8.3-fee.3 \
+npm install --save-exact @kaspacom/kcc20-tx-builder@0.8.3-fee.7 \
   --registry=https://registry.npmjs.org/ \
   --@kaspacom:registry=https://registry.npmjs.org/
 ```
@@ -34,7 +34,7 @@ Use the TX builder locally; public backend planning remains an optional path.
 
 Public npm installation does not require a GitHub token. The explicit scoped
 registry flag overrides project settings that route `@kaspacom` to GitHub Packages.
-`0.8.3-fee.3` is the fee-protocol prerelease on `next`; `latest` is a separate
+`0.8.3-fee.7` is the fee-protocol prerelease on `next`; `latest` is a separate
 release channel. Pin the same exact version across wallet and server adapters. See
 [the changelog](CHANGELOG.md) for the release contents.
 

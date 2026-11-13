@@ -17,7 +17,7 @@ npm --prefix examples run frontend
 ```
 
 `test:examples` packs the current candidate and installs it into the examples
-before testing. The checked-in examples pin the published `0.8.3-fee.6`
+before testing. The checked-in repository examples pin the published `0.8.3-fee.7`
 prerelease; candidate testing intentionally replaces that dependency temporarily.
 
 Synthetic offline examples use the same digest-authenticated bundled profile as
@@ -27,7 +27,7 @@ After publication, users can copy `examples` from the package or repository,
 run `npm ci` inside it, then install the matching release explicitly:
 
 ```sh
-npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.6 \
+npm install --no-save --package-lock=false @kaspacom/kcc20-tx-builder@0.8.3-fee.7 \
   --registry=https://registry.npmjs.org/ --@kaspacom:registry=https://registry.npmjs.org/
 npm run backend -- offline
 npm run frontend
@@ -87,7 +87,7 @@ through **Build transfer from indexer**. Both verify decoded state against RPC.
 Run `npm run fee-quote` for a local fee calculation. The generic order/wrap
 recipes above target the older helper family, not `kcc20fee.*` markets. See the
 [public integration guide](../docs/PUBLIC_INTEGRATION.md) before choosing a
-market version; a complete live fee-market trading CLI remains a follow-up.
+market version. Use the lifecycle CLI below for fee-market trades.
 
 
 ## New fee-market lifecycle
@@ -101,8 +101,9 @@ integrations. These commands do not use the legacy order recipes above.
 
 ## Release archive
 
-Release `0.8.3-fee.7` contains these examples. Their lockfile installs the
-unchanged `0.8.3-fee.6` engine; the release changes example wiring and docs.
+The immutable `0.8.3-fee.7` archive contains these examples with a lockfile
+pinned to the unchanged `0.8.3-fee.6` engine. The repository examples now pin
+`0.8.3-fee.7` directly. The archive is not rewritten after publication.
 Extract the public archive and install the example dependencies:
 
 ```sh

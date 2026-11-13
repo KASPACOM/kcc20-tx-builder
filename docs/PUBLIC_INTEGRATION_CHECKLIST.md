@@ -335,3 +335,12 @@ Remaining scope: forced service-crash and chain-reorg tests, other authenticated
 backend operation shapes, untested authority permutations, and full standalone
 fee-market API parity. The successful registry smoke tests do not close those
 separate gates. No frontend repository was merged.
+
+## Repository example pin alignment, 2026-11-13
+
+The public guide already recommends local TX-builder construction and pins
+`0.8.3-fee.7`. The repository README and example dependency now match that pin.
+All 67 example tests and the example build pass against the registry fee.7
+package. This is local validation; the funded registry results above retain
+their original fee.6 embedded-engine labels. The immutable fee.7 archive and
+npm latest tag are unchanged.
