@@ -221,10 +221,12 @@ test('stale and wrong-network fee quotes fail before signing', async () => {
 });
 test('node fee estimate failures and invalid rates have no fixed-rate fallback', async () => {
   const { nodePriorityQuote } = await import('../shared/priority-fee.ts');
-  await assert.rejects(nodePriorityQuote({ async getFeeEstimate() { throw Error('node unavailable'); } }, 'fixture'), /node unavailable/);
+  await assert.rejects(nodePriorityQuote({ async getFeeEstimate() { throw Error('node unavailable'); } }), /node unavailable/);
   for (const feerate of [0, -1, NaN, Infinity]) {
-    await assert.rejects(nodePriorityQuote({ async getFeeEstimate() { return { estimate: { priorityBucket: { feerate } } }; } }, 'fixture'), /rate/);
+    await assert.rejects(nodePriorityQuote({ async getFeeEstimate() { return { estimate: { priorityBucket: { feerate } } }; } }), /rate/);
   }
-  const quote = await nodePriorityQuote({ async getFeeEstimate() { return { estimate: { priorityBucket: { feerate: 123.5 } } }; } }, 'fixture');
+  const quote = await nodePriorityQuote({ async getFeeEstimate() { return { estimate: { priorityBucket: { feerate: 123.5 } } }; } });
   assert.equal(quote.sompiPerNormalizedMass, '123.5');
+  assert.equal(quote.source, 'connected-tn10-node');
+  assert(!JSON.stringify(quote).includes('://'));
 });

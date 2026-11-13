@@ -36,7 +36,7 @@ async function main() {
     const signer: Signer | undefined = v.signer
       ? (await import(pathToFileURL(resolve(v.signer)).href)).default : undefined;
     const builder = lifecycleBuilder(wasm, rpc, loadArtifact, signer?.capabilities, {
-      networkFeeQuoteProvider: () => nodePriorityQuote(rpc, v.rpc!),
+      networkFeeQuoteProvider: () => nodePriorityQuote(rpc),
     });
     const built = await builder.build(request);
     const debit = walletDebit(wasm, built, request.request.owner.walletAddress);

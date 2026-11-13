@@ -8,7 +8,7 @@ export function browserLifecycle(wasm: Runtime, rpc: Source & Parameters<typeof 
   loadArtifact: (key: string) => Promise<unknown>,
   wallet: { getAccounts(): Promise<string[]>; signTransaction(tx: string, options: unknown): Promise<string> }) {
   const builder = lifecycleBuilder(wasm, rpc, loadArtifact, undefined, {
-    networkFeeQuoteProvider: () => nodePriorityQuote(rpc, 'host-connected TN10 node'),
+    networkFeeQuoteProvider: () => nodePriorityQuote(rpc),
   });
   return {
     build: builder.build,
