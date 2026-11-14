@@ -347,7 +347,7 @@ npm latest tag are unchanged.
 
 ## Canonical positions and portfolio parity, 2026-11-14
 
-Status: **In progress**. Backend stack:
+Status: **In progress**. Backend stack (all three merged after review):
 [proposal #726](https://github.com/KASPACOM/kcc20-backend/pull/726),
 [implementation #727](https://github.com/KASPACOM/kcc20-backend/pull/727),
 [resolver tests #728](https://github.com/KASPACOM/kcc20-backend/pull/728).
@@ -371,6 +371,8 @@ retired legacy wrappers, premint handoff and greater-than-64 identity resolution
 invariants passed. Independent review approved the implementation. These fixtures
 are not live HTTP parity or funded transaction evidence.
 
-Remaining: final hosted CI, merge/deploy, and live comparison at a stable source
+Hosted CI passed for implementation `00f7a56f` and tests `e7d3d0f4`.
+Implementation merged as `85619a3c`; the test follow-up merged as `53388f14`.
+Remaining: verify DEV deployment and live comparison at a stable source
 watermark after indexer recovery. The user owns indexer recovery. No indexer code,
 infrastructure or product frontend was changed or merged.
