@@ -344,3 +344,33 @@ All 67 example tests and the example build pass against the registry fee.7
 package. This is local validation; the funded registry results above retain
 their original fee.6 embedded-engine labels. The immutable fee.7 archive and
 npm latest tag are unchanged.
+
+## Canonical positions and portfolio parity, 2026-11-14
+
+Status: **In progress**. Backend stack:
+[proposal #726](https://github.com/KASPACOM/kcc20-backend/pull/726),
+[implementation #727](https://github.com/KASPACOM/kcc20-backend/pull/727),
+[resolver tests #728](https://github.com/KASPACOM/kcc20-backend/pull/728).
+No builder package or protocol change is part of this correction.
+
+Wallet balances and public positions share fee-market identity resolution and
+integer balance aggregation. An unresolved market is no longer labeled as a
+canonical native token. Identity lookups use bounded concurrency and do not skip
+holdings after 64 assets. The platform single-token lookup uses the same filtered
+indexer portfolio projection as its table when a row exists, retaining the
+existing empty-projection deployment/premint fallback.
+
+All seven wallet sort fields, both directions, numeric precision, pagination and
+filter predicates are covered. Portfolio query parameters stay delegated to the
+existing indexer route; wallet metadata/capability filters remain after canonical
+grouping so pagination cannot split a token's native and wrapped holdings.
+
+Local evidence: 387 focused tests passed across the final suite and query-fixture
+rerun, including four-path service comparison, source failures, legacy mappings,
+premint handoff and greater-than-64 identity resolution. Build, lint and product
+invariants passed. Independent review approved the implementation. These fixtures
+are not live HTTP parity or funded transaction evidence.
+
+Remaining: final hosted CI, merge/deploy, and live comparison at a stable source
+watermark after indexer recovery. The user owns indexer recovery. No indexer code,
+infrastructure or product frontend was changed or merged.
