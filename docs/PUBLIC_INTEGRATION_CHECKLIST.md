@@ -373,6 +373,21 @@ are not live HTTP parity or funded transaction evidence.
 
 Hosted CI passed for implementation `00f7a56f` and tests `e7d3d0f4`.
 Implementation merged as `85619a3c`; the test follow-up merged as `53388f14`.
-Remaining: verify DEV deployment and live comparison at a stable source
-watermark after indexer recovery. The user owns indexer recovery. No indexer code,
-infrastructure or product frontend was changed or merged.
+DEV deployment is verified: both backend replicas and the migration worker rolled
+out revision `53388f1484d3a03009b8efaa4369a3304150c525`. Deployment workflows
+[43640744926](https://github.com/KASPACOM/kcc20-backend/actions/runs/43640744926)
+and [43641027421](https://github.com/KASPACOM/kcc20-backend/actions/runs/43641027421)
+succeeded.
+
+Live HTTP parity remains **Blocked**. In the post-rollout read checks, backend
+`/health` returned 200, while wallet balances, public positions, portfolio assets
+and single-token balance each returned 502. The portfolio routes were tested
+with a signed platform wallet cookie; an initial public API bearer correctly
+returned 401 because those private routes require platform-cookie authentication.
+These responses do not establish balance agreement or diagnose the upstream
+failure. No transaction was submitted in this check.
+
+[Post-rollout HTTP evidence](evidence/canonical-position-http-20261114.json)
+records the route outcomes without credentials. Repeat the four-path comparison
+at a stable source watermark when reads recover. The user owns indexer recovery.
+No indexer code, infrastructure or product frontend was changed or merged.
