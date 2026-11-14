@@ -365,9 +365,9 @@ filter predicates are covered. Portfolio query parameters stay delegated to the
 existing indexer route; wallet metadata/capability filters remain after canonical
 grouping so pagination cannot split a token's native and wrapped holdings.
 
-Local evidence: 387 focused tests passed across the final suite and query-fixture
-rerun, including four-path service comparison, source failures, legacy mappings,
-premint handoff and greater-than-64 identity resolution. Build, lint and product
+Local evidence: 388 tests passed in the final eight-suite run, including four-path
+service comparison, source failures, native-only active-market attachment alongside
+retired legacy wrappers, premint handoff and greater-than-64 identity resolution. Build, lint and product
 invariants passed. Independent review approved the implementation. These fixtures
 are not live HTTP parity or funded transaction evidence.
 
