@@ -391,3 +391,25 @@ failure. No transaction was submitted in this check.
 records the route outcomes without credentials. Repeat the four-path comparison
 at a stable source watermark when reads recover. The user owns indexer recovery.
 No indexer code, infrastructure or product frontend was changed or merged.
+
+## Live canonical balance retest, 2026-11-15
+
+Status: **Verified** for the tested wallet and five token markets. All four live
+paths returned HTTP 200: wallet-provider balances, public positions, authenticated
+portfolio assets and authenticated single-token balances. Each returned the same
+canonical token ID, market ID, native quantity, wrapped quantity and total.
+PUBDOC1 held 98,992 native and 900 wrapped base units, totaling 99,892.
+
+All 33 wallet query checks passed: seven sort fields in both directions, asset
+filters, canonical token and text search, both values of each capability/balance
+filter, minimum native/wrapped/total quantities, and offset pagination. The wallet
+held five token rows. Platform queries were exercised with tokenId, limit and
+offset; this run does not claim exhaustive live platform sort/filter coverage.
+
+[Live query and parity evidence](evidence/canonical-position-live-20261115.json)
+records the assertions. These were read-only sequential API observations, not
+funded transactions or an atomic chain-watermark audit. Freshness returned 200
+and stale=false, while portfolio coverage remained incomplete with
+settled_recheck_stalled. Historical completeness remains a separate open gate.
+The previous day's 502 blocker was absent during this run. No indexer or frontend
+changes were made.
