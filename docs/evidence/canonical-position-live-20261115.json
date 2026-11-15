@@ -1,0 +1,324 @@
+{
+  "observedAt": "2026-11-15T16:18:16.890667+00:00",
+  "walletRows": 5,
+  "fourPathIdentityAndBalanceParity": true,
+  "balanceBaseUnits": {
+    "native": 98992,
+    "wrapped": 900,
+    "total": 99892
+  },
+  "queries": [
+    {
+      "query": {
+        "sortBy": "canonicalCovenantId",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "canonicalCovenantId",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "ticker",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "ticker",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "name",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "name",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "nativeAmount",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "nativeAmount",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "wrappedAmount",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "wrappedAmount",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "totalAmount",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "totalAmount",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "lastChangeMs",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "lastChangeMs",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "asset": "native"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "asset": "wrapped"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "asset": "all"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "covenantId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "q": "pubdoc1"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "hasBalance": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "hasBalance": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "transferable": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "transferable": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "wrappable": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "wrappable": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "tradeable": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "tradeable": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "minNativeAmount": "100"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "minWrappedAmount": "100"
+      },
+      "passed": true,
+      "total": 3
+    },
+    {
+      "query": {
+        "minTotalAmount": "100"
+      },
+      "passed": true,
+      "total": 3
+    },
+    {
+      "query": {
+        "limit": 2,
+        "offset": 0
+      },
+      "passed": true
+    },
+    {
+      "query": {
+        "limit": 2,
+        "offset": 1
+      },
+      "passed": true
+    },
+    {
+      "query": {
+        "limit": 2,
+        "offset": 2
+      },
+      "passed": true
+    }
+  ],
+  "coverage": {
+    "status": "incomplete",
+    "replayStatus": "settled_recheck_stalled",
+    "historyCursorBlueScore": 612589267,
+    "sourceTipBlueScore": 612589277,
+    "replaySourceTipBlueScore": 612589267,
+    "liveTipBlueScore": 612589257,
+    "liveTipAgeMs": 5479,
+    "chainTipBlueScore": 612589277,
+    "gapScores": 10,
+    "cursorAgeMs": 36,
+    "netRateScoresPerSecond": 0.24997035948965612,
+    "etaSeconds": 40,
+    "historicalVerification": {
+      "promotionGitSha": "75f6c24b26e399f03c2cf6fa72f030cea2f22b04",
+      "settledRepairGitSha": "8add41f7b7b6311d16e493b67e99464dbe4d757f",
+      "sourceArchiveSampledBlueScores": [
+        569000000,
+        571500000,
+        574500000,
+        574900000
+      ],
+      "sourceCurrentAuditedFromBlueScore": 574906000,
+      "sourceCurrentAuditedThroughBlueScore": 576386000,
+      "sourceCurrentDifferingWindows": 0,
+      "verified": true,
+      "verifiedAtUtc": "2026-10-04T14:45:16Z"
+    }
+  },
+  "scope": "Read-only live API tests; sequential responses, not atomic watermark or chain correctness proof",
+  "allWalletTokensFourPathParity": [
+    {
+      "canonicalTokenId": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+      "marketId": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+      "nativeAmount": "0",
+      "wrappedAmount": "120",
+      "passed": true
+    },
+    {
+      "canonicalTokenId": "7de1a24fc47e1ffc41a1802e94e7a327a20a0890770780e7601dc228fec7fbc0",
+      "marketId": "0dc2ae4759c105ae4478e3fdb5642d01daca99d63b096b26f71708cc114e47be",
+      "nativeAmount": "0",
+      "wrappedAmount": "80",
+      "passed": true
+    },
+    {
+      "canonicalTokenId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+      "marketId": "548ef15b4d3f00cc2de5c790d03901beb24155454a4d7e84e1ae20a35b7d5fa0",
+      "nativeAmount": "98992",
+      "wrappedAmount": "900",
+      "passed": true
+    },
+    {
+      "canonicalTokenId": "c7f7dbc125854c644be36b2fd4e006546f2807a6c5fb8855796e6f6bd9527886",
+      "marketId": "1a0c32de7f34830cd684bbcc4b10ea6266c010576d3d870df492bfcbbdca08da",
+      "nativeAmount": "0",
+      "wrappedAmount": "200",
+      "passed": true
+    },
+    {
+      "canonicalTokenId": "f057c32cc9b75679e31517c5b2222c25649fd98d705781b54947c11eddb04e21",
+      "marketId": "7294fcdb37e1aa5fddf66ecdff75b0818ec28ebfb901b549669e9ce5023ddc19",
+      "nativeAmount": "0",
+      "wrappedAmount": "2",
+      "passed": true
+    }
+  ]
+}
