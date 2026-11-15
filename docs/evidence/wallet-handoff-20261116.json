@@ -1,0 +1,438 @@
+{
+  "verifiedAtUtc": "2026-11-15T22:50:58.379322+00:00",
+  "backendRevision": "874fe058c4fda25495a496b761cb0ab57343b7cc",
+  "mergedCorrection": "4d71d73a48ae7f62387ba3672dabef1634ab768f",
+  "parity": {
+    "atUtc": "2026-11-15T22:49:52.952Z",
+    "checks": [
+      {
+        "token": "5c87814e6390f5f25ce40ce297e4a7584de396b12efdb019c330ac9478bf5545",
+        "market": "96236bfe3dc4a6000786d29ca0e8b61e8f77b0329ebc9dc575f52671d9c61794",
+        "native": "0",
+        "wrapped": "120",
+        "passed": true
+      },
+      {
+        "token": "7de1a24fc47e1ffc41a1802e94e7a327a20a0890770780e7601dc228fec7fbc0",
+        "market": "0dc2ae4759c105ae4478e3fdb5642d01daca99d63b096b26f71708cc114e47be",
+        "native": "0",
+        "wrapped": "80",
+        "passed": true
+      },
+      {
+        "token": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7",
+        "market": "548ef15b4d3f00cc2de5c790d03901beb24155454a4d7e84e1ae20a35b7d5fa0",
+        "native": "98992",
+        "wrapped": "900",
+        "passed": true
+      },
+      {
+        "token": "c7f7dbc125854c644be36b2fd4e006546f2807a6c5fb8855796e6f6bd9527886",
+        "market": "1a0c32de7f34830cd684bbcc4b10ea6266c010576d3d870df492bfcbbdca08da",
+        "native": "0",
+        "wrapped": "200",
+        "passed": true
+      },
+      {
+        "token": "f057c32cc9b75679e31517c5b2222c25649fd98d705781b54947c11eddb04e21",
+        "market": "7294fcdb37e1aa5fddf66ecdff75b0818ec28ebfb901b549669e9ce5023ddc19",
+        "native": "0",
+        "wrapped": "2",
+        "passed": true
+      }
+    ],
+    "coverage": "incomplete",
+    "authentication": "Controlled proof-wallet server-signed test session; not wallet login proof",
+    "scope": "Read-only sequential live API parity, not atomic chain watermark or new funded proof"
+  },
+  "queries": [
+    {
+      "query": {
+        "sortBy": "canonicalCovenantId",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "canonicalCovenantId",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "ticker",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "ticker",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "name",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "name",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "nativeAmount",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "nativeAmount",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "wrappedAmount",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "wrappedAmount",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "totalAmount",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "totalAmount",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "lastChangeMs",
+        "sortDirection": "asc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "sortBy": "lastChangeMs",
+        "sortDirection": "desc"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "asset": "native"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "asset": "wrapped"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "asset": "all"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "covenantId": "a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "q": "pubdoc1"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "hasBalance": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "hasBalance": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "transferable": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "transferable": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "wrappable": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "wrappable": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "tradeable": "true"
+      },
+      "passed": true,
+      "total": 5
+    },
+    {
+      "query": {
+        "tradeable": "false"
+      },
+      "passed": true,
+      "total": 0
+    },
+    {
+      "query": {
+        "minNativeAmount": "100"
+      },
+      "passed": true,
+      "total": 1
+    },
+    {
+      "query": {
+        "minWrappedAmount": "100"
+      },
+      "passed": true,
+      "total": 3
+    },
+    {
+      "query": {
+        "minTotalAmount": "100"
+      },
+      "passed": true,
+      "total": 3
+    },
+    {
+      "query": {
+        "limit": 2,
+        "offset": 0
+      },
+      "passed": true
+    },
+    {
+      "query": {
+        "limit": 2,
+        "offset": 1
+      },
+      "passed": true
+    },
+    {
+      "query": {
+        "limit": 2,
+        "offset": 2
+      },
+      "passed": true
+    }
+  ],
+  "browser": {
+    "atUtc": "2026-11-15T22:49:20.925Z",
+    "browser": "Chromium via Playwright 1.56.0",
+    "origin": "separate localhost HTTP origin",
+    "credentials": "omit",
+    "broadcast": false,
+    "results": [
+      {
+        "path": "/health",
+        "readable": true,
+        "http": 200,
+        "keys": [
+          "ok",
+          "mongoReadyState",
+          "redis",
+          "service",
+          "timestamp"
+        ],
+        "ok": true
+      },
+      {
+        "path": "/trading/freshness?refresh=true",
+        "readable": true,
+        "http": 200,
+        "keys": [
+          "ok",
+          "stale",
+          "suggestedPollMs",
+          "scanner"
+        ],
+        "ok": true,
+        "stale": false
+      },
+      {
+        "path": "/wallet-provider/tokens?limit=1",
+        "readable": true,
+        "http": 200,
+        "keys": [
+          "items",
+          "total",
+          "cacheTtlSeconds",
+          "generatedAtMs"
+        ]
+      },
+      {
+        "path": "transfer-invalid-body",
+        "readable": true,
+        "http": 400
+      },
+      {
+        "path": "private-auth-negative",
+        "readable": false,
+        "error": "TypeError: Failed to fetch"
+      }
+    ]
+  },
+  "health": [
+    {
+      "path": "/health/live",
+      "http": 200,
+      "ok": true,
+      "reasons": [],
+      "pendingIntents": 0
+    },
+    {
+      "path": "/health/history",
+      "http": 200,
+      "coverage": "incomplete",
+      "replayStatus": "settled_recheck_reconciling",
+      "error": null
+    }
+  ],
+  "package": {
+    "version": "0.8.3-fee.7",
+    "nodeVersion": "v24.22.0",
+    "publicNpmWithoutCredentials": true,
+    "build": "passed",
+    "testsPassed": 67,
+    "testsFailed": 0,
+    "browserNodeRecipesIdentical": 24,
+    "installationNote": "Packed the public npm release, ran npm ci in packaged examples, then explicitly installed fee.7 as documented. Bundled example lockfile initially resolves fee.6; the explicit install step is required."
+  },
+  "boundaries": [
+    "No new transaction broadcast in this run; prior funded evidence retains original revisions.",
+    "Private portfolio parity uses a short-lived server-signed controlled-wallet test session, not an extension login/signature test.",
+    "Sequential API agreement does not prove complete historical coverage or an atomic chain watermark.",
+    "No frontend changes or merges."
+  ],
+  "additionalHttpChecks": {
+    "atUtc": "2026-11-15T22:50:31.462Z",
+    "checks": [
+      {
+        "name": "address and owner holdings agree",
+        "passed": true
+      },
+      {
+        "name": "reject limit=0",
+        "http": 400,
+        "passed": true
+      },
+      {
+        "name": "reject asset=invalid",
+        "http": 400,
+        "passed": true
+      },
+      {
+        "name": "reject sortBy=invalid",
+        "http": 400,
+        "passed": true
+      },
+      {
+        "name": "reject unknown=true",
+        "http": 200,
+        "passed": false
+      },
+      {
+        "name": "reject invalid owner",
+        "http": 400,
+        "passed": true
+      },
+      {
+        "name": "/public-docs",
+        "http": 200,
+        "passed": true
+      },
+      {
+        "name": "/public-docs-json",
+        "http": 200,
+        "passed": true
+      },
+      {
+        "name": "/public-testnet-api.md",
+        "http": 200,
+        "passed": true
+      }
+    ],
+    "unknownQueryDisposition": {
+      "originalProbeExpected": 400,
+      "actual": 200,
+      "itemsMatchBaseline": true,
+      "status": "Documented limitation: unknown query keys are ignored, not rejected. Supported query checks are separate."
+    }
+  }
+}

@@ -20,7 +20,7 @@ Status and evidence describe this integration, not older internal proofs.
 | W12 | General token burn | Missing | No public generic burn operation advertised | Source operation registry checked | N/A |
 | W13 | FeeTickets | Exists | Separate coupon reference; admin/trading deferred | N/A | N/A |
 | W14 | Activity | Exists | Optional existing route only | N/A | Both public mint IDs appear as mint_public with 100 base units each; optional UI not built |
-| W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | November 13: ok=false, stale=true; retained canonical recovery blocks live readiness |
+| W15 | Freshness, confirmation and retry handling | Exists | Implemented with explicit stale state | Stale source, rejected wallet, spent input and journal-before-submit checks pass | November 16: live health 200, no pending intents, stale=false; historical coverage remains incomplete |
 | W16 | Browser and Node examples | Exists | Shared build/sign flow implemented | Published fee.7: 67 tests and browser build pass | Node adapter funded; real extension/browser signing not tested |
 | W17 | Independent review | Complete | All five review findings fixed; independent review approved | Base units, input recheck, durable pre-submit persistence tested | N/A |
 | W18 | Prerelease and registry rerun | Exists | 0.8.3-fee.5 public; release workflow passed | Exact fee.5 registry version installed without credentials; 49 tests, build and 24 browser comparisons pass | November 11 funded wrap/order/cancel/unwrap/consolidation uses public fee.4; deployed backend transfer engine remains pinned fee.3, signed with fee.4 examples |
@@ -161,13 +161,13 @@ registry verification; the funded transaction evidence retains its original vers
   and independent review pass for [backend #722](https://github.com/KASPACOM/kcc20-backend/pull/722).
 - [x] Merge #722 after full CI at the independently reviewed head; merge revision
   `fd44bf7ccddc4a4d2eb7140f84ddd4c6199fa811`.
-- [ ] Verify its DEV rollout and repeat public wallet reads plus negative
+- [x] Verify its DEV rollout and repeat public wallet reads plus negative
   private-route checks from a separate browser origin.
 - [x] Deploy the recovery fix: Argo revision `91312ec638b66ca10a847045fee08cc9b9270f2a`,
   all DEV indexer images pinned to `f4cb716f`, migrations completed and one watcher
   active. The plan now discovers previously omitted dependencies with its
   exclusive-write fence enabled.
-- [ ] Observe the retained intent complete, accepted progress resume, and
+- [x] Observe the retained intent complete, accepted progress resume, and
   `/trading/freshness?refresh=true` become healthy.
 - [x] Disclose the separate historical source blocker: settled replay retains
   window `610267400` because required prevout
@@ -177,6 +177,35 @@ registry verification; the funded transaction evidence retains its original vers
 - [ ] Restore source availability, replay the retained historical window and
   verify coverage before claiming complete balances.
 
-The docs and package can be reviewed by wallet developers now. End-to-end DEV
-readiness remains blocked by live freshness; do not describe that service as
-healthy based on a successful recent transfer alone. Frontend remains unmerged.
+At the November 13 checkpoint, live freshness blocked end-to-end DEV testing.
+The November 16 retest below supersedes that live-status observation; historical
+coverage remains a separate gate. Frontend remains unmerged.
+
+
+## Wallet-provider handoff retest, November 16
+
+**Ready to share for external DEV TN10 integration testing**, with incomplete
+historical coverage disclosed. This does not certify production readiness.
+
+[Current verification evidence](evidence/wallet-handoff-20261116.json):
+
+- Backend #729 is merged and included in deployed revision `874fe058`.
+- All five held token markets agree across wallet balances, positions, portfolio
+  assets and single-token portfolio reads, including canonical IDs and quantities.
+- All 33 supported live wallet query checks pass. Address and owner-ID reads agree;
+  invalid owner, limit, asset and sort values return 400. An additional unknown-key
+  probe expected 400 but returned 200 with unchanged items: unknown query keys
+  are ignored. This limitation is documented in the provider guide.
+- Chromium reads public health, freshness and token metadata; invalid transfer
+  input returns readable HTTP 400, while private auth remains inaccessible.
+- Public npm fee.7 installation, example build, 67 tests and 24 browser/Node
+  recipe comparisons pass. Follow the explicit pinned install step after npm ci;
+  the published example lockfile initially installs fee.6.
+- Live health is HTTP 200 with no pending recovery intent. Historical coverage
+  is still incomplete; settled replay now reports reconciling with no last error.
+
+Remaining: independent historical coverage verification and each integrating
+wallet's real extension approval/rejection/signing journey. The private portfolio
+comparison uses a controlled-wallet server-signed test session. This run did not
+repeat funded transactions or test wallet login signatures. Existing funded send,
+wrap/unwrap and mint evidence remains version-specific. No frontend was merged.

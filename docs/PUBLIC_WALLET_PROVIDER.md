@@ -31,6 +31,9 @@ base units. The backend transfer request's `tokenAmount` uses display units.
 Use integer/decimal-string conversion; JavaScript floating-point arithmetic must
 not round token balances or transfer amounts.
 
+Use only the documented query names below. Unknown query parameters can be
+ignored rather than rejected, so a misspelled filter may return unfiltered results.
+
 ## Filter holdings
 
 The current API already supports the following query fields:

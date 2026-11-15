@@ -413,3 +413,14 @@ and stale=false, while portfolio coverage remained incomplete with
 settled_recheck_stalled. Historical completeness remains a separate open gate.
 The previous day's 502 blocker was absent during this run. No indexer or frontend
 changes were made.
+
+
+## Wallet handoff retest, November 16
+
+Backend #729 is merged and deployed. Fresh [handoff evidence](evidence/wallet-handoff-20261116.json)
+verifies five token markets across all four read paths, 33 wallet queries, browser
+CORS behavior and public fee.7 installation/build/tests. Live freshness is healthy.
+Historical coverage is incomplete; settled replay reports reconciling without the
+previous missing-source error. Use the [wallet checklist](WALLET_INTEGRATION_CHECKLIST.md)
+for the wallet-first scope and remaining provider-specific extension tests.
+No new funded transaction or frontend merge is claimed.
