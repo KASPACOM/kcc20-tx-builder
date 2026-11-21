@@ -4,6 +4,7 @@ import {
   BUNDLED_TOKEN_PROFILE_DIGEST,
 } from "./token-profiles.generated.js";
 import {
+  maxActiveMinterSupply,
   ownerNativeHolderUtxos,
   selectActiveMinterUtxo,
   selectConsolidationBatch,
@@ -104,18 +105,7 @@ export function buildKcc20MintTokenOperation(
   }
   const minter = selectActiveMinterUtxo(input.activeUtxos, tokenAmount);
   if (!minter?.state) {
-    const maximum = input.activeUtxos.reduce((max, utxo) => {
-      const state = utxo.state;
-      const raw = state?.["remainingSupply"];
-      if (
-        state?.["isMintAuthority"] !== true ||
-        typeof raw !== "string" ||
-        !/^\d+$/.test(raw)
-      )
-        return max;
-      const remaining = BigInt(raw);
-      return remaining > max ? remaining : max;
-    }, 0n);
+    const maximum = maxActiveMinterSupply(input.activeUtxos);
     throw Object.assign(
       new Error(
         "No active KCC20 mint-authority UTXO has enough remaining supply. Reduce the amount to fit one lane; lane balances cannot be combined.",

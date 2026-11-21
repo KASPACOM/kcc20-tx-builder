@@ -151,3 +151,84 @@ test("one lane is required, and a fresh changed lane cannot authorize the old qu
     );
   }
 });
+
+for (const remainingSupply of ["90", 90n, 90]) {
+  test(`lane maximum agrees with selection for ${typeof remainingSupply} balances`, () => {
+    const token = {
+      covenantId: "b".repeat(64),
+      decimals: 0,
+      mintPolicy: {
+        mintable: true,
+        policy: "public",
+        publicMintActive: true,
+        mintPricePerTokenSompi: "0",
+      },
+    };
+    const lane = {
+      txidHex: "c".repeat(64),
+      vout: 0,
+      address: "kaspatest:lane",
+      amountSompi: "100000000",
+      state: {
+        isMintAuthority: true,
+        remainingSupply,
+        ownerIdentifier: wallet.kcc20Owner,
+        ownerScheme: 0,
+      },
+    };
+    assert.equal(
+      buildKcc20MintTokenOperation(wallet, {
+        token,
+        tokenAmount: "90",
+        activeUtxos: [lane],
+      }).payload.params.tokenAmount,
+      "90",
+    );
+    const invalid = [
+      -1n,
+      -1,
+      1.5,
+      Number.MAX_SAFE_INTEGER + 1,
+      "0100",
+      " 100",
+      "1e3",
+      null,
+      undefined,
+    ];
+    const invalidLanes = invalid.map((raw) => ({
+      ...lane,
+      state: { ...lane.state, remainingSupply: raw },
+    }));
+    const holder = {
+      ...lane,
+      state: {
+        ...lane.state,
+        isMintAuthority: false,
+        remainingSupply: "10000",
+      },
+    };
+    assert.throws(
+      () =>
+        buildKcc20MintTokenOperation(wallet, {
+          token,
+          tokenAmount: "91",
+          activeUtxos: [lane],
+        }),
+      (error) => {
+        assert.equal(error.code, "KCC20_MINT_AMOUNT_EXCEEDS_SINGLE_LANE_CAP");
+        assert.equal(error.maxMintAmountPerRequest, "90");
+        assert.equal(error.retryable, false);
+        return true;
+      },
+    );
+    assert.throws(
+      () =>
+        buildKcc20MintTokenOperation(wallet, {
+          token,
+          tokenAmount: "91",
+          activeUtxos: [...invalidLanes, holder, lane],
+        }),
+      (error) => error.maxMintAmountPerRequest === "90",
+    );
+  });
+}

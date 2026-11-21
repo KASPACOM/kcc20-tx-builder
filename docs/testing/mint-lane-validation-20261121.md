@@ -46,3 +46,11 @@ Frontend/backend retain their current published builder pins. Their application 
 Durable test logs are copied to `/root/work/kcc20-mint-lane-evidence-20261121/`. A read-only visual attempt captured the loading shell while DEV token details were unavailable; it does not count as a successful live mint-flow check.
 
 Evidence: /tmp/mint-lane-red.log, /tmp/mint-fe-tests.log, /tmp/mint-back-tests.log, /tmp/mint-builder-tests-final.log. Build and lint logs use /tmp/mint-{fe,back}-*.log. These are local checks, not deployed evidence.
+
+## Builder PR 80 conflict and review follow-up
+
+Merged main at `ddbd2beba5421fe31b62301e48801082721b84d8` into the feature branch. The test-command conflict preserves both mint-lane regressions and the upstream funding-classification suite.
+
+Review comment 4654869045 identified inconsistent capacity reporting for bigint and numeric lane balances. Selection and maximum reporting now share the same authority and unsigned-balance normalization. Regression cases cover string, bigint and safe-integer balances, malformed balances, unsafe numbers and non-authority holders. All three new cases failed against the previous implementation.
+
+Full `npm test` passed after the merge, including typecheck, ESM/CommonJS builds, smoke checks, 316 main-suite tests and 7 funding/network tests. `git diff --check` passed. Logs: `/root/work/kcc20-mint-lane-evidence-20261121/mint-builder-review-full.log` and `mint-review-red.log`. No merge to main, package publication or deployment is authorized by this follow-up.

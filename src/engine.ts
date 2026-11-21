@@ -9943,6 +9943,9 @@ export function createKcc20PsktBuilderEngine(
       try {
         fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding, [], request.params?.fundingOutpoint);
       } catch (error) {
+        if (["INSUFFICIENT_KAS_BALANCE", "INSUFFICIENT_SINGLE_KAS_UTXO"].includes(error?.builderErrorCode)) {
+          throw error;
+        }
         if (totalSellerFundedHolderTopUpSompi > 0n) {
           throw kcc20PsktBuilderError(
             `no single funding UTXO can cover the ${totalSellerFundedHolderTopUpSompi} sompi buyer holder top-up and transaction fee`,
@@ -10688,6 +10691,9 @@ export function createKcc20PsktBuilderEngine(
       try {
         fundingEntry = selectFundingEntry(walletUtxos.entries, requiredFunding, [], request.params?.fundingOutpoint);
       } catch (error) {
+        if (["INSUFFICIENT_KAS_BALANCE", "INSUFFICIENT_SINGLE_KAS_UTXO"].includes(error?.builderErrorCode)) {
+          throw error;
+        }
         if (totalSellerFundedHolderTopUpSompi > 0n) {
           throw kcc20PsktBuilderError(
             `no single funding UTXO can cover the ${totalSellerFundedHolderTopUpSompi} sompi buyer holder top-up and transaction fee`,

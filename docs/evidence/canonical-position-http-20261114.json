@@ -1,0 +1,73 @@
+{
+  "observedAt": "2026-11-14T21:17:44.087885+00:00",
+  "deployedRevision": "53388f1484d3a03009b8efaa4369a3304150c525",
+  "observations": [
+    {
+      "path": "/health",
+      "authenticated": false,
+      "httpStatus": "200",
+      "response": {
+        "ok": true,
+        "mongoReadyState": 1,
+        "redis": "PONG",
+        "service": "kcc20-backend",
+        "timestamp": "2026-11-14T21:17:43.958Z"
+      },
+      "transportError": null
+    },
+    {
+      "path": "/wallet-provider/owners/17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2/balances?covenantId=a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7&refresh=true",
+      "authenticated": false,
+      "httpStatus": "502",
+      "response": "error code: 502\n",
+      "transportError": null
+    },
+    {
+      "path": "/trading/owners/17b9fe847696e231022246719d94a6e491bfb5b595798ef951b64527384ecef2/positions",
+      "authenticated": false,
+      "httpStatus": "502",
+      "response": "error code: 502\n",
+      "transportError": null
+    },
+    {
+      "path": "/wallet-operations/portfolio/assets?tokenId=a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7&limit=1&offset=0",
+      "authenticated": true,
+      "authentication": "platform wallet cookie",
+      "httpStatus": "502",
+      "response": "error code: 502\n",
+      "transportError": null
+    },
+    {
+      "path": "/wallet-operations/portfolio/tokens/a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7/balance",
+      "authenticated": true,
+      "authentication": "platform wallet cookie",
+      "httpStatus": "502",
+      "response": "error code: 502\n",
+      "transportError": null
+    }
+  ],
+  "scope": "Read-only checks after rollout; no transaction submitted and no indexer changes",
+  "initialBearerChecks": [
+    {
+      "path": "/wallet-operations/portfolio/assets?tokenId=a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7&limit=1&offset=0",
+      "authenticated": true,
+      "httpStatus": "401",
+      "response": {
+        "message": "Unauthorized",
+        "statusCode": 401
+      },
+      "transportError": null
+    },
+    {
+      "path": "/wallet-operations/portfolio/tokens/a5860c75f30bbec32fbe1f1d6e919717ac1868a9d95b746b72bc2fe10f34afc7/balance",
+      "authenticated": true,
+      "httpStatus": "401",
+      "response": {
+        "message": "Unauthorized",
+        "statusCode": 401
+      },
+      "transportError": null
+    }
+  ],
+  "platformCheckedAt": "2026-11-14T21:19:43.740880+00:00"
+}
