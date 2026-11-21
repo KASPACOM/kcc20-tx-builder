@@ -344,3 +344,83 @@ All 67 example tests and the example build pass against the registry fee.7
 package. This is local validation; the funded registry results above retain
 their original fee.6 embedded-engine labels. The immutable fee.7 archive and
 npm latest tag are unchanged.
+
+## Canonical positions and portfolio parity, 2026-11-14
+
+Status: **In progress**. Backend stack (all three merged after review):
+[proposal #726](https://github.com/KASPACOM/kcc20-backend/pull/726),
+[implementation #727](https://github.com/KASPACOM/kcc20-backend/pull/727),
+[resolver tests #728](https://github.com/KASPACOM/kcc20-backend/pull/728).
+No builder package or protocol change is part of this correction.
+
+Wallet balances and public positions share fee-market identity resolution and
+integer balance aggregation. An unresolved market is no longer labeled as a
+canonical native token. Identity lookups use bounded concurrency and do not skip
+holdings after 64 assets. The platform single-token lookup uses the same filtered
+indexer portfolio projection as its table when a row exists, retaining the
+existing empty-projection deployment/premint fallback.
+
+All seven wallet sort fields, both directions, numeric precision, pagination and
+filter predicates are covered. Portfolio query parameters stay delegated to the
+existing indexer route; wallet metadata/capability filters remain after canonical
+grouping so pagination cannot split a token's native and wrapped holdings.
+
+Local evidence: 388 tests passed in the final eight-suite run, including four-path
+service comparison, source failures, native-only active-market attachment alongside
+retired legacy wrappers, premint handoff and greater-than-64 identity resolution. Build, lint and product
+invariants passed. Independent review approved the implementation. These fixtures
+are not live HTTP parity or funded transaction evidence.
+
+Hosted CI passed for implementation `00f7a56f` and tests `e7d3d0f4`.
+Implementation merged as `85619a3c`; the test follow-up merged as `53388f14`.
+DEV deployment is verified: both backend replicas and the migration worker rolled
+out revision `53388f1484d3a03009b8efaa4369a3304150c525`. Deployment workflows
+[43640744926](https://github.com/KASPACOM/kcc20-backend/actions/runs/43640744926)
+and [43641027421](https://github.com/KASPACOM/kcc20-backend/actions/runs/43641027421)
+succeeded.
+
+Live HTTP parity remains **Blocked**. In the post-rollout read checks, backend
+`/health` returned 200, while wallet balances, public positions, portfolio assets
+and single-token balance each returned 502. The portfolio routes were tested
+with a signed platform wallet cookie; an initial public API bearer correctly
+returned 401 because those private routes require platform-cookie authentication.
+These responses do not establish balance agreement or diagnose the upstream
+failure. No transaction was submitted in this check.
+
+[Post-rollout HTTP evidence](evidence/canonical-position-http-20261114.json)
+records the route outcomes without credentials. Repeat the four-path comparison
+at a stable source watermark when reads recover. The user owns indexer recovery.
+No indexer code, infrastructure or product frontend was changed or merged.
+
+## Live canonical balance retest, 2026-11-15
+
+Status: **Verified** for the tested wallet and five token markets. All four live
+paths returned HTTP 200: wallet-provider balances, public positions, authenticated
+portfolio assets and authenticated single-token balances. Each returned the same
+canonical token ID, market ID, native quantity, wrapped quantity and total.
+PUBDOC1 held 98,992 native and 900 wrapped base units, totaling 99,892.
+
+All 33 wallet query checks passed: seven sort fields in both directions, asset
+filters, canonical token and text search, both values of each capability/balance
+filter, minimum native/wrapped/total quantities, and offset pagination. The wallet
+held five token rows. Platform queries were exercised with tokenId, limit and
+offset; this run does not claim exhaustive live platform sort/filter coverage.
+
+[Live query and parity evidence](evidence/canonical-position-live-20261115.json)
+records the assertions. These were read-only sequential API observations, not
+funded transactions or an atomic chain-watermark audit. Freshness returned 200
+and stale=false, while portfolio coverage remained incomplete with
+settled_recheck_stalled. Historical completeness remains a separate open gate.
+The previous day's 502 blocker was absent during this run. No indexer or frontend
+changes were made.
+
+
+## Wallet handoff retest, November 16
+
+Backend #729 is merged and deployed. Fresh [handoff evidence](evidence/wallet-handoff-20261116.json)
+verifies five token markets across all four read paths, 33 wallet queries, browser
+CORS behavior and public fee.7 installation/build/tests. Live freshness is healthy.
+Historical coverage is incomplete; settled replay reports reconciling without the
+previous missing-source error. Use the [wallet checklist](WALLET_INTEGRATION_CHECKLIST.md)
+for the wallet-first scope and remaining provider-specific extension tests.
+No new funded transaction or frontend merge is claimed.
