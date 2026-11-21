@@ -300,7 +300,16 @@ function revealMintAmount(input: {
           protocolFeeBps: input.protocolFeeBps,
         })
       : priceScale;
-  const amount = minimum > priceScale ? minimum : priceScale;
+  let amount = minimum > priceScale ? minimum : priceScale;
+  // Free/controlled verification can spend a fractional lane without a KAS floor.
+  if (
+    unitPriceSompi === 0n &&
+    input.remainingSupply &&
+    BigInt(input.remainingSupply) > 0n &&
+    BigInt(input.remainingSupply) < amount
+  ) {
+    amount = BigInt(input.remainingSupply);
+  }
   if (input.remainingSupply && amount > BigInt(input.remainingSupply)) {
     throw new Error(
       "claimed KCC20 token remaining supply is too small to satisfy the verify mint minimum",

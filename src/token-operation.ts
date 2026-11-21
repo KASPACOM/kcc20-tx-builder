@@ -103,10 +103,30 @@ export function buildKcc20MintTokenOperation(
     });
   }
   const minter = selectActiveMinterUtxo(input.activeUtxos, tokenAmount);
-  if (!minter?.state)
-    throw new Error(
-      "No active KCC20 mint-authority UTXO has enough remaining supply",
+  if (!minter?.state) {
+    const maximum = input.activeUtxos.reduce((max, utxo) => {
+      const state = utxo.state;
+      const raw = state?.["remainingSupply"];
+      if (
+        state?.["isMintAuthority"] !== true ||
+        typeof raw !== "string" ||
+        !/^\d+$/.test(raw)
+      )
+        return max;
+      const remaining = BigInt(raw);
+      return remaining > max ? remaining : max;
+    }, 0n);
+    throw Object.assign(
+      new Error(
+        "No active KCC20 mint-authority UTXO has enough remaining supply. Reduce the amount to fit one lane; lane balances cannot be combined.",
+      ),
+      {
+        code: "KCC20_MINT_AMOUNT_EXCEEDS_SINGLE_LANE_CAP",
+        retryable: false,
+        maxMintAmountPerRequest: maximum.toString(),
+      },
     );
+  }
   const walletOwner = normalizeKcc20OwnerIdentifier(
     wallet.kcc20Owner,
     "wallet owner",
@@ -250,7 +270,9 @@ export function buildKcc20TransferTokenOperation(
       params: {
         covenantId,
         appCanonicalCovenantId: covenantId,
-        ...(nativeCovenantId ? { activeHolderNativeCovenantId: nativeCovenantId } : {}),
+        ...(nativeCovenantId
+          ? { activeHolderNativeCovenantId: nativeCovenantId }
+          : {}),
         tokenAmount,
         recipientOwner,
         recipientOwnerScheme: 0,
@@ -262,7 +284,9 @@ export function buildKcc20TransferTokenOperation(
         {
           type: "kcc20-holder-utxo",
           covenantId,
-          ...(nativeCovenantId ? { activeHolderNativeCovenantId: nativeCovenantId } : {}),
+          ...(nativeCovenantId
+            ? { activeHolderNativeCovenantId: nativeCovenantId }
+            : {}),
           owner,
           minimumTokenAmount: tokenAmount,
           ...summary,
