@@ -1165,7 +1165,27 @@ export function selectFundingEntry(
         `pinned funding UTXO ${pinned} is unavailable or cannot cover ${requiredSompi} sompi`,
       );
     }
-    throw new Error(`no single funding UTXO can cover ${requiredSompi} sompi`);
+    // Classify using exactly the same eligible entries as selection. Reserved
+    // inputs cannot fund this action, even if the wallet reports them in total.
+    const available = sorted.filter(
+      candidate => !skipped.has(normalizeFundingOutpoint(candidate.outpoint)),
+    );
+    const total = available.reduce(
+      (sum, candidate) => sum + utxoAmountSompi(candidate), 0n,
+    );
+    const insufficient = total < requiredSompi;
+    throw kcc20PsktBuilderError(
+      `no single funding UTXO can cover ${requiredSompi} sompi`,
+      insufficient ? "INSUFFICIENT_KAS_BALANCE" : "INSUFFICIENT_SINGLE_KAS_UTXO",
+      {
+        requiredFundingSompi: String(requiredSompi),
+        availableFundingSompi: String(total),
+        largestFundingUtxoSompi: String(
+          available.length ? utxoAmountSompi(available[0]) : 0n,
+        ),
+        shortfallSompi: String(insufficient ? requiredSompi - total : 0n),
+      },
+    );
   }
   return entry;
 }
