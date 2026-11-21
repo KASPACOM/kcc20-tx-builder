@@ -11,7 +11,11 @@ import {
   kcc20DisplayScaleForDecimals,
   parseKcc20DisplayAmountToBaseUnits,
 } from "./token-amount.js";
-import { kcc20PaidMintCapacityMeetsMinimumGross } from "./paid-mint-amount.js";
+import {
+  kcc20PaidMintCapacityMeetsMinimumGross,
+  kcc20MinimumPaidMintAmount,
+  KCC20_VERIFY_PAID_MINT_MIN_GROSS_SOMPI,
+} from "./paid-mint-amount.js";
 import { buildKcc20WalletOperationFromPlan } from "./wallet-operation.js";
 
 const HEX_64_RE = /^[a-fA-F0-9]{64}$/;
@@ -242,6 +246,26 @@ export function validateKcc20DeployToken(
     protocolFeeBps > 10_000
   ) {
     throw new Error("protocolFeeBps must be an integer between 0 and 10000");
+  }
+
+  // Verification spends one authority output, never the sum of its lanes.
+  // The first lane receives any division remainder and is the deployment receipt.
+  if (mintPolicy !== 0 && mintPricePerTokenSompi > 0n) {
+    const remaining = maxSupply - premintSupply;
+    const largestLane =
+      (remaining + BigInt(mintLaneCount) - 1n) / BigInt(mintLaneCount);
+    const minimum = kcc20MinimumPaidMintAmount({
+      unitPriceSompi: mintPricePerTokenSompi,
+      priceScale: displayScale,
+      minGrossSompi: KCC20_VERIFY_PAID_MINT_MIN_GROSS_SOMPI,
+      protocolFeeBps,
+    });
+    const required = minimum > displayScale ? minimum : displayScale;
+    if (largestLane < required) {
+      throw new Error(
+        "Verification needs more tokens than one mint lane can supply. Reduce mint lanes or premint, increase supply, or change the mint price before deploying.",
+      );
+    }
   }
 
   return {

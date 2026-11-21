@@ -103,6 +103,22 @@ export function normalizeKcc20IndexedUtxos(
   );
 }
 
+/** Largest spendable mint lane, using the same normalization as lane selection. */
+export function maxActiveMinterSupply(
+  utxos: readonly Kcc20IndexedCovenantUtxo[],
+): bigint {
+  return utxos.reduce((maximum, utxo) => {
+    const remaining = activeMinterSupply(utxo);
+    return remaining !== null && remaining > maximum ? remaining : maximum;
+  }, 0n);
+}
+
+function activeMinterSupply(utxo: Kcc20IndexedCovenantUtxo): bigint | null {
+  return utxo.state?.["isMintAuthority"] === true
+    ? amount(utxo.state["remainingSupply"])
+    : null;
+}
+
 export function selectActiveMinterUtxo(
   utxos: readonly Kcc20IndexedCovenantUtxo[],
   requestedAmount: string,
@@ -110,13 +126,8 @@ export function selectActiveMinterUtxo(
   const requested = requiredAmount(requestedAmount);
   return (
     utxos.find((utxo) => {
-      const state = utxo.state;
-      const remaining = amount(state?.["remainingSupply"]);
-      return (
-        state?.["isMintAuthority"] === true &&
-        remaining !== null &&
-        remaining >= requested
-      );
+      const remaining = activeMinterSupply(utxo);
+      return remaining !== null && remaining >= requested;
     }) ?? null
   );
 }
