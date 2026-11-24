@@ -47,6 +47,8 @@ export interface TokenProfile {
   operations: TokenOperation[];
   fungibility: "single-holder-class" | "unverified";
   nativeExtensions: boolean;
+  /** Older programs require every holder input/output to have a positive amount. */
+  minimumHolderAmount?: 0 | 1;
   wrapper?: TokenWrapperProfile;
   /** Reviewed fixed display convention for programs without token metadata. */
   displayDecimals?: number;
@@ -111,7 +113,8 @@ export function validateTokenProfileRegistry(
         p.scriptSha256,
         p.templateHash,
       ].every((h) => hashPattern.test(h)) ||
-      p.standardRevision !== registry.standardRevision ||
+      ![registry.standardRevision, "54f4f9c2730f77ec5b1ee8bc746d7f94d83b8ee6"].includes(p.standardRevision) ||
+      (p.minimumHolderAmount !== undefined && p.minimumHolderAmount !== 0 && p.minimumHolderAmount !== 1) ||
       !Number.isSafeInteger(p.scriptLength) ||
       p.scriptLength <= 112 ||
       !Number.isSafeInteger(p.stateLayout?.start) ||

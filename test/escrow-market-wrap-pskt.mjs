@@ -29,6 +29,7 @@ const wrapperV2 = JSON.parse(readFileSync(new URL("../artifacts/KCC20WrapperFeeV
 const artifactMap = Object.fromEntries(Object.entries(names).map(([role, name]) => [
   `${name}.placeholder.json`, artifacts[role],
 ]));
+artifactMap["KCC20September2026.placeholder.json"] = JSON.parse(readFileSync(new URL("../artifacts/KCC20September2026.placeholder.json", import.meta.url)));
 const native = JSON.parse(readFileSync(new URL("../artifacts/KCC20.placeholder.json", import.meta.url)));
 const argent = JSON.parse(readFileSync(new URL("../artifacts/ArgentKCC20.reference.json", import.meta.url)));
 const hex = bytes => Buffer.from(bytes).toString("hex");

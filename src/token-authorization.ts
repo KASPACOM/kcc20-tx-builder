@@ -1,5 +1,5 @@
 import { blake3 } from "@noble/hashes/blake3";
-import { requireTokenCapability, type TokenProfile } from "./token-profiles.js";
+import { KCC20_STANDARD_REVISION, requireTokenCapability, type TokenProfile } from "./token-profiles.js";
 
 export interface TokenSigningCapabilities {
   schnorr: boolean;
@@ -20,9 +20,15 @@ const bytes = (v: string, size: number, label: string) => {
     throw new Error(`invalid ${label}`);
   return Uint8Array.from(v.match(/../g)!, (b) => parseInt(b, 16));
 };
-export function tokenPublicKeyHash(publicKey: Uint8Array): Uint8Array {
+export function tokenPublicKeyHash(publicKey: Uint8Array, standardRevision = KCC20_STANDARD_REVISION): Uint8Array {
   if (![32, 33].includes(publicKey.length))
     throw new Error("invalid token public key length");
+  if (standardRevision === "54f4f9c2730f77ec5b1ee8bc746d7f94d83b8ee6") {
+    const key = new Uint8Array(32);
+    key.set(new TextEncoder().encode("PublicKeyHash"));
+    return blake3(publicKey, { key });
+  }
+  if (standardRevision !== KCC20_STANDARD_REVISION) throw new Error("Unsupported token owner hash revision");
   return blake3(publicKey);
 }
 /** Authority inputs must come from the authenticated transaction UTXOs, never an uploaded artifact. */
@@ -58,7 +64,7 @@ export function planTokenOwnerWitness(input: {
     if (ownerScheme === 2 && key[0] !== 2 && key[0] !== 3)
       throw new Error("ECDSA key must be compressed");
     const expected =
-      ownerScheme === 0 ? hex(key) : hex(tokenPublicKeyHash(key));
+      ownerScheme === 0 ? hex(key) : hex(tokenPublicKeyHash(key, profile.standardRevision));
     if (expected !== input.owner.toLowerCase())
       throw new Error("wallet public key does not own the token output");
     return {

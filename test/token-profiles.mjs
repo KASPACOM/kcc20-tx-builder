@@ -31,7 +31,7 @@ const artifact = JSON.parse(
   ),
 );
 authenticateTokenArtifact(candidate, artifact);
-for (const profile of registry.profiles) {
+for (const profile of registry.profiles.filter(p => p.wrapper)) {
   const wrapper = JSON.parse(
     await readFile(
       new URL("../artifacts/" + profile.wrapper.artifactKey, import.meta.url),

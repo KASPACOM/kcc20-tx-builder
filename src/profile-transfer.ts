@@ -121,7 +121,7 @@ export function buildProfileTransferTransaction(
   for (const input of tokenInputs) {
     assert(cid(input.entry) === tokenId, "mixed native token identities");
     assert(
-      input.state.amount >= 0n &&
+      input.state.amount >= BigInt(profile.minimumHolderAmount ?? 0) &&
         hex(input.state.extensionCommitment) === extension,
       "invalid input amount or extension",
     );
@@ -140,7 +140,7 @@ export function buildProfileTransferTransaction(
   assert(total <= 0x7fffffffffffffffn, "transfer total exceeds integer limit");
   for (const state of nextStates) {
     assert(
-      state.amount >= 0n && hex(state.extensionCommitment) === extension,
+      state.amount >= BigInt(profile.minimumHolderAmount ?? 0) && hex(state.extensionCommitment) === extension,
       "invalid output amount or extension",
     );
     assert(

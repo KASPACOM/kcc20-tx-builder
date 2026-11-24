@@ -237,3 +237,5 @@ await writeFile(
   compatibilityPath,
   JSON.stringify(compatibility, null, 2) + "\n",
 );
+
+await import("./append-legacy-holder-profile.mjs");

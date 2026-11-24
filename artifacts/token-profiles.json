@@ -104,6 +104,39 @@
         "templateHash": "1fbe92003266693d2a527d1fc8a4cb1397773f2922702b921aec723a541a6420",
         "tokenTemplateHash": "734850b0af0aeef49f009167bf9ddd238fd8c5cdbe214234f97181ac6f5cc498"
       }
+    },
+    {
+      "id": "kaspacom-kcc20-september2026-holder-v1",
+      "artifactKey": "KCC20September2026.placeholder.json",
+      "artifactSha256": "961e14663608026a8b8fc082f8494ca3a35d274db74674ac995ccd1f63878840",
+      "artifactCanonicalSha256": "080996013e9e02fb624b29b03603c74c14ed2457540a78239ebff0b60743ae9f",
+      "scriptSha256": "4633b082f26adbf14600b767d6e2146e36ce67d63d8202c0281857922c05ac41",
+      "scriptLength": 25552,
+      "templateHash": "911f0638ccb7368bf36d117f1725073ae7ee487ce8b58ca3e8375051c2d40f6c",
+      "stateLayout": {
+        "start": 1,
+        "len": 112
+      },
+      "standardRevision": "54f4f9c2730f77ec5b1ee8bc746d7f94d83b8ee6",
+      "transferEntrypoint": "transfer",
+      "delegatorEntrypoint": "transfer_delegator",
+      "transferTag": "79c71c23",
+      "delegatorTag": "fd3ef14a",
+      "ownerSchemes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "maxTokenInputs": 8,
+      "maxTokenOutputs": 8,
+      "operations": [
+        "transfer"
+      ],
+      "minimumHolderAmount": 1,
+      "fungibility": "single-holder-class",
+      "nativeExtensions": true
     }
   ]
 }
