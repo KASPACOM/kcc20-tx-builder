@@ -135,7 +135,6 @@ export function selectActiveMinterUtxo(
 export function ownerNativeHolderUtxos(
   utxos: readonly Kcc20IndexedCovenantUtxo[],
   owner: string,
-  standardRevision?: string,
 ): Kcc20IndexedCovenantUtxo[] {
   const normalizedOwner = owner.toLowerCase();
   const hashedOwner = /^[a-f0-9]{64}$/.test(normalizedOwner)
@@ -144,7 +143,6 @@ export function ownerNativeHolderUtxos(
           Uint8Array.from(normalizedOwner.match(/../g)!, (b) =>
             parseInt(b, 16),
           ),
-          standardRevision,
         ),
         (b) => b.toString(16).padStart(2, "0"),
       ).join("")
@@ -176,12 +174,11 @@ export function selectOwnerNativeHolderUtxo(
   owner: string,
   requestedAmount: string,
   outpoint?: string,
-  standardRevision?: string,
 ): Kcc20IndexedCovenantUtxo | null {
   const requested = requiredAmount(requestedAmount);
   const requestedOutpoint = outpoint?.toLowerCase();
   return (
-    ownerNativeHolderUtxos(utxos, owner, standardRevision)
+    ownerNativeHolderUtxos(utxos, owner)
       .filter(
         (utxo) =>
           !requestedOutpoint ||

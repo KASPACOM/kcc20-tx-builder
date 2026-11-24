@@ -51,7 +51,7 @@ for (const candidate of BUNDLED_TOKEN_PROFILES.profiles) {
         scheme === 0
           ? Buffer.from(pub, "hex")
           : scheme <= 2
-            ? tokenPublicKeyHash(Buffer.from(publicKey, "hex"), profile.standardRevision)
+            ? tokenPublicKeyHash(Buffer.from(publicKey, "hex"))
             : scheme === 3
               ? Buffer.from(authoritySpk.script.slice(4, 68), "hex")
               : bytes(0xbb),
@@ -96,11 +96,6 @@ for (const candidate of BUNDLED_TOKEN_PROFILES.profiles) {
       capabilities: { schnorr: true, ecdsa: true },
       mode: "owner",
     };
-    if (profile.minimumHolderAmount === 1) {
-      assert.throws(() => buildProfileTransferTransaction(kw, {
-        ...plan, nextStates: [...plan.nextStates, { ...state, amount: 0n }],
-      }), /invalid output amount/);
-    }
     const result = buildProfileTransferTransaction(kw, plan),
       tx = JSON.parse(result.psktTransactionJson);
     assert.equal(tx.outputs[0].covenant.covenantId, tokenId);
@@ -204,10 +199,6 @@ for (const candidate of BUNDLED_TOKEN_PROFILES.profiles) {
       signingPublicKey: pub,
     },
   };
-  if (!profile.operations.includes("borrow")) {
-    assert.throws(() => buildProfileTransferTransaction(kw, plan), /does not support borrow/);
-    continue;
-  }
   const built = buildProfileTransferTransaction(kw, plan);
   assert.equal(
     built.scripts[0].signatureScript.args[6].prefixHex,

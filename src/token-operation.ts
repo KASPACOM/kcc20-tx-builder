@@ -32,7 +32,6 @@ export interface Kcc20ActionWalletInfo {
 
 export interface Kcc20ActionTokenInfo {
   covenantId: string;
-  profileId?: string;
   ticker?: string | null;
   tokenName?: string | null;
   decimals?: number | null;
@@ -234,17 +233,13 @@ export function buildKcc20TransferTokenOperation(
     input.recipientOwner,
     "recipientOwner",
   );
-  const profile = input.token.profileId ? resolveAuthenticatedTokenProfile(
-    { manifest: BUNDLED_TOKEN_PROFILES, sha256: BUNDLED_TOKEN_PROFILE_DIGEST }, input.token.profileId,
-  ) : undefined;
   const holder = selectOwnerNativeHolderUtxo(
     input.activeUtxos,
     owner,
     tokenAmount,
     input.holderOutpoint,
-    profile?.standardRevision,
   );
-  const ownerUtxos = ownerNativeHolderUtxos(input.activeUtxos, owner, profile?.standardRevision);
+  const ownerUtxos = ownerNativeHolderUtxos(input.activeUtxos, owner);
   const summary = summarizeHolderUtxos(ownerUtxos, tokenAmount);
   if (!holder) {
     throw new Error(
@@ -335,7 +330,7 @@ export function buildKcc20NativeConsolidationOperation(
   );
   if (profile.maxTokenInputs < 2 || !profile.operations.includes("transfer"))
     throw new Error("token profile does not support consolidation");
-  const compatible = ownerNativeHolderUtxos(input.activeUtxos, owner, profile.standardRevision);
+  const compatible = ownerNativeHolderUtxos(input.activeUtxos, owner);
   const selected = selectConsolidationBatch(
     compatible,
     input.sourceOutpoints,
