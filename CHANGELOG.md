@@ -1,11 +1,5 @@
 # Changelog
 
-## 0.8.3-fee.8 (unreleased)
-
-- Add authenticated transfer/consolidation support for the archived September 2026 KCC20 holder artifact.
-- Preserve revision-specific owner hashing and reject zero-valued legacy holder outputs.
-- Keep market eligibility unchanged; this compatibility adapter does not enable legacy wrapping or trading.
-
 ## 0.8.3-fee.7
 
 - Ship public lifecycle examples pinned to the fee.6 engine, with fresh node or backend priority quotes and signed-fee validation.
