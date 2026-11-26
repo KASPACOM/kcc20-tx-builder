@@ -118,3 +118,9 @@ Live lifecycle builds fetch a fresh priority quote from the connected TN10 node.
 Fee-estimate failure stops construction. Wallet signing validates the quoted fee
 against the complete signed transaction. Inspection remains the default;
 broadcast still requires explicit `--submit`, a signer and a debit cap.
+
+Balance display must separate native and trading units. A wallet response can
+be HTTP 200 with incomplete asset identity; preserve unresolved raw rows and
+disable their spending controls. See the wallet integration guide's separate
+balances section and `examples/shared/wallet.ts`. Never feed combined balances
+to transaction builders; use authenticated asset-specific UTXOs.

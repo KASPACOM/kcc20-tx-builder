@@ -1,3 +1,4 @@
+import { walletBalanceView } from '../shared/wallet.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { formatQuantity, transferReady, walletClient } from '../shared/wallet.ts';
@@ -55,6 +56,7 @@ test('native send validates recipient, funds, spent source, full amount and sign
   const full = await buildSend(wasm, rpc, loadArtifact, request);
   assert.equal(String(full.metadata.tokenAmount), '100000');
   assert.equal(String(full.metadata.changeAmount), '0');
+  await assert.rejects(buildSend(wasm, rpc, loadArtifact, { ...request, quantityBaseUnits: '100001' }));
   await assert.rejects(signSend(wasm, rpc, full, async () => { throw new Error('Wallet rejected'); }), /Wallet rejected/);
   await assert.rejects(buildSend(wasm, rpc, loadArtifact, { ...request, recipient: 'invalid' }), /recipientOwner/);
   await assert.rejects(buildSend(wasm, rpc, loadArtifact, { ...request, quantityBaseUnits: '1000.001' }), /integer base units/);
@@ -103,4 +105,20 @@ test('broadcast persists intent first and never submits after failed persistence
   f.rows.clear();
   await assert.rejects(broadcastSend(wasm, rpc, signed, async () => { calls.push('unexpected'); }), /Input spent/);
   assert.deepEqual(calls, ['persist', 'submit']);
+});
+test('wallet display never calls 100 native plus 20 trading a transferable 120', () => {
+  const result = walletBalanceView({items: [{canonicalCovenantId: 'native', token: {decimals: 0},
+    nativeBalance: {amount: '100', transferable: true}, wrappedBalance: {amount: '20', wrappedMarketId: 'market', transferable: false}}],
+    total: 1, limit: 1, offset: 0, generatedAtMs: 1,
+    coverage: {status: 'incomplete', scope: 'asset_identity', unresolvedAssetCount: 2}, unresolvedTotal: 2,
+    unresolvedItems: [{assetId: 'unknown', amount: '9007199254740993', identifierType: 0, isMinter: false,
+      identityStatus: 'unresolved', reason: 'identity_unavailable', transferable: false, tradeable: false, wrappable: false, unwrapSupported: false}]});
+  assert.equal(result.items[0].native, '100'); assert.equal(result.items[0].trading, '20');
+  assert.equal(result.items[0].tradingTransferSupported, false);
+  assert.ok(result.warning); assert.equal(result.nextOffset, 1);
+  assert.equal(result.unresolvedItems[0].amount, '9007199254740993 base units');
+  assert.equal('totalBalance' in result.items[0], false);
+});
+test('old servers without identity coverage are not presented as fully verified', () => {
+  assert.ok(walletBalanceView({items: [], total: 0, limit: 100, offset: 0, generatedAtMs: 1}).warning);
 });

@@ -56,7 +56,7 @@ quantities without floating-point conversion. If decimals are missing, display
 explicit base units and the covenant ID; do not guess precision or hide the row.
 Metadata names/icons are display data, not proof of token authenticity.
 
-Native and wrapped are representations, not different quantities to count twice.
+Native and trading holdings are separate spendable assets linked to the same original token. Display them separately; never present their sum as transferable funds.
 Holder balances exclude ask/bid modes in the indexer. Open asks belong in a
 separate `in orders` bucket; sum remaining token amounts from open asks only.
 Do not subtract asks from holder balances again. Bids represent KAS commitments,
@@ -208,3 +208,36 @@ broadcast response alone is insufficient to display a usable mint authority.
 
 FeeTicket administration and fee-waived trading are outside this wallet
 integration. Do not label ticket consumption as ordinary token burning.
+
+## Separate balances and unresolved assets
+
+Display native=100 and trading=20 separately. Native transfer/wrap can use only
+eligible native outputs; trading sell/unwrap can use only eligible trading
+outputs. Never use `totalBalance` or a native-plus-wrapped sum for Max buttons,
+transfer amounts or sell availability. Open orders remain separate.
+
+Wallet balance responses add `coverage` with `scope: "asset_identity"`,
+`unresolvedItems` and `unresolvedTotal`. Show an incomplete warning whenever
+coverage is incomplete or absent. Unresolved entries retain original `assetId`,
+exact raw integer `amount`, `identifierType`, `isMinter` and `utxoCount`;
+`identityStatus` is `unresolved` and all spending capabilities are false.
+Do not guess decimals or treat these amounts as native/trading/zero. Known
+holdings remain usable through strict authenticated construction.
+
+The two arrays use the same limit/offset independently. `total` counts filtered
+verified rows; `unresolvedTotal` counts wallet-wide unresolved raw rows. Continue
+paging until both are exhausted. Token/name/amount filters do not remove the
+unresolved warning or wallet-wide unresolved entries. HTTP 200 does not imply
+complete identity, historical coverage, or fresh spendable UTXOs.
+
+Combined quantity fields and `minTotalAmount`/`totalAmount` query choices remain
+for compatibility but are deprecated. Prefer nativeAmount/wrappedAmount and
+minNativeAmount/minWrappedAmount. Cross-token raw-unit summary sums are not
+meaningful. Estimated common-currency values may include both representations,
+but are not available funds or guaranteed execution prices.
+
+The wallet example prints both categories and unresolved rows, preserving large
+integer amounts and unknown decimals. An older backend without coverage is
+shown as unknown, not complete. These additions depend on the backend rollout;
+this guide/example change does not publish a new builder package or loosen
+source authentication, input selection, signing or broadcast checks.
