@@ -5,7 +5,10 @@ export type BalanceRow = {
   nativeBalance: { amount: string; transferable: boolean };
   wrappedBalance: { amount: string; wrappedMarketId: string | null; transferable: boolean };
 };
-export type BalancePage = { items: BalanceRow[]; total: number; limit: number; offset: number; generatedAtMs: number };
+export type UnresolvedBalance = { assetId: string; amount: string; identifierType: number; isMinter: boolean;
+  identityStatus: 'unresolved'; reason: string; transferable: false; tradeable: false; wrappable: false; unwrapSupported: false };
+export type BalancePage = { coverage?: { status: 'complete' | 'incomplete'; scope: 'asset_identity'; unresolvedAssetCount: number };
+  unresolvedItems?: UnresolvedBalance[]; unresolvedTotal?: number; items: BalanceRow[]; total: number; limit: number; offset: number; generatedAtMs: number };
 export type Freshness = { ok: boolean; stale: boolean; suggestedPollMs: number };
 export function formatQuantity(amount: string, decimals: number | null | undefined): string {
   if (!/^(0|[1-9][0-9]*)$/.test(amount)) throw new Error('Invalid base-unit quantity');
@@ -40,5 +43,26 @@ export function walletClient(baseUrl: string, fetcher: typeof fetch = fetch) {
       if (!/^[0-9a-f]{64}$/i.test(txid)) throw new Error('Invalid transaction ID');
       return request<{ indexed?: boolean; decoded?: boolean; actionCount: number }>(`/trading/tx/${txid}/settlement-status`);
     },
+  };
+}
+
+/** Display units by action category. Neither a sum nor coverage is permission to spend. */
+export function walletBalanceView(page: BalancePage) {
+  const unresolved = page.unresolvedItems ?? [];
+  const incomplete = page.coverage?.status !== 'complete' || unresolved.length > 0 || (page.unresolvedTotal ?? 0) > 0;
+  return {
+    warning: incomplete ? 'Some asset identities are unresolved or coverage is unavailable. Known balances are shown separately; unresolved assets cannot be spent.' : null,
+    items: page.items.map(row => ({
+      assetId: row.canonicalCovenantId,
+      name: row.token.name ?? row.token.ticker ?? row.canonicalCovenantId,
+      tradingAssetId: row.wrappedBalance.wrappedMarketId,
+      native: formatQuantity(row.nativeBalance.amount, row.token.decimals),
+      trading: formatQuantity(row.wrappedBalance.amount, row.token.decimals),
+      nativeTransferSupported: row.nativeBalance.transferable,
+      tradingTransferSupported: false as const,
+    })),
+    unresolvedItems: unresolved.map(row => ({ ...row, amount: formatQuantity(row.amount, null),
+      identityStatus: 'unresolved' as const, transferable: false as const, tradeable: false as const })),
+    nextOffset: page.offset + page.limit < Math.max(page.total, page.unresolvedTotal ?? 0) ? page.offset + page.limit : null,
   };
 }

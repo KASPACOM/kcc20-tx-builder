@@ -148,3 +148,9 @@ that every future release is free of secrets.
   first integration guide and is not presented here as a released dependency.
 
 For authenticated backend broadcasting, follow the [submission guide](PUBLIC_BACKEND_SUBMISSION.md).
+
+Balance display must separate native and trading units. A wallet response can
+be HTTP 200 with incomplete asset identity; preserve unresolved raw rows and
+disable their spending controls. See the wallet integration guide's separate
+balances section and `examples/shared/wallet.ts`. Never feed combined balances
+to transaction builders; use authenticated asset-specific UTXOs.
